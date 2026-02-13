@@ -52,19 +52,6 @@ export default function Projects() {
             });
     };
 
-    const formatPaymentType = (type) => {
-        if (!type) return "";
-
-        // Replace underscores with spaces
-        const formatted = type.replace(/_/g, " ");
-
-        // Capitalize first letter of every word
-        return formatted
-            .split(" ")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ");
-    };
-
     useEffect(() => {
         const close = () => setEditingId(null);
         window.addEventListener("click", close);
@@ -99,9 +86,6 @@ export default function Projects() {
                                 Price
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Payment Type
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 Start Date
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
@@ -118,7 +102,7 @@ export default function Projects() {
                     {loading && (
                         <tbody>
                             <tr>
-                                <td colSpan="8" className="text-center">
+                                <td colSpan="7" className="text-center">
                                     Loading...
                                 </td>
                             </tr>
@@ -139,9 +123,6 @@ export default function Projects() {
                                             {new Intl.NumberFormat(
                                                 "en-PH",
                                             ).format(p.price)}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {formatPaymentType(p.payment_type)}
                                         </td>
                                         <td className="px-4 py-2">
                                             {p.start_date}
@@ -173,7 +154,7 @@ export default function Projects() {
                                                             <StatusBadge
                                                                 status={status}
                                                                 isEnded={
-                                                                    isEnded
+                                                                    p.isEnded
                                                                 }
                                                             />
                                                         </div>
@@ -217,7 +198,7 @@ export default function Projects() {
                             ) : (
                                 <tr>
                                     <td
-                                        colSpan={8}
+                                        colSpan={7}
                                         className="px-4 py-6 text-center text-gray-500"
                                     >
                                         No projects

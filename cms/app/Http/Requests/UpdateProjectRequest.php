@@ -26,7 +26,6 @@ class UpdateProjectRequest extends FormRequest
             'description' => 'required|string|max:200',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'payment_type' => 'required|string|in:one_time,monthly,yearly',
             'price' => 'required|numeric|min:0|decimal:0,2'
         ];
     }

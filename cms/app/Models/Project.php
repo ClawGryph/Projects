@@ -15,7 +15,6 @@ class Project extends Model
         'description',
         'start_date',
         'end_date',
-        'payment_type',
         'price',
         'status'
     ];
@@ -27,7 +26,7 @@ class Project extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'users_projects', 'project_id', 'user_id')
+        return $this->belongsToMany(User::class, 'clients_projects', 'project_id', 'client_id')
                     ->withTimestamps();
     }
 

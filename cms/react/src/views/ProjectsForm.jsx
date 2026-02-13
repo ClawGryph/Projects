@@ -77,7 +77,7 @@ export default function ProjectsForm() {
                     Add New Project
                 </h2>
             )}
-            <div className="w-full max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
+            <div className="w-full max-w-2xl mx-auto  p-6 bg-white rounded-xl shadow-lg">
                 {loading && <div className="text-center">Loading...</div>}
                 {errors && (
                     <div className="px-4 py-3 mb-5 rounded shadow text-white bg-red-500 animate-slide-in">
@@ -148,30 +148,6 @@ export default function ProjectsForm() {
 
                             <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
                                 Client Cost
-                            </label>
-                        </div>
-
-                        {/* PAYMENT INPUT */}
-                        <div className="relative w-full">
-                            <select
-                                value={project.payment_type}
-                                onChange={(e) =>
-                                    setProject({
-                                        ...project,
-                                        payment_type: e.target.value,
-                                    })
-                                }
-                                className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                            >
-                                <option value="" disabled>
-                                    Select Payment Type
-                                </option>
-                                <option value="one_time">One Time</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="yearly">Yearly</option>
-                            </select>
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Payment
                             </label>
                         </div>
 

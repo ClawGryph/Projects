@@ -67,17 +67,17 @@ export default function ClientForm() {
     return (
         <>
             {client.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6 mb-0">
+                <h2 className="text-2xl font-bold text-gray-800 m-6">
                     Update Client: {formData.name}
                 </h2>
             )}
             {!client.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6 mb-0">
+                <h2 className="text-2xl font-bold text-gray-800 m-6">
                     Add New Client
                 </h2>
             )}
 
-            <div className="w-full max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
+            <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg">
                 {loading && <div className="text-center">Loading...</div>}
                 {errors && (
                     <div className="px-4 py-3 mb-5 rounded shadow text-white bg-red-500 animate-slide-in">

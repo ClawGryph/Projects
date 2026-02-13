@@ -27,7 +27,6 @@ class ProjectController extends Controller
             'description' => 'required|max:200',
             'start_date' => 'required',
             'end_date' => 'required',
-            'payment_type' => 'required',
             'price' => 'required',
             'status' => 'string'
         ]);
