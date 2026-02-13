@@ -1,0 +1,229 @@
+import { Link } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus, faTrash, faPen } from "@fortawesome/free-solid-svg-icons";
+import { useState, useEffect } from "react";
+import axiosClient from "../axios-client";
+import { useStateContext } from "../context/ContextProvider";
+import StatusBadge from "../components/StatusBadge.jsx";
+
+export default function Projects() {
+    const [projects, setProjects] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const { setNotification } = useStateContext();
+
+    const getProjects = () => {
+        setLoading(true);
+
+        axiosClient
+            .get("/projects")
+            .then(({ data }) => {
+                setLoading(false);
+                setProjects(data.data);
+            })
+            .catch(() => {
+                setLoading(false);
+            });
+    };
+
+    useEffect(() => {
+        getProjects();
+    }, []);
+
+    const onDelete = (p) => {
+        if (!window.confirm("Are you sure you want to delete this project?")) {
+            return;
+        }
+
+        axiosClient.delete(`/projects/${p.id}`).then(() => {
+            setNotification("Projects was successfully deleted");
+            getProjects();
+        });
+    };
+
+    const updateStatus = (projectId, newStatus) => {
+        axiosClient
+            .put(`/projects/${projectId}/status`, {
+                status: newStatus,
+            })
+            .then(() => {
+                getProjects(); // refresh list
+                setNotification("Project status updated");
+            });
+    };
+
+    const formatPaymentType = (type) => {
+        if (!type) return "";
+
+        // Replace underscores with spaces
+        const formatted = type.replace(/_/g, " ");
+
+        // Capitalize first letter of every word
+        return formatted
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+    };
+
+    useEffect(() => {
+        const close = () => setEditingId(null);
+        window.addEventListener("click", close);
+        return () => window.removeEventListener("click", close);
+    }, []);
+
+    return (
+        <div>
+            <div className="flex justify-between items-center p-5 mt-5">
+                <h1 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                    Projects
+                </h1>
+                <Link
+                    to={"/projects/new"}
+                    className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center"
+                >
+                    <FontAwesomeIcon icon={faPlus} />
+                    Add new
+                </Link>
+            </div>
+            <div className="flex flex-col h-full justify-start items-center overflow-x-auto">
+                <table className="max-w-[1100px] w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
+                    <thead>
+                        <tr className="bg-cyan-800">
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                ID
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Title
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Price
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Payment Type
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Start Date
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                End Date
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Status
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    {loading && (
+                        <tbody>
+                            <tr>
+                                <td colSpan="8" className="text-center">
+                                    Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    )}
+                    {!loading && (
+                        <tbody>
+                            {projects.length > 0 ? (
+                                projects.map((p) => (
+                                    <tr
+                                        key={p.id}
+                                        className="border-b border-gray-200 hover:bg-cyan-50 text-center"
+                                    >
+                                        <td className="px-4 py-2">{p.id}</td>
+                                        <td className="px-4 py-2">{p.title}</td>
+                                        <td className="px-4 py-2">
+                                            ₱{" "}
+                                            {new Intl.NumberFormat(
+                                                "en-PH",
+                                            ).format(p.price)}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {formatPaymentType(p.payment_type)}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {p.start_date}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {p.end_date}
+                                        </td>
+                                        <td className="px-4 py-2 relative">
+                                            {editingId === p.id ? (
+                                                <div className="absolute bg-white border rounded shadow-md z-10">
+                                                    {[
+                                                        "pending",
+                                                        "ongoing",
+                                                        "completed",
+                                                    ].map((status) => (
+                                                        <div
+                                                            key={status}
+                                                            onClick={() => {
+                                                                updateStatus(
+                                                                    p.id,
+                                                                    status,
+                                                                );
+                                                                setEditingId(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                        >
+                                                            <StatusBadge
+                                                                status={status}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingId(p.id);
+                                                    }}
+                                                    className="cursor-pointer flex justify-center"
+                                                >
+                                                    <StatusBadge
+                                                        status={p.status}
+                                                    />
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2 flex justify-center items-center gap-2">
+                                            <Link
+                                                to={"/projects/" + p.id}
+                                                className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                            >
+                                                <FontAwesomeIcon icon={faPen} />
+                                                Edit
+                                            </Link>
+                                            <button
+                                                onClick={() => onDelete(p)}
+                                                className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                            >
+                                                <FontAwesomeIcon
+                                                    icon={faTrash}
+                                                />
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td
+                                        colSpan={8}
+                                        className="px-4 py-6 text-center text-gray-500"
+                                    >
+                                        No projects
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    )}
+                </table>
+            </div>
+        </div>
+    );
+}

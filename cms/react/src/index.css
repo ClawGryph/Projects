@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+.body {
+    min-height: 100vh;
+}
+.nav-item:hover {
+    background: #1d7077;
+}
