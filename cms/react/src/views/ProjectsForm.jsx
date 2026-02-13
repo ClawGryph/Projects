@@ -77,7 +77,7 @@ export default function ProjectsForm() {
                     Add New Project
                 </h2>
             )}
-            <div className="max-w-lg mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
+            <div className="w-full max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
                 {loading && <div className="text-center">Loading...</div>}
                 {errors && (
                     <div className="px-4 py-3 mb-5 rounded shadow text-white bg-red-500 animate-slide-in">
@@ -88,31 +88,46 @@ export default function ProjectsForm() {
                 )}
                 {!loading && (
                     <form onSubmit={onSubmit} className="space-y-4">
-                        <input
-                            value={project.title}
-                            onChange={(e) =>
-                                setProject({
-                                    ...project,
-                                    title: e.target.value,
-                                })
-                            }
-                            placeholder="Title"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        />
-                        <textarea
-                            value={project.description}
-                            onChange={(e) =>
-                                setProject({
-                                    ...project,
-                                    description: e.target.value,
-                                })
-                            }
-                            placeholder="Description"
-                            rows={5}
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none overflow-y-auto"
-                        />
+                        {/* TITLE INPUT */}
                         <div className="relative w-full">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
+                            <input
+                                value={project.title}
+                                onChange={(e) =>
+                                    setProject({
+                                        ...project,
+                                        title: e.target.value,
+                                    })
+                                }
+                                placeholder="Enter title..."
+                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                            />
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                Title
+                            </label>
+                        </div>
+
+                        {/* DESCRIPTION INPUT */}
+                        <div className="relative w-full">
+                            <textarea
+                                value={project.description}
+                                onChange={(e) =>
+                                    setProject({
+                                        ...project,
+                                        description: e.target.value,
+                                    })
+                                }
+                                placeholder="Enter description..."
+                                rows={5}
+                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                            />
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                Description
+                            </label>
+                        </div>
+
+                        {/* COST INPUT */}
+                        <div className="relative w-full">
+                            <span className="absolute left-3 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
                                 ₱
                             </span>
 
@@ -127,11 +142,16 @@ export default function ProjectsForm() {
                                         price: e.target.value,
                                     })
                                 }
-                                placeholder="Price"
-                                className="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                placeholder="0.00"
+                                className="block w-full border border-gray-300 rounded-md pl-8 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             />
+
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                Client Cost
+                            </label>
                         </div>
 
+                        {/* PAYMENT INPUT */}
                         <div className="relative w-full">
                             <select
                                 value={project.payment_type}
@@ -141,7 +161,7 @@ export default function ProjectsForm() {
                                         payment_type: e.target.value,
                                     })
                                 }
-                                className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             >
                                 <option value="" disabled>
                                     Select Payment Type
@@ -150,7 +170,12 @@ export default function ProjectsForm() {
                                 <option value="monthly">Monthly</option>
                                 <option value="yearly">Yearly</option>
                             </select>
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                Payment
+                            </label>
                         </div>
+
+                        {/* START DATE */}
                         <div className="relative w-full">
                             <input
                                 type="date"
@@ -162,16 +187,14 @@ export default function ProjectsForm() {
                                     })
                                 }
                                 placeholder=" "
-                                className="peer block w-full border border-gray-300 rounded-md px-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="block w-full border border-gray-300 rounded-md px-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label
-                                className="absolute left-3 top-2 text-gray-400 text-sm transition-all duration-200
-                                            peer-placeholder-shown:top-5 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base
-                                            peer-focus:top-2 peer-focus:text-gray-700 peer-focus:text-sm"
-                            >
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
                                 Start Date
                             </label>
                         </div>
+
+                        {/* END DATE */}
                         <div className="relative w-full">
                             <input
                                 type="date"
@@ -183,13 +206,9 @@ export default function ProjectsForm() {
                                     })
                                 }
                                 placeholder=" "
-                                className="peer block w-full border border-gray-300 rounded-md px-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="block w-full border border-gray-300 rounded-md px-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label
-                                className="absolute left-3 top-2 text-gray-400 text-sm transition-all duration-200
-                                            peer-placeholder-shown:top-5 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base
-                                            peer-focus:top-2 peer-focus:text-gray-700 peer-focus:text-sm"
-                            >
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
                                 End Date
                             </label>
                         </div>
