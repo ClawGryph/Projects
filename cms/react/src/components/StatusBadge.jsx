@@ -1,8 +1,9 @@
-export default function StatusBadge({ status }) {
+export default function StatusBadge({ status, isEnded = false }) {
     const statusConfig = {
         completed: {
             bg: "bg-green-100",
             text: "text-green-700",
+            label: "Completed",
             icon: (
                 <svg
                     className="w-3 h-3"
@@ -16,11 +17,11 @@ export default function StatusBadge({ status }) {
                     />
                 </svg>
             ),
-            label: "Completed",
         },
         ongoing: {
             bg: "bg-blue-100",
             text: "text-blue-700",
+            label: "Ongoing",
             icon: (
                 <svg
                     className="w-3 h-3 animate-spin"
@@ -42,11 +43,11 @@ export default function StatusBadge({ status }) {
                     ></path>
                 </svg>
             ),
-            label: "Ongoing",
         },
         pending: {
             bg: "bg-yellow-100",
             text: "text-yellow-700",
+            label: "Pending",
             icon: (
                 <svg
                     className="w-3 h-3"
@@ -60,11 +61,20 @@ export default function StatusBadge({ status }) {
                     />
                 </svg>
             ),
-            label: "Pending",
         },
     };
 
-    const config = statusConfig[status?.toLowerCase()] || statusConfig.pending;
+    let config = statusConfig[status?.toLowerCase()] || statusConfig.pending;
+
+    // Override ongoing color if project is ended
+    if (status?.toLowerCase() === "ongoing" && isEnded) {
+        config = {
+            ...config,
+            bg: "bg-red-100",
+            text: "text-red-700",
+            label: "Ongoing",
+        };
+    }
 
     return (
         <span

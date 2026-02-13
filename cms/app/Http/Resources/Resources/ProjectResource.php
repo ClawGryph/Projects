@@ -23,7 +23,8 @@ class ProjectResource extends JsonResource
             'end_date' => $this->end_date ? date('Y-m-d', strtotime($this->end_date)) : null,
             'payment_type' => $this->payment_type,
             'price' => $this->price,
-            'status' => $this->status
+            'status' => $this->status,
+            'isEnded' => $this->end_date && $this->end_date <= now(),
         ];
     }
 }

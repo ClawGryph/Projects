@@ -172,6 +172,9 @@ export default function Projects() {
                                                         >
                                                             <StatusBadge
                                                                 status={status}
+                                                                isEnded={
+                                                                    isEnded
+                                                                }
                                                             />
                                                         </div>
                                                     ))}
@@ -186,6 +189,7 @@ export default function Projects() {
                                                 >
                                                     <StatusBadge
                                                         status={p.status}
+                                                        isEnded={p.isEnded}
                                                     />
                                                 </div>
                                             )}
