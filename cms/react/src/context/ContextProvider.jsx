@@ -1,18 +1,18 @@
 import { createContext, useContext, useState } from "react";
 
 const StateContext = createContext({
-    user: null,
+    client: null,
     project: null,
     token: null,
     notification: null,
-    setUser: () => {},
+    setClient: () => {},
     setToken: () => {},
     setNotification: () => {},
     setProject: () => {},
 });
 
 export const ContextProvider = ({ children }) => {
-    const [user, setUser] = useState({});
+    const [client, setClient] = useState({});
     const [project, setProject] = useState({});
     const [notification, _setNotification] = useState("");
     const [token, _setToken] = useState(localStorage.getItem("ACCESS_TOKEN"));
@@ -36,9 +36,9 @@ export const ContextProvider = ({ children }) => {
     return (
         <StateContext.Provider
             value={{
-                user,
+                client,
                 token,
-                setUser,
+                setClient,
                 setToken,
                 notification,
                 setNotification,

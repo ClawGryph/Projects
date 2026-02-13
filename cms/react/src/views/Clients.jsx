@@ -10,8 +10,8 @@ import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 
-export default function Users() {
-    const [users, setUsers] = useState([]);
+export default function Clients() {
+    const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(false);
     const { setNotification } = useStateContext();
 
@@ -20,11 +20,11 @@ export default function Users() {
     }, []);
 
     const onDelete = (u) => {
-        if (!window.confirm("Are you sure you want to delete this user?")) {
+        if (!window.confirm("Are you sure you want to delete this client?")) {
             return;
         }
 
-        axiosClient.delete(`/users/${u.id}`).then(() => {
+        axiosClient.delete(`/clients/${u.id}`).then(() => {
             setNotification("Client was successfully deleted");
             getUsers();
         });
@@ -34,10 +34,10 @@ export default function Users() {
         setLoading(true);
 
         axiosClient
-            .get("/users")
+            .get("/clients")
             .then(({ data }) => {
                 setLoading(false);
-                setUsers(data.data);
+                setClients(data.data);
             })
             .catch(() => {
                 setLoading(false);
@@ -51,7 +51,7 @@ export default function Users() {
                     Clients
                 </h1>
                 <Link
-                    to={"/users/new"}
+                    to={"/clients/new"}
                     className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center"
                 >
                     <FontAwesomeIcon icon={faPlus} />
@@ -99,8 +99,8 @@ export default function Users() {
                     )}
                     {!loading && (
                         <tbody>
-                            {users.length > 0 ? (
-                                users.map((u) => (
+                            {clients.length > 0 ? (
+                                clients.map((u) => (
                                     <tr
                                         key={u.id}
                                         className="border-b border-gray-200 hover:bg-cyan-50 text-center"
@@ -119,7 +119,7 @@ export default function Users() {
                                         </td>
                                         <td className="px-4 py-2">
                                             <Link
-                                                to={"/users/project/" + u.id}
+                                                to={"/clients/project/" + u.id}
                                                 className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border-solid border border-cyan-800 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white"
                                             >
                                                 <FontAwesomeIcon
@@ -130,7 +130,7 @@ export default function Users() {
                                         </td>
                                         <td className="px-4 py-2 flex justify-center items-center gap-2">
                                             <Link
-                                                to={"/users/" + u.id}
+                                                to={"/clients/" + u.id}
                                                 className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
                                             >
                                                 <FontAwesomeIcon icon={faPen} />

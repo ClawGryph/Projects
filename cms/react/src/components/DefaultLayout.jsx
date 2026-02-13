@@ -27,7 +27,7 @@ export default function DefaultLayout() {
                         Dashboard
                     </Link>
                     <Link
-                        to="/users"
+                        to="/clients"
                         className="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item"
                     >
                         <FontAwesomeIcon icon={faUser} />

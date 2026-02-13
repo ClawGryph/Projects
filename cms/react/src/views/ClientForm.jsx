@@ -3,14 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 
-export default function UserForm() {
+export default function ClientForm() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { setNotification } = useStateContext();
 
     const [errors, setErrors] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [user, setUser] = useState({
+    const [client, setClient] = useState({
         id: null,
         name: "",
         email: "",
@@ -24,10 +24,10 @@ export default function UserForm() {
         if (!id) return;
         setLoading(true);
         axiosClient
-            .get(`/users/${id}`)
+            .get(`/clients/${id}`)
             .then(({ data }) => {
                 setLoading(false);
-                setUser(data);
+                setClient(data);
                 setFormData(data);
             })
             .catch(() => setLoading(false));
@@ -35,12 +35,12 @@ export default function UserForm() {
 
     const onSubmit = (e) => {
         e.preventDefault();
-        if (user.id) {
+        if (client.id) {
             axiosClient
-                .put(`/users/${user.id}`, user)
+                .put(`/clients/${client.id}`, client)
                 .then(() => {
                     setNotification("Client was successfully updated");
-                    navigate("/users");
+                    navigate("/clients");
                 })
                 .catch((err) => {
                     const response = err.response;
@@ -50,10 +50,10 @@ export default function UserForm() {
                 });
         } else {
             axiosClient
-                .post(`/users`, user)
+                .post(`/clients`, client)
                 .then(() => {
                     setNotification("Client was successfully created");
-                    navigate("/users");
+                    navigate("/clients");
                 })
                 .catch((err) => {
                     const response = err.response;
@@ -66,12 +66,12 @@ export default function UserForm() {
 
     return (
         <>
-            {user.id && (
+            {client.id && (
                 <h2 className="text-2xl font-bold text-gray-800 m-6 mb-0">
                     Update Client: {formData.name}
                 </h2>
             )}
-            {!user.id && (
+            {!client.id && (
                 <h2 className="text-2xl font-bold text-gray-800 m-6 mb-0">
                     Add New Client
                 </h2>
@@ -89,27 +89,27 @@ export default function UserForm() {
                 {!loading && (
                     <form onSubmit={onSubmit} className="space-y-4">
                         <input
-                            value={user.name}
+                            value={client.name}
                             onChange={(e) =>
-                                setUser({ ...user, name: e.target.value })
+                                setClient({ ...client, name: e.target.value })
                             }
                             placeholder="Name"
                             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         />
                         <input
                             type="email"
-                            value={user.email}
+                            value={client.email}
                             onChange={(e) =>
-                                setUser({ ...user, email: e.target.value })
+                                setClient({ ...client, email: e.target.value })
                             }
                             placeholder="Email"
                             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         />
                         <input
-                            value={user.phone_number}
+                            value={client.phone_number}
                             onChange={(e) =>
-                                setUser({
-                                    ...user,
+                                setClient({
+                                    ...client,
                                     phone_number: e.target.value,
                                 })
                             }
@@ -117,10 +117,10 @@ export default function UserForm() {
                             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         />
                         <input
-                            value={user.company_name}
+                            value={client.company_name}
                             onChange={(e) =>
-                                setUser({
-                                    ...user,
+                                setClient({
+                                    ...client,
                                     company_name: e.target.value,
                                 })
                             }
@@ -128,10 +128,10 @@ export default function UserForm() {
                             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         />
                         <input
-                            value={user.company_address}
+                            value={client.company_address}
                             onChange={(e) =>
-                                setUser({
-                                    ...user,
+                                setClient({
+                                    ...client,
                                     company_address: e.target.value,
                                 })
                             }

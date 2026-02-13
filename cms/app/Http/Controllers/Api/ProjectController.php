@@ -29,7 +29,7 @@ class ProjectController extends Controller
             'end_date' => 'required',
             'payment_type' => 'required',
             'price' => 'required',
-            'statud' => 'required|string'
+            'status' => 'string'
         ]);
 
 
@@ -70,7 +70,7 @@ class ProjectController extends Controller
     public function updateStatus(Request $request, Project $project)
 {
     $request->validate([
-        'status' => 'required|in:pending,ongoing,completed'
+        'status' => 'string|in:pending,ongoing,completed'
     ]);
 
     $project->update([

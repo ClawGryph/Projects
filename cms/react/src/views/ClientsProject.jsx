@@ -6,38 +6,38 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge.jsx";
 
-export default function UsersProject() {
-    const { id } = useParams(); // user ID from URL
+export default function ClientsProject() {
+    const { id } = useParams(); // client ID from URL
     const { setNotification } = useStateContext();
 
-    const [user, setUser] = useState(null);
+    const [client, setClient] = useState(null);
     const [projects, setProjects] = useState([]);
     const [allProjects, setAllProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState("");
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
 
-    // Fetch user info
+    // Fetch client info
     useEffect(() => {
         if (!id) return;
 
-        // Fetch user info
+        // Fetch client info
         axiosClient
-            .get(`/users/${id}`)
-            .then(({ data }) => setUser(data))
-            .catch(() => setNotification("Failed to load user data"));
+            .get(`/clients/${id}`)
+            .then(({ data }) => setClient(data))
+            .catch(() => setNotification("Failed to load client data"));
 
         // Fetch projects
-        getUserProjects();
+        getClientProjects();
     }, [id]);
 
-    // Fetch user's projects
+    // Fetch client's projects
     useEffect(() => {
         if (!id) return;
         setLoading(true);
 
         axiosClient
-            .get(`/users/${id}/projects`)
+            .get(`/clients/${id}/projects`)
             .then(({ data }) => {
                 setProjects(data.data);
                 setLoading(false);
@@ -62,10 +62,10 @@ export default function UsersProject() {
         );
     }
 
-    const getUserProjects = () => {
+    const getClientProjects = () => {
         setLoading(true);
         axiosClient
-            .get(`/users/${id}/projects`)
+            .get(`/clients/${id}/projects`)
             .then(({ data }) => setProjects(data.data))
             .catch(() => setNotification("Failed to load projects"))
             .finally(() => setLoading(false));
@@ -91,7 +91,7 @@ export default function UsersProject() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-5">
                 <h1 className="text-3xl font-bold">
-                    {user ? `${user.name}'s Projects` : "Projects"}
+                    {client ? `${client.name}'s Projects` : "Projects"}
                 </h1>
                 <button
                     onClick={openModal}
@@ -103,7 +103,9 @@ export default function UsersProject() {
             </div>
 
             {projects.length === 0 && (
-                <p className="text-gray-500">This user has no projects yet.</p>
+                <p className="text-gray-500">
+                    This client has no projects yet.
+                </p>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -200,7 +202,7 @@ export default function UsersProject() {
                                     );
 
                                 axiosClient
-                                    .post(`/users/${id}/projects`, {
+                                    .post(`/clients/${id}/projects`, {
                                         project_id: selectedProject,
                                     })
                                     .then(() => {
@@ -209,7 +211,7 @@ export default function UsersProject() {
                                         );
                                         setSelectedProject(""); // reset dropdown
                                         closeModal(); // close modal
-                                        getUserProjects(); // refresh projects list!
+                                        getClientProjects(); // refresh projects list!
                                     })
                                     .catch(() =>
                                         setNotification(

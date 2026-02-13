@@ -5,15 +5,15 @@ import { faFileExport } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge.jsx";
 
 export default function Dashboard() {
-    const [user, setUser] = useState([]);
+    const [client, setClient] = useState([]);
     const [projects, setProjects] = useState([]);
-    const [usersProject, setUsersProject] = useState([]);
+    const [clientsProject, setClientsProject] = useState([]);
 
     // Fetch Clients
     useEffect(() => {
         axiosClient
-            .get("/users")
-            .then(({ data }) => setUser(data.data))
+            .get("/clients")
+            .then(({ data }) => setClient(data.data))
             .catch(() => setNotification("Failed to load clients"));
     }, []);
 
@@ -29,7 +29,7 @@ export default function Dashboard() {
     useEffect(() => {
         axiosClient
             .get("/client-projects")
-            .then(({ data }) => setUsersProject(data.data));
+            .then(({ data }) => setClientsProject(data.data));
     }, []);
 
     // Function to export CSV
@@ -51,8 +51,8 @@ export default function Dashboard() {
         // Prepare CSV rows
         const rows = projectsData.map((project) => [
             project.title,
-            project.users && project.users.length > 0
-                ? project.users.map((u) => u.name).join(", ")
+            project.clients && project.clients.length > 0
+                ? project.clients.map((u) => u.name).join(", ")
                 : "No Client",
             project.payment_type,
             project.status,
@@ -102,7 +102,7 @@ export default function Dashboard() {
                     </p>
                 </div>
                 <button
-                    onClick={() => exportDashboardCSV(usersProject)}
+                    onClick={() => exportDashboardCSV(clientsProject)}
                     className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center cursor-pointer"
                 >
                     <FontAwesomeIcon icon={faFileExport} />
@@ -136,7 +136,7 @@ export default function Dashboard() {
                                     Total Clients
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    {user.length}
+                                    {client.length}
                                 </h3>
                             </div>
                         </div>
@@ -295,7 +295,7 @@ export default function Dashboard() {
                         </tr>
                     </thead>
                     <tbody>
-                        {usersProject.length === 0 ? (
+                        {clientsProject.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan="4"
@@ -305,7 +305,7 @@ export default function Dashboard() {
                                 </td>
                             </tr>
                         ) : (
-                            usersProject.slice(0, 5).map((project) => (
+                            clientsProject.slice(0, 5).map((project) => (
                                 <tr
                                     key={project.id}
                                     className="border-b border-gray-200 hover:bg-cyan-50 text-center"
@@ -315,9 +315,9 @@ export default function Dashboard() {
                                     </td>
 
                                     <td className="px-4 py-2">
-                                        {project.users &&
-                                        project.users.length > 0
-                                            ? project.users
+                                        {project.clients &&
+                                        project.clients.length > 0
+                                            ? project.clients
                                                   .map((u) => u.name)
                                                   .join(", ")
                                             : "No Client"}
@@ -351,7 +351,7 @@ export default function Dashboard() {
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                         Upcoming Payments
                     </h2>
-                    {usersProject.slice(0, 5).map((project) => (
+                    {clientsProject.slice(0, 5).map((project) => (
                         <div
                             key={project.id}
                             className="flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5"
@@ -361,8 +361,8 @@ export default function Dashboard() {
                                     {project.title}
                                 </h3>
                                 <p className="text-gray-500">
-                                    {project.users.length > 0
-                                        ? project.users
+                                    {project.clients.length > 0
+                                        ? project.clients
                                               .map((u) => u.name)
                                               .join(", ")
                                         : "No Client"}

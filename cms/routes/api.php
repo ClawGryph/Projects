@@ -1,11 +1,9 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\ClientsProjectController;
 use App\Http\Controllers\Api\ProjectController;
-use App\Http\Controllers\Api\UserProjectController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,9 +16,9 @@ use App\Http\Controllers\Api\UserProjectController;
 |
 */
 
-Route::apiResource('/users', UserController::class);
+Route::apiResource('/clients', ClientController::class);
 Route::apiResource('/projects', ProjectController::class);
-Route::get('/users/{user}/projects', [UserProjectController::class, 'index']);
-Route::post('/users/{user}/projects', [UserProjectController::class, 'assignProject']);
-Route::get('/client-projects', [UserProjectController::class, 'projectsWithClients']);
+Route::get('/clients/{client}/projects', [ClientsProjectController::class, 'index']);
+Route::post('/clients/{client}/projects', [ClientsProjectController::class, 'assignProject']);
+Route::get('/client-projects', [ClientsProjectController::class, 'projectsWithClients']);
 Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);

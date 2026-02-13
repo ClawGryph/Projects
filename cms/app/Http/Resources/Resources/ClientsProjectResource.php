@@ -5,7 +5,7 @@ namespace App\Http\Resources\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class UsersProjectResource extends JsonResource
+class ClientsProjectResource extends JsonResource
 {
     public static $wrap = false;
     /**
@@ -25,11 +25,11 @@ class UsersProjectResource extends JsonResource
             'price' => $this->price,
             'status' => $this->status,
 
-            // 🔥 Add users here
-            'users' => $this->users->map(function($user) {
+            // 🔥 Add clients here
+            'clients' => $this->clients->map(function($client) {
                 return [
-                    'id' => $user->id,
-                    'name' => $user->name,
+                    'id' => $client->id,
+                    'name' => $client->name,
                 ];
             }),
         ];
