@@ -5,6 +5,7 @@ import {
     faGauge,
     faUser,
     faDiagramProject,
+    faMoneyBill,
 } from "@fortawesome/free-solid-svg-icons";
 import { useStateContext } from "../context/ContextProvider";
 
@@ -39,6 +40,13 @@ export default function DefaultLayout() {
                     >
                         <FontAwesomeIcon icon={faDiagramProject} />
                         Projects
+                    </Link>
+                    <Link
+                        to="/payments"
+                        className="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item"
+                    >
+                        <FontAwesomeIcon icon={faMoneyBill} />
+                        Payments
                     </Link>
                 </nav>
             </aside>

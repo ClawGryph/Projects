@@ -24,6 +24,7 @@ class ProjectResource extends JsonResource
             'price' => $this->price,
             'status' => $this->status,
             'isEnded' => $this->end_date && $this->end_date <= now(),
+            'created_at' => $this->created_at
         ];
     }
 }

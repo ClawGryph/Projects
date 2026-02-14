@@ -16,7 +16,8 @@ class Project extends Model
         'start_date',
         'end_date',
         'price',
-        'status'
+        'status',
+        'created_at'
     ];
 
     protected $casts = [
@@ -24,7 +25,7 @@ class Project extends Model
         'end_date' => 'datetime',
     ];
 
-    public function users()
+    public function clients()
     {
         return $this->belongsToMany(User::class, 'clients_projects', 'project_id', 'client_id')
                     ->withTimestamps();

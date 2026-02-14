@@ -8,6 +8,7 @@ import ClientForm from "./views/ClientForm.jsx";
 import Projects from "./views/Projects.jsx";
 import ProjectsForm from "./views/ProjectsForm.jsx";
 import ClientsProject from "./views/ClientsProject.jsx";
+import Payments from "./views/Payments.jsx";
 
 const router = createBrowserRouter([
     {
@@ -49,6 +50,10 @@ const router = createBrowserRouter([
             {
                 path: "/projects/:id",
                 element: <ProjectsForm key="projectUpdate" />,
+            },
+            {
+                path: "/payments",
+                element: <Payments />,
             },
         ],
     },

@@ -25,3 +25,4 @@ Route::get('/clients/{client}/projects', [ClientsProjectController::class, 'inde
 Route::post('/clients/{client}/projects', [ClientsProjectController::class, 'assignProject']);
 Route::get('/client-projects', [ClientsProjectController::class, 'projectsWithClients']);
 Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
+Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);

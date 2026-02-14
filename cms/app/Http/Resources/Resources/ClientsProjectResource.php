@@ -20,6 +20,7 @@ class ClientsProjectResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'created_at' => $this->created_at,
 
             'project' => [
                 'id' => $this->project->id,
@@ -33,16 +34,20 @@ class ClientsProjectResource extends JsonResource
                 'end_date' => $this->project->end_date
                                 ? Carbon::parse($this->project->end_date)->format('Y-m-d')
                                 : null,
+                'created_at' => $this->project->created_at,
             ],
 
             
             'payment' => $payment ? [
+                'id' => $payment->id, 
                 'payment_type' => $payment->payment_type,
                 'recurring_type' => $payment->recurring_type,
                 'installments' => $payment->installments,
                 'current_installment' => $payment->current_installment,
-                'start_date' => $payment->start_date,
-                'next_payment_date' => $payment->next_payment_date,
+                'start_date' => $payment->start_date ? Carbon::parse($payment->start_date)->format('Y-m-d')
+                                : null,
+                'next_payment_date' => $payment->next_payment_date ? Carbon::parse($payment->next_payment_date)->format('Y-m-d')
+                                : null,
                 'status' => $payment->status,
             ] : null,
 

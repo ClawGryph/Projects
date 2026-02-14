@@ -8,29 +8,153 @@ export default function Dashboard() {
     const [client, setClient] = useState([]);
     const [projects, setProjects] = useState([]);
     const [clientsProject, setClientsProject] = useState([]);
+    const [metrics, setMetrics] = useState({
+        clientChange: 0,
+        projectsChange: 0,
+        revenueChange: 0,
+        monthlyRevenue: 0,
+        overduePayments: 0,
+        overdueCount: 0,
+    });
+
+    // Calculate metrics from data
+    const calculateMetrics = (
+        clientData,
+        projectsData,
+        clientsProjectsData,
+    ) => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        // Get last month
+        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const lastMonthYear =
+            currentMonth === 0 ? currentYear - 1 : currentYear;
+
+        // Filter projects by date
+        const currentMonthProjects = projectsData.filter((p) => {
+            if (!p.created_at) return false;
+            const date = new Date(p.created_at);
+
+            return (
+                date.getMonth() === currentMonth &&
+                date.getFullYear() === currentYear
+            );
+        });
+
+        const lastMonthProjects = projectsData.filter((p) => {
+            if (!p.created_at) return false;
+            const date = new Date(p.created_at);
+
+            return (
+                date.getMonth() === lastMonth &&
+                date.getFullYear() === lastMonthYear
+            );
+        });
+
+        // Calculate revenue
+        const currentMonthRevenue = currentMonthProjects.reduce(
+            (sum, p) => sum + Number(p.price || 0),
+            0,
+        );
+        const lastMonthRevenue = lastMonthProjects.reduce(
+            (sum, p) => sum + Number(p.price || 0),
+            0,
+        );
+        const revenueChangePercent =
+            lastMonthRevenue > 0
+                ? (
+                      ((currentMonthRevenue - lastMonthRevenue) /
+                          lastMonthRevenue) *
+                      100
+                  ).toFixed(1)
+                : currentMonthRevenue > 0
+                  ? 100
+                  : 0;
+
+        // Calculate overdue payments (assuming you have a due_date and status field)
+        const overdueProjects = clientsProjectsData.filter((p) => {
+            const dueDate = p.due_date ? new Date(p.due_date) : null;
+            return (
+                dueDate &&
+                dueDate < now &&
+                p.status !== "completed" &&
+                p.status !== "paid"
+            );
+        });
+        const overdueTotal = overdueProjects.reduce(
+            (sum, p) => sum + Number(p.price || 0),
+            0,
+        );
+
+        // Calculate client change (you may need to adjust this based on your data structure)
+        // This assumes client have a created_at field
+        const currentMonthClients = clientData.filter((c) => {
+            if (!c.created_at) return false;
+            const createdDate = new Date(c.created_at);
+            return (
+                createdDate.getMonth() === currentMonth &&
+                createdDate.getFullYear() === currentYear
+            );
+        });
+
+        const lastMonthClients = clientData.filter((c) => {
+            if (!c.created_at) return false;
+            const createdDate = new Date(c.created_at);
+            return (
+                createdDate.getMonth() === lastMonth &&
+                createdDate.getFullYear() === lastMonthYear
+            );
+        });
+
+        const clientChangeCount = currentMonthClients.length;
+
+        setMetrics({
+            clientChange: clientChangeCount,
+            projectsChange: currentMonthProjects.length,
+            revenueChange: revenueChangePercent,
+            monthlyRevenue: currentMonthRevenue,
+            overduePayments: overdueTotal,
+            overdueCount: overdueProjects.length,
+        });
+    };
 
     // Fetch Clients
     useEffect(() => {
         axiosClient
             .get("/clients")
             .then(({ data }) => setClient(data.data))
-            .catch(() => setNotification("Failed to load clients"));
+            .catch(() => console.error("Failed to load client"));
     }, []);
 
     // Fetch Projects
     useEffect(() => {
         axiosClient
             .get("/projects")
-            .then(({ data }) => setProjects(data.data))
-            .catch(() => setNotification("Failed to load projects"));
+            .then(({ data }) => {
+                setProjects(data.data);
+            })
+            .catch(() => console.error("Failed to load projects"));
     }, []);
 
-    // Fetch All projects belong to clients
+    // Fetch All projects belong to client
     useEffect(() => {
         axiosClient
             .get("/client-projects")
             .then(({ data }) => setClientsProject(data.data));
     }, []);
+
+    // Calculate metrics when data changes
+    useEffect(() => {
+        if (
+            client.length > 0 ||
+            projects.length > 0 ||
+            clientsProject.length > 0
+        ) {
+            calculateMetrics(client, projects, clientsProject);
+        }
+    }, [client, projects, clientsProject]);
 
     // Function to export CSV
     const exportDashboardCSV = (projectsData) => {
@@ -51,8 +175,8 @@ export default function Dashboard() {
         // Prepare CSV rows
         const rows = projectsData.map((project) => [
             project.title,
-            project.clients && project.clients.length > 0
-                ? project.clients.map((u) => u.name).join(", ")
+            project.client && project.client.length > 0
+                ? project.client.map((u) => u.name).join(", ")
                 : "No Client",
             project.payment_type,
             project.status,
@@ -88,6 +212,26 @@ export default function Dashboard() {
             .split(" ")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
+    };
+
+    // Helper function to format the change display
+    const renderChangeIndicator = (value, isPercentage = false) => {
+        const numValue = Number(value);
+        const isPositive = numValue >= 0;
+        const displayValue = isPercentage
+            ? `${isPositive ? "+" : ""}${numValue}%`
+            : `${isPositive ? "+" : ""}${numValue}`;
+        const colorClass = isPositive
+            ? "text-green-600 bg-green-50"
+            : "text-red-600 bg-red-50";
+
+        return (
+            <span
+                className={`text-sm font-semibold ${colorClass} px-2 py-1 rounded-lg`}
+            >
+                {displayValue}
+            </span>
+        );
     };
 
     return (
@@ -142,11 +286,9 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-                            +8.2%
-                        </span>
+                        {renderChangeIndicator(metrics.clientChange)}
                         <span className="text-sm text-gray-500">
-                            from last month
+                            new this month
                         </span>
                     </div>
                 </div>
@@ -181,9 +323,7 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                            +5
-                        </span>
+                        {renderChangeIndicator(metrics.projectsChange)}
                         <span className="text-sm text-gray-500">
                             new this month
                         </span>
@@ -214,15 +354,13 @@ export default function Dashboard() {
                                     Monthly Revenue
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    ₱45,231
+                                    ₱{metrics.monthlyRevenue.toLocaleString()}
                                 </h3>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-                            +12.5%
-                        </span>
+                        {renderChangeIndicator(metrics.revenueChange, true)}
                         <span className="text-sm text-gray-500">
                             from last month
                         </span>
@@ -253,17 +391,22 @@ export default function Dashboard() {
                                     Overdue Payments
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    ₱8,420
+                                    ₱{metrics.overduePayments.toLocaleString()}
                                 </h3>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-lg">
-                            3 invoices
+                            {metrics.overdueCount}{" "}
+                            {metrics.overdueCount === 1
+                                ? "invoice"
+                                : "invoices"}
                         </span>
                         <span className="text-sm text-gray-500">
-                            need attention
+                            {metrics.overdueCount > 0
+                                ? "need attention"
+                                : "all clear"}
                         </span>
                     </div>
                 </div>
@@ -298,7 +441,7 @@ export default function Dashboard() {
                         {clientsProject.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan="4"
+                                    colSpan="5"
                                     className="text-center py-4 text-gray-500"
                                 >
                                     No recent projects found
@@ -315,9 +458,9 @@ export default function Dashboard() {
                                     </td>
 
                                     <td className="px-4 py-2">
-                                        {project.clients &&
-                                        project.clients.length > 0
-                                            ? project.clients
+                                        {project.client &&
+                                        project.client.length > 0
+                                            ? project.client
                                                   .map((u) => u.name)
                                                   .join(", ")
                                             : "No Client"}
@@ -361,8 +504,8 @@ export default function Dashboard() {
                                     {project.title}
                                 </h3>
                                 <p className="text-gray-500">
-                                    {project.clients.length > 0
-                                        ? project.clients
+                                    {project.client.length > 0
+                                        ? project.client
                                               .map((u) => u.name)
                                               .join(", ")
                                         : "No Client"}
@@ -374,7 +517,9 @@ export default function Dashboard() {
                                     ₱{Number(project.price).toLocaleString()}
                                 </p>
                                 <p className="text-gray-500">
-                                    Due: Payment Due Date
+                                    {project.due_date
+                                        ? `Due: ${new Date(project.due_date).toLocaleDateString()}`
+                                        : "Due: Not set"}
                                 </p>
                             </div>
                         </div>

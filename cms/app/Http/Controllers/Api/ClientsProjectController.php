@@ -8,7 +8,6 @@ use App\Http\Resources\Resources\ProjectResource;
 use App\Models\Client;
 use App\Models\ClientsProject;
 use App\Models\Payment;
-use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -107,11 +106,11 @@ class ClientsProjectController extends Controller
 
     public function projectsWithClients()
     {
-        $projects = Project::with('clients')
-            ->whereHas('clients')
+        $clientsProjects = ClientsProject::with(['project', 'client', 'payments'])
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        return ClientsProjectResource::collection($projects);
+        return ClientsProjectResource::collection($clientsProjects);
     }
 
 }

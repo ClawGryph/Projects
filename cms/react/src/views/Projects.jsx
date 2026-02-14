@@ -132,7 +132,7 @@ export default function Projects() {
                                         </td>
                                         <td className="px-4 py-2 relative">
                                             {editingId === p.id ? (
-                                                <div className="absolute bg-white border rounded shadow-md z-10">
+                                                <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
                                                     {[
                                                         "pending",
                                                         "ongoing",
