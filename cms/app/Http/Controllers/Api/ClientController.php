@@ -50,9 +50,6 @@ class ClientController extends Controller
     public function update(UpdateClientRequest $request, Client $client)
     {
         $data = $request->validated();
-        if(isset($data['password'])){
-            $data['password'] = bcrypt($data['password']);
-        }
         $client->update($data);
 
         return new ClientResource($client);

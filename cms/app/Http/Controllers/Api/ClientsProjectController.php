@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+use App\Http\Resources\Resources\ClientsProjectResource;
+use App\Http\Resources\Resources\ProjectResource;
 use App\Models\Client;
+use App\Models\ClientsProject;
+use App\Models\Payment;
 use App\Models\Project;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use App\Http\Resources\Resources\ProjectResource;
-use App\Http\Resources\Resources\ClientsProjectResource;
+use Illuminate\Support\Carbon;
 
 class ClientsProjectController extends Controller
 {
@@ -16,9 +19,12 @@ class ClientsProjectController extends Controller
      */
     public function index(Client $client)
     {
-        return ProjectResource::collection(
-            $client->projects()->orderBy('id', 'desc')->get()
-        );
+        $clientProjects = ClientsProject::with(['project', 'payments'])
+            ->where('client_id', $client->id)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return ClientsProjectResource::collection($clientProjects);
     }
 
     /**
@@ -30,18 +36,72 @@ class ClientsProjectController extends Controller
         return new ProjectResource($project);
     }
 
-    public function assignProject(Request $request, Client $client)
+    public function assignProject(Request $request, $clientId)
     {
-        $request->validate([
+        $data = $request->validate([
             'project_id' => 'required|exists:projects,id',
+            'payment_type' => 'required|string',
+            'recurring_type' => 'nullable|string',
+            'installments' => 'nullable|integer',
+            'start_date' => 'required|date'
         ]);
 
-        $projectId = $request->project_id;
+        $exists = ClientsProject::where('client_id', $clientId)
+                ->where('project_id', $data['project_id'])
+                ->exists();
 
-        $client->projects()->syncWithoutDetaching([$projectId]);
+        if ($exists) {
+            return response()->json([
+                'message' => 'This project is already assigned to this client.'
+            ], 422);
+        }
+
+        // CREATE CLIENT PROJECT RECORD
+        $clientsProject = ClientsProject::create([
+            'client_id' => $clientId,
+            'project_id' => $data['project_id']
+        ]);
+
+        // COMPUTE NEXT PAYMENT DATE
+        $startDate = Carbon::parse($data['start_date']);
+        $nextPaymentDate = null;
+        $currentInstallment = null;
+
+
+        if ($data['payment_type'] === 'recurring') {
+
+            if ($data['recurring_type'] === 'weekly') {
+                $nextPaymentDate = $startDate->copy()->addWeek();
+            }
+
+            if ($data['recurring_type'] === 'monthly') {
+                $nextPaymentDate = $startDate->copy()->addMonth();
+            }
+
+            if ($data['recurring_type'] === 'yearly') {
+                $nextPaymentDate = $startDate->copy()->addYear();
+            }
+        }
+
+        if ($data['payment_type'] === 'installment' && $data['installments']) {
+            $currentInstallment = 1;
+            $nextPaymentDate = $startDate->copy()->addMonth();
+        }
+
+        // CREATE PAYMENT RECORD
+        Payment::create([
+            'clients_project_id' => $clientsProject->id,
+            'payment_type' => $data['payment_type'],
+            'recurring_type' => $data['recurring_type'] ?? null,
+            'installments' => $data['installments'] ?? null,
+            'current_installment' => $currentInstallment,
+            'start_date' => $startDate,
+            'next_payment_date' => $nextPaymentDate,
+            'status' => 'pending'
+        ]);
 
         return response()->json([
-            'message' => 'Project assigned successfully',
+            'message' => 'Project assigned with payment successfully'
         ]);
     }
 

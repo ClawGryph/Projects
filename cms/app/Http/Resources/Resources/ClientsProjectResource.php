@@ -4,6 +4,7 @@ namespace App\Http\Resources\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 
 class ClientsProjectResource extends JsonResource
 {
@@ -15,23 +16,40 @@ class ClientsProjectResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $payment = $this->payments->first();
+
         return [
             'id' => $this->id,
-            'title' => $this->title,
-            'description' => $this->description,
-            'start_date' => $this->start_date ? date('Y-m-d', strtotime($this->start_date)) : null,
-            'end_date' => $this->end_date ? date('Y-m-d', strtotime($this->end_date)) : null,
-            'payment_type' => $this->payment_type,
-            'price' => $this->price,
-            'status' => $this->status,
 
-            // 🔥 Add clients here
-            'clients' => $this->clients->map(function($client) {
-                return [
-                    'id' => $client->id,
-                    'name' => $client->name,
-                ];
-            }),
+            'project' => [
+                'id' => $this->project->id,
+                'title' => $this->project->title,
+                'description' => $this->project->description,
+                'price' => $this->project->price,
+                'status' => $this->project->status,
+                'start_date' => $this->project->start_date
+                                ? Carbon::parse($this->project->start_date)->format('Y-m-d')
+                                : null,
+                'end_date' => $this->project->end_date
+                                ? Carbon::parse($this->project->end_date)->format('Y-m-d')
+                                : null,
+            ],
+
+            
+            'payment' => $payment ? [
+                'payment_type' => $payment->payment_type,
+                'recurring_type' => $payment->recurring_type,
+                'installments' => $payment->installments,
+                'current_installment' => $payment->current_installment,
+                'start_date' => $payment->start_date,
+                'next_payment_date' => $payment->next_payment_date,
+                'status' => $payment->status,
+            ] : null,
+
+            'client' => [
+                'id' => $this->client->id,
+                'name' => $this->client->name,
+            ],
         ];
     }
 }

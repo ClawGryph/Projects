@@ -30,4 +30,9 @@ class Project extends Model
                     ->withTimestamps();
     }
 
+    public function clientsProjects()
+    {
+        return $this->hasMany(ClientsProject::class);
+    }
+
 }

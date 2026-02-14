@@ -19,4 +19,9 @@ class Client extends Model
         return $this->belongsToMany(Project::class, 'clients_projects', 'client_id', 'project_id')
                     ->withTimestamps();
     }
+
+    public function clientsProjects()
+    {
+        return $this->hasMany(ClientsProject::class);
+    }
 }
