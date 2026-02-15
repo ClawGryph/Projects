@@ -8,6 +8,7 @@ export default function Dashboard() {
     const [client, setClient] = useState([]);
     const [projects, setProjects] = useState([]);
     const [clientsProject, setClientsProject] = useState([]);
+    const [transactions, setTransactions] = useState([]);
     const [metrics, setMetrics] = useState({
         clientChange: 0,
         projectsChange: 0,
@@ -17,11 +18,19 @@ export default function Dashboard() {
         overdueCount: 0,
     });
 
+    useEffect(() => {
+        axiosClient
+            .get("/transactions")
+            .then(({ data }) => setTransactions(data.data))
+            .catch(() => console.error("Failed to load payment transactions"));
+    }, []);
+
     // Calculate metrics from data
     const calculateMetrics = (
         clientData,
         projectsData,
         clientsProjectsData,
+        transactionsData,
     ) => {
         const now = new Date();
         const currentMonth = now.getMonth();
@@ -54,14 +63,26 @@ export default function Dashboard() {
         });
 
         // Calculate revenue
-        const currentMonthRevenue = currentMonthProjects.reduce(
-            (sum, p) => sum + Number(p.price || 0),
-            0,
-        );
-        const lastMonthRevenue = lastMonthProjects.reduce(
-            (sum, p) => sum + Number(p.price || 0),
-            0,
-        );
+        const currentMonthRevenue = transactionsData
+            .filter((t) => {
+                const date = new Date(t.paid_at || t.created_at);
+                return (
+                    date.getMonth() === currentMonth &&
+                    date.getFullYear() === currentYear
+                );
+            })
+            .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+        const lastMonthRevenue = transactionsData
+            .filter((t) => {
+                const date = new Date(t.paid_at || t.created_at);
+                return (
+                    date.getMonth() === lastMonth &&
+                    date.getFullYear() === lastMonthYear
+                );
+            })
+            .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
         const revenueChangePercent =
             lastMonthRevenue > 0
                 ? (
@@ -73,18 +94,18 @@ export default function Dashboard() {
                   ? 100
                   : 0;
 
-        // Calculate overdue payments (assuming you have a due_date and status field)
-        const overdueProjects = clientsProjectsData.filter((p) => {
-            const dueDate = p.due_date ? new Date(p.due_date) : null;
+        // Calculate overdue payments
+        const overduePayments = transactionsData.filter((t) => {
+            const payment = t.payment;
             return (
-                dueDate &&
-                dueDate < now &&
-                p.status !== "completed" &&
-                p.status !== "paid"
+                payment &&
+                new Date(payment.next_payment_date) < now &&
+                payment.status !== "paid" &&
+                payment.status !== "completed"
             );
         });
-        const overdueTotal = overdueProjects.reduce(
-            (sum, p) => sum + Number(p.price || 0),
+        const overdueTotal = overduePayments.reduce(
+            (sum, t) => sum + Number(t.amount || 0),
             0,
         );
 
@@ -102,12 +123,12 @@ export default function Dashboard() {
         const clientChangeCount = currentMonthClients.length;
 
         setMetrics({
-            clientChange: clientChangeCount,
+            clientChange: currentMonthClients.length,
             projectsChange: currentMonthProjects.length,
             revenueChange: revenueChangePercent,
             monthlyRevenue: currentMonthRevenue,
             overduePayments: overdueTotal,
-            overdueCount: overdueProjects.length,
+            overdueCount: overduePayments.length,
         });
     };
 
@@ -141,11 +162,12 @@ export default function Dashboard() {
         if (
             client.length > 0 ||
             projects.length > 0 ||
-            clientsProject.length > 0
+            clientsProject.length > 0 ||
+            transactions.length > 0
         ) {
-            calculateMetrics(client, projects, clientsProject);
+            calculateMetrics(client, projects, clientsProject, transactions);
         }
-    }, [client, projects, clientsProject]);
+    }, [client, projects, clientsProject, transactions]);
 
     // Function to export CSV
     const exportDashboardCSV = (projectsData) => {
@@ -421,6 +443,12 @@ export default function Dashboard() {
                                 Payment Type
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Payment Status
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                Due Date
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 Status
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
@@ -432,47 +460,100 @@ export default function Dashboard() {
                         {clientsProject.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan="5"
+                                    colSpan="7"
                                     className="text-center py-4 text-gray-500"
                                 >
                                     No recent projects found
                                 </td>
                             </tr>
                         ) : (
-                            clientsProject.slice(0, 5).map((project) => (
-                                <tr
-                                    key={project.id}
-                                    className="border-b border-gray-200 hover:bg-cyan-50 text-center"
-                                >
-                                    <td className="px-4 py-2">
-                                        {project.title}
-                                    </td>
+                            clientsProject.slice(0, 5).map((project) => {
+                                const isOverdue =
+                                    project.payment.next_payment_date &&
+                                    new Date(
+                                        project.payment.next_payment_date,
+                                    ) < new Date() &&
+                                    project.payment.status !== "completed";
 
-                                    <td className="px-4 py-2">
-                                        {project.client &&
-                                        project.client.length > 0
-                                            ? project.client
-                                                  .map((u) => u.name)
-                                                  .join(", ")
-                                            : "No Client"}
-                                    </td>
+                                return (
+                                    <tr
+                                        key={project.id}
+                                        className={`border-b border-gray-200 text-center ${
+                                            isOverdue
+                                                ? "bg-red-50 hover:bg-red-100"
+                                                : "hover:bg-cyan-50"
+                                        }`}
+                                    >
+                                        {/* Project Name */}
+                                        <td className="px-4 py-2">
+                                            {project.project.title ||
+                                                "Untitled Project"}
+                                        </td>
 
-                                    <td className="px-4 py-2">
-                                        {formatPaymentType(
-                                            project.payment_type,
-                                        )}
-                                    </td>
+                                        {/* Client */}
+                                        <td className="px-4 py-2">
+                                            {project.client &&
+                                            project.client.name
+                                                ? project.client.name
+                                                : "No Client"}
+                                        </td>
 
-                                    <td className="px-4 py-2">
-                                        <StatusBadge status={project.status} />
-                                    </td>
+                                        {/* Payment Type */}
+                                        <td className="px-4 py-2">
+                                            {formatPaymentType(
+                                                project.payment.payment_type,
+                                            )}
+                                        </td>
 
-                                    <td className="px-4 py-2">
-                                        ₱
-                                        {Number(project.price).toLocaleString()}
-                                    </td>
-                                </tr>
-                            ))
+                                        {/* Payment Status / Progress */}
+                                        <td className="px-4 py-2">
+                                            {project.payment.payment_type ===
+                                                "installment" &&
+                                            project.payment.installments
+                                                ? `${project.payment.current_installment}/${project.payment.installments}`
+                                                : project.payment
+                                                        .payment_type ===
+                                                    "recurring"
+                                                  ? `${formatPaymentType(project.payment.recurring_type)}`
+                                                  : project.payment.status ===
+                                                          "Paid" ||
+                                                      "Active" ||
+                                                      "Partial"
+                                                    ? "Paid"
+                                                    : "Pending"}
+                                        </td>
+
+                                        {/* Due Date */}
+                                        <td className="px-4 py-2">
+                                            {project.payment &&
+                                            project.payment.next_payment_date
+                                                ? new Date(
+                                                      project.payment
+                                                          .next_payment_date,
+                                                  )
+                                                      .toISOString()
+                                                      .split("T")[0] // gets YYYY-MM-DD
+                                                : " - "}
+                                        </td>
+
+                                        {/* Status */}
+                                        <td className="px-4 py-2">
+                                            <StatusBadge
+                                                status={project.payment.status}
+                                            />
+                                        </td>
+
+                                        {/* Amount */}
+                                        <td className="px-4 py-2">
+                                            ₱
+                                            {Number(
+                                                project.payment_transaction
+                                                    .amount || 0,
+                                            ).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
@@ -485,36 +566,87 @@ export default function Dashboard() {
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                         Upcoming Payments
                     </h2>
-                    {clientsProject.slice(0, 5).map((project) => (
-                        <div
-                            key={project.id}
-                            className="flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5"
-                        >
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-800">
-                                    {project.title}
-                                </h3>
-                                <p className="text-gray-500">
-                                    {project.client.length > 0
-                                        ? project.client
-                                              .map((u) => u.name)
-                                              .join(", ")
-                                        : "No Client"}
-                                </p>
-                            </div>
 
-                            <div>
-                                <p className="text-gray-800 font-bold">
-                                    ₱{Number(project.price).toLocaleString()}
+                    {(() => {
+                        // Filter projects with a next payment date within the next 7 days
+                        const upcomingPayments = clientsProject.filter(
+                            (project) => {
+                                if (
+                                    !project.payment ||
+                                    !project.payment.next_payment_date
+                                )
+                                    return false;
+
+                                const nextPayment = new Date(
+                                    project.payment.next_payment_date,
+                                );
+                                const now = new Date();
+                                const oneWeekFromNow = new Date();
+                                oneWeekFromNow.setDate(now.getDate() + 7);
+
+                                return (
+                                    nextPayment >= now &&
+                                    nextPayment <= oneWeekFromNow
+                                );
+                            },
+                        );
+
+                        if (upcomingPayments.length === 0) {
+                            return (
+                                <p className="text-center text-gray-500 py-6">
+                                    No upcoming payments
                                 </p>
-                                <p className="text-gray-500">
-                                    {project.due_date
-                                        ? `Due: ${new Date(project.due_date).toLocaleDateString()}`
-                                        : "Due: Not set"}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
+                            );
+                        }
+
+                        // Render filtered projects
+                        return upcomingPayments.slice(0, 5).map((project) => {
+                            const nextPayment = new Date(
+                                project.payment.next_payment_date,
+                            );
+                            const now = new Date();
+                            const threeDaysFromNow = new Date();
+                            threeDaysFromNow.setDate(now.getDate() + 3);
+
+                            const isUrgent = nextPayment <= threeDaysFromNow;
+
+                            return (
+                                <div
+                                    key={project.id}
+                                    className={`flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 ${
+                                        isUrgent
+                                            ? "bg-red-50 hover:bg-red-100"
+                                            : "hover:bg-cyan-50"
+                                    } transition-colors`}
+                                >
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-800">
+                                            {project.project.title}
+                                        </h3>
+                                        <p className="text-gray-500">
+                                            {project.client &&
+                                            project.client.name
+                                                ? project.client.name
+                                                : "No Client"}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-gray-800 font-bold">
+                                            ₱
+                                            {Number(
+                                                project.payment_transaction
+                                                    ?.amount || 0,
+                                            ).toLocaleString()}
+                                        </p>
+                                        <p className="text-gray-500">
+                                            {`Due: ${nextPayment.toLocaleDateString("en-CA")}`}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        });
+                    })()}
                 </div>
 
                 {/* RECENT ACTIVITIES */}

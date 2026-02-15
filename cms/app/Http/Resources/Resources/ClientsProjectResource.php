@@ -17,6 +17,7 @@ class ClientsProjectResource extends JsonResource
     public function toArray(Request $request): array
     {
         $payment = $this->payments->first();
+        $transaction = $this->paymentTransactions->sortByDesc('id')->first();
 
         return [
             'id' => $this->id,
@@ -55,14 +56,17 @@ class ClientsProjectResource extends JsonResource
                 'name' => $this->client->name,
             ],
 
-            'payment_transaction' => $this->payment_transaction ? [
-                'id' => $this->payment_transaction->id,
-                'amount' => $this->payment_transaction->amount,
-                'paid_at' => $this->payment_transaction->paid_at
-                    ? Carbon::parse($this->payment_transaction->paid_at)->format('Y-m-d')
-                    : null,
-                'installment_number' => $this->payment_transaction->installment_number,
-            ] : null,
+            'payment_transaction' => $transaction ? [
+            'id' => $transaction->id,
+            'amount' => $transaction->amount ?? 0,
+            'paid_at' => $transaction->paid_at ? Carbon::parse($transaction->paid_at)->format('Y-m-d') : null,
+            'installment_number' => $transaction->installment_number,
+        ] : [
+            'id' => null,
+            'amount' => 0,
+            'paid_at' => null,
+            'installment_number' => null,
+        ],
         ];
     }
 }
