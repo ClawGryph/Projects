@@ -10,7 +10,7 @@ class ClientsProject extends Model
 
     protected $fillable = [
         'client_id',
-        'project_id'
+        'project_id',
     ];
 
     public function client()
@@ -26,5 +26,10 @@ class ClientsProject extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function paymentTransactions()
+    {
+        return $this->hasManyThrough(PaymentTransaction::class, Payment::class);
     }
 }

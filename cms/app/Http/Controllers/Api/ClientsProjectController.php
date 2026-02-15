@@ -64,7 +64,7 @@ class ClientsProjectController extends Controller
         // COMPUTE NEXT PAYMENT DATE
         $startDate = Carbon::parse($data['start_date']);
         $nextPaymentDate = null;
-        $currentInstallment = null;
+        $currentInstallment = 0;
 
 
         if ($data['payment_type'] === 'recurring') {
@@ -83,7 +83,7 @@ class ClientsProjectController extends Controller
         }
 
         if ($data['payment_type'] === 'installment' && $data['installments']) {
-            $currentInstallment = 1;
+            $currentInstallment = 0;
             $nextPaymentDate = $startDate->copy()->addMonth();
         }
 

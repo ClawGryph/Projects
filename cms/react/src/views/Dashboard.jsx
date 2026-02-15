@@ -99,15 +99,6 @@ export default function Dashboard() {
             );
         });
 
-        const lastMonthClients = clientData.filter((c) => {
-            if (!c.created_at) return false;
-            const createdDate = new Date(c.created_at);
-            return (
-                createdDate.getMonth() === lastMonth &&
-                createdDate.getFullYear() === lastMonthYear
-            );
-        });
-
         const clientChangeCount = currentMonthClients.length;
 
         setMetrics({

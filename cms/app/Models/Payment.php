@@ -18,6 +18,10 @@ class Payment extends Model
         'status'
     ];
 
+    protected $attributes = [
+        'current_installment' => 0,
+    ];
+
     protected $casts = [
         'start_date' => 'datetime',
         'next_payment_date' => 'datetime',
@@ -27,5 +31,15 @@ class Payment extends Model
     public function clientsProject()
     {
         return $this->belongsTo(ClientsProject::class);
+    }
+
+    public function getProjectAttribute()
+    {
+        return $this->clientsProject ? $this->clientsProject->project : null;
+    }
+
+    public function paymentTransactions()
+    {
+        return $this->hasMany(PaymentTransaction::class);
     }
 }

@@ -22,22 +22,21 @@ class ClientsProjectResource extends JsonResource
             'id' => $this->id,
             'created_at' => $this->created_at,
 
-            'project' => [
+            'project' => $this->project ? [
                 'id' => $this->project->id,
                 'title' => $this->project->title,
                 'description' => $this->project->description,
                 'price' => $this->project->price,
                 'status' => $this->project->status,
                 'start_date' => $this->project->start_date
-                                ? Carbon::parse($this->project->start_date)->format('Y-m-d')
-                                : null,
+                    ? Carbon::parse($this->project->start_date)->format('Y-m-d')
+                    : null,
                 'end_date' => $this->project->end_date
-                                ? Carbon::parse($this->project->end_date)->format('Y-m-d')
-                                : null,
+                    ? Carbon::parse($this->project->end_date)->format('Y-m-d')
+                    : null,
                 'created_at' => $this->project->created_at,
-            ],
+            ] : null,
 
-            
             'payment' => $payment ? [
                 'id' => $payment->id, 
                 'payment_type' => $payment->payment_type,
@@ -55,6 +54,15 @@ class ClientsProjectResource extends JsonResource
                 'id' => $this->client->id,
                 'name' => $this->client->name,
             ],
+
+            'payment_transaction' => $this->payment_transaction ? [
+                'id' => $this->payment_transaction->id,
+                'amount' => $this->payment_transaction->amount,
+                'paid_at' => $this->payment_transaction->paid_at
+                    ? Carbon::parse($this->payment_transaction->paid_at)->format('Y-m-d')
+                    : null,
+                'installment_number' => $this->payment_transaction->installment_number,
+            ] : null,
         ];
     }
 }

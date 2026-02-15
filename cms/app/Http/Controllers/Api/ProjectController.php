@@ -67,18 +67,18 @@ class ProjectController extends Controller
     }
 
     public function updateStatus(Request $request, Project $project)
-{
-    $request->validate([
-        'status' => 'string|in:pending,ongoing,completed'
-    ]);
+    {
+        $request->validate([
+            'status' => 'string|in:pending,ongoing,completed'
+        ]);
 
-    $project->update([
-        'status' => $request->status
-    ]);
+        $project->update([
+            'status' => $request->status
+        ]);
 
-    return response()->json([
-        'message' => 'Status updated successfully'
-    ]);
-}
+        return response()->json([
+            'message' => 'Status updated successfully'
+        ]);
+    }
 
 }

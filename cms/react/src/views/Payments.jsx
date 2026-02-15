@@ -32,7 +32,7 @@ export default function Payments() {
         if (paymentType === "installment" && newStatus === "partial") {
             // Send 'partial' status to trigger installment increment
             axiosClient
-                .put(`/payments/${paymentId}/status`, { status: "partial" }) // ✅ Added status field
+                .put(`/payments/${paymentId}/status`, { status: "partial" })
                 .then(() => {
                     getPayments();
                     setNotification("Installment updated successfully");
@@ -204,8 +204,6 @@ export default function Payments() {
                                                         "partial",
                                                         "active",
                                                         "overdue",
-                                                        "cancelled",
-                                                        "failed",
                                                     ].map((status) => (
                                                         <div
                                                             key={status}
