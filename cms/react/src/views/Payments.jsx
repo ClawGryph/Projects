@@ -198,37 +198,70 @@ export default function Payments() {
                                         <td className="px-4 py-2 relative">
                                             {editingId === p.payment.id ? (
                                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
-                                                    {[
-                                                        "pending",
-                                                        "paid",
-                                                        "partial",
-                                                        "active",
-                                                        "overdue",
-                                                    ].map((status) => (
-                                                        <div
-                                                            key={status}
-                                                            onClick={() => {
-                                                                updateStatus(
-                                                                    p.payment
-                                                                        .id,
-                                                                    status,
-                                                                    p.payment
-                                                                        .payment_type,
-                                                                );
-                                                                setEditingId(
-                                                                    null,
-                                                                );
-                                                            }}
-                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                        >
-                                                            <StatusBadge
-                                                                status={status}
-                                                                isEnded={
-                                                                    p.isEnded
-                                                                }
-                                                            />
-                                                        </div>
-                                                    ))}
+                                                    {(() => {
+                                                        // Base statuses always visible
+                                                        const baseStatuses = [
+                                                            "pending",
+                                                            "paid",
+                                                            "overdue",
+                                                        ];
+
+                                                        // Conditional status based on payment type
+                                                        let conditionalStatus =
+                                                            [];
+                                                        if (
+                                                            p.payment
+                                                                .payment_type ===
+                                                            "installment"
+                                                        ) {
+                                                            conditionalStatus =
+                                                                ["partial"];
+                                                        } else if (
+                                                            p.payment
+                                                                .payment_type ===
+                                                            "recurring"
+                                                        ) {
+                                                            conditionalStatus =
+                                                                ["active"];
+                                                        }
+
+                                                        const statusesToShow = [
+                                                            ...conditionalStatus,
+                                                            ...baseStatuses,
+                                                        ];
+
+                                                        return statusesToShow.map(
+                                                            (status) => (
+                                                                <div
+                                                                    key={status}
+                                                                    onClick={() => {
+                                                                        updateStatus(
+                                                                            p
+                                                                                .payment
+                                                                                .id,
+                                                                            status,
+                                                                            p
+                                                                                .payment
+                                                                                .payment_type,
+                                                                        );
+                                                                        setEditingId(
+                                                                            null,
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                                >
+                                                                    <StatusBadge
+                                                                        status={
+                                                                            status
+                                                                        }
+                                                                        isEnded={
+                                                                            p.isEnded
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            ),
+                                                        );
+                                                    })()}
                                                 </div>
                                             ) : (
                                                 <div
