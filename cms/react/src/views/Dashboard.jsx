@@ -52,16 +52,6 @@ export default function Dashboard() {
             );
         });
 
-        const lastMonthProjects = projectsData.filter((p) => {
-            if (!p.created_at) return false;
-            const date = new Date(p.created_at);
-
-            return (
-                date.getMonth() === lastMonth &&
-                date.getFullYear() === lastMonthYear
-            );
-        });
-
         // Calculate revenue
         const currentMonthRevenue = transactionsData
             .filter((t) => {
@@ -119,8 +109,6 @@ export default function Dashboard() {
                 createdDate.getFullYear() === currentYear
             );
         });
-
-        const clientChangeCount = currentMonthClients.length;
 
         setMetrics({
             clientChange: currentMonthClients.length,
@@ -186,15 +174,16 @@ export default function Dashboard() {
         ];
 
         // Prepare CSV rows
-        const rows = projectsData.map((project) => [
-            project.title,
-            project.client && project.client.length > 0
-                ? project.client.map((u) => u.name).join(", ")
-                : "No Client",
-            project.payment_type,
-            project.status,
-            project.price,
-        ]);
+        const rows = projectsData.map((project) => {
+            const title = project.project?.title ?? "Untitled Project";
+            const clientName = project.client?.name ?? "No Client";
+            const paymentType =
+                formatPaymentType(project.payment?.payment_type) ?? "-";
+            const status = project.payment?.status ?? "-";
+            const amount = project.payment_transaction?.amount ?? 0;
+
+            return [title, clientName, paymentType, status, amount];
+        });
 
         // Convert to CSV string
         const csvContent = [headers, ...rows]
