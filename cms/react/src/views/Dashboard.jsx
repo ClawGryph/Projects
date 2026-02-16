@@ -9,6 +9,7 @@ export default function Dashboard() {
     const [projects, setProjects] = useState([]);
     const [clientsProject, setClientsProject] = useState([]);
     const [transactions, setTransactions] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
     const [metrics, setMetrics] = useState({
         clientChange: 0,
         projectsChange: 0,
@@ -17,6 +18,7 @@ export default function Dashboard() {
         overduePayments: 0,
         overdueCount: 0,
     });
+    const rowsPerPage = 10;
 
     useEffect(() => {
         axiosClient
@@ -235,6 +237,107 @@ export default function Dashboard() {
             </span>
         );
     };
+
+    // ================== UPCOMING PAYMENTS ==================
+    const now = new Date();
+    const oneWeekFromNow = new Date();
+    oneWeekFromNow.setDate(now.getDate() + 7);
+
+    const upcomingPayments = clientsProject
+        .filter((project) => {
+            if (!project.payment?.next_payment_date) return false;
+
+            if (
+                ["paid", "partial", "active"].includes(
+                    project.payment.status?.toLowerCase(),
+                )
+            )
+                return false;
+
+            const nextPayment = new Date(project.payment.next_payment_date);
+
+            return nextPayment >= now && nextPayment <= oneWeekFromNow;
+        })
+        // Sort by nearest due date first
+        .sort(
+            (a, b) =>
+                new Date(a.payment.next_payment_date) -
+                new Date(b.payment.next_payment_date),
+        )
+        .slice(0, 5);
+
+    const buildActivities = () => {
+        const activities = [];
+
+        // New Projects
+        clientsProject.forEach((cp) => {
+            if (!cp.created_at) return;
+
+            activities.push({
+                id: `project-${cp.id}`,
+                type: "project_created",
+                title: "New Project Created",
+                description: `${cp.project?.title || "Untitled"} - ${
+                    cp.client?.name || "No Client"
+                }`,
+                amount: null,
+                date: new Date(cp.created_at),
+            });
+        });
+
+        // Payments Received
+        transactions.forEach((t) => {
+            if (!t.paid_at) return;
+
+            activities.push({
+                id: `payment-${t.id}`,
+                type: "payment_received",
+                title: "Payment Received",
+                description: `From ${t.client?.name || "Client"}`,
+                amount: t.amount,
+                date: new Date(t.paid_at),
+            });
+        });
+
+        // Overdue Payments
+        clientsProject.forEach((cp) => {
+            if (
+                cp.payment?.next_payment_date &&
+                new Date(cp.payment.next_payment_date) < new Date() &&
+                cp.payment.status !== "completed"
+            ) {
+                activities.push({
+                    id: `overdue-${cp.id}`,
+                    type: "payment_overdue",
+                    title: "Payment Overdue",
+                    description: `${cp.project?.title || "Project"} - ${
+                        cp.client?.name || ""
+                    }`,
+                    amount: cp.payment_transaction?.amount || 0,
+                    date: new Date(cp.payment.next_payment_date),
+                });
+            }
+        });
+
+        // Sort newest first
+        return activities.sort((a, b) => b.date - a.date).slice(0, 6); // show latest 6
+    };
+
+    const activities = buildActivities().slice(0, 5);
+
+    const indexOfLastRow = currentPage * rowsPerPage;
+    const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+
+    const currentProjects = clientsProject.slice(
+        indexOfFirstRow,
+        indexOfLastRow,
+    );
+
+    const totalPages = Math.ceil(clientsProject.length / rowsPerPage);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [clientsProject]);
 
     return (
         <div className="p-6">
@@ -456,7 +559,7 @@ export default function Dashboard() {
                                 </td>
                             </tr>
                         ) : (
-                            clientsProject.slice(0, 5).map((project) => {
+                            currentProjects.map((project) => {
                                 const isOverdue =
                                     project.payment.next_payment_date &&
                                     new Date(
@@ -546,6 +649,35 @@ export default function Dashboard() {
                         )}
                     </tbody>
                 </table>
+                {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-4">
+                        <button
+                            onClick={() =>
+                                setCurrentPage((prev) => Math.max(prev - 1, 1))
+                            }
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+                        >
+                            Previous
+                        </button>
+
+                        <span className="text-sm text-gray-600">
+                            Page {currentPage} of {totalPages}
+                        </span>
+
+                        <button
+                            onClick={() =>
+                                setCurrentPage((prev) =>
+                                    Math.min(prev + 1, totalPages),
+                                )
+                            }
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* ACTIVITIES */}
@@ -556,44 +688,16 @@ export default function Dashboard() {
                         Upcoming Payments
                     </h2>
 
-                    {(() => {
-                        // Filter projects with a next payment date within the next 7 days
-                        const upcomingPayments = clientsProject.filter(
-                            (project) => {
-                                if (
-                                    !project.payment ||
-                                    !project.payment.next_payment_date
-                                )
-                                    return false;
-
-                                const nextPayment = new Date(
-                                    project.payment.next_payment_date,
-                                );
-                                const now = new Date();
-                                const oneWeekFromNow = new Date();
-                                oneWeekFromNow.setDate(now.getDate() + 7);
-
-                                return (
-                                    nextPayment >= now &&
-                                    nextPayment <= oneWeekFromNow
-                                );
-                            },
-                        );
-
-                        if (upcomingPayments.length === 0) {
-                            return (
-                                <p className="text-center text-gray-500 py-6">
-                                    No upcoming payments
-                                </p>
-                            );
-                        }
-
-                        // Render filtered projects
-                        return upcomingPayments.slice(0, 5).map((project) => {
+                    {upcomingPayments.length === 0 ? (
+                        <p className="text-center text-gray-500 py-6">
+                            No upcoming payments
+                        </p>
+                    ) : (
+                        upcomingPayments.map((project) => {
                             const nextPayment = new Date(
                                 project.payment.next_payment_date,
                             );
-                            const now = new Date();
+
                             const threeDaysFromNow = new Date();
                             threeDaysFromNow.setDate(now.getDate() + 3);
 
@@ -613,14 +717,12 @@ export default function Dashboard() {
                                             {project.project.title}
                                         </h3>
                                         <p className="text-gray-500">
-                                            {project.client &&
-                                            project.client.name
-                                                ? project.client.name
-                                                : "No Client"}
+                                            {project.client?.name ||
+                                                "No Client"}
                                         </p>
                                     </div>
 
-                                    <div>
+                                    <div className="text-right">
                                         <p className="text-gray-800 font-bold">
                                             ₱
                                             {Number(
@@ -628,14 +730,17 @@ export default function Dashboard() {
                                                     ?.amount || 0,
                                             ).toLocaleString()}
                                         </p>
-                                        <p className="text-gray-500">
-                                            {`Due: ${nextPayment.toLocaleDateString("en-CA")}`}
+                                        <p className="text-gray-500 text-sm">
+                                            Due:{" "}
+                                            {nextPayment.toLocaleDateString(
+                                                "en-CA",
+                                            )}
                                         </p>
                                     </div>
                                 </div>
                             );
-                        });
-                    })()}
+                        })
+                    )}
                 </div>
 
                 {/* RECENT ACTIVITIES */}
@@ -644,104 +749,71 @@ export default function Dashboard() {
                         Recent Activity
                     </h2>
                     <div className="space-y-4">
-                        {/* Payment Received */}
-                        <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                <svg
-                                    className="w-5 h-5 text-green-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M5 13l4 4L19 7"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
-                                    Payment Received
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                    ₱15,000 from Acme Corporation
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    2 hours ago
-                                </p>
-                            </div>
-                            <span className="text-sm font-semibold text-green-600">
-                                +₱15,000
-                            </span>
-                        </div>
+                        {activities.length === 0 ? (
+                            <p className="text-center text-gray-500 py-6">
+                                No recent activity
+                            </p>
+                        ) : (
+                            activities.map((activity) => {
+                                const isPositive =
+                                    activity.type === "payment_received";
 
-                        {/* Payment Overdue */}
-                        <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                                <svg
-                                    className="w-5 h-5 text-red-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
-                                    Payment Overdue
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                    Invoice #1234 - Tech Solutions Ltd.
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    5 hours ago
-                                </p>
-                            </div>
-                            <span className="text-sm font-semibold text-red-600">
-                                ₱5,420
-                            </span>
-                        </div>
+                                const iconColor =
+                                    activity.type === "payment_received"
+                                        ? "bg-green-100 text-green-600"
+                                        : activity.type === "payment_overdue"
+                                          ? "bg-red-100 text-red-600"
+                                          : "bg-purple-100 text-purple-600";
 
-                        {/* Invoice Sent */}
-                        <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                <svg
-                                    className="w-5 h-5 text-purple-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
-                                    Invoice Sent
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                    Invoice #1235 - Global Enterprises
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    2 days ago
-                                </p>
-                            </div>
-                            <span className="text-sm font-semibold text-gray-600">
-                                ₱12,500
-                            </span>
-                        </div>
+                                return (
+                                    <div
+                                        key={activity.id}
+                                        className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        <div
+                                            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconColor}`}
+                                        >
+                                            <span className="text-sm font-bold">
+                                                {activity.type ===
+                                                "payment_received"
+                                                    ? "+"
+                                                    : activity.type ===
+                                                        "payment_overdue"
+                                                      ? "!"
+                                                      : "✓"}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {activity.title}
+                                            </p>
+                                            <p className="text-sm text-gray-500">
+                                                {activity.description}
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                {activity.date.toLocaleString()}
+                                            </p>
+                                        </div>
+
+                                        {activity.amount && (
+                                            <span
+                                                className={`text-sm font-semibold ${
+                                                    isPositive
+                                                        ? "text-green-600"
+                                                        : "text-red-600"
+                                                }`}
+                                            >
+                                                {isPositive ? "+" : ""}₱
+                                                {Number(
+                                                    activity.amount,
+                                                ).toLocaleString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             </div>
