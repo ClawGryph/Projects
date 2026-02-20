@@ -2,19 +2,20 @@
 
 namespace App\Models;
 
-use App\Models\ClientsProject;
 use Illuminate\Database\Eloquent\Model;
 
-class PaymentTransaction extends Model
+class PaymentSchedule extends Model
 {
     protected $fillable = [
-        'payment_schedule_id',
-        'amount_paid',
-        'paid_at'
+        'payment_id',
+        'due_date',
+        'payment_rate',
+        'expected_amount',
+        'status'
     ];
 
     protected $casts = [
-        'paid_at' => 'datetime'
+        'due_date' => 'datetime'
     ];
 
     public function clientsProject()

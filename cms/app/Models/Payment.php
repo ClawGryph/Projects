@@ -11,20 +11,13 @@ class Payment extends Model
         'clients_project_id',
         'payment_type',
         'recurring_type',
-        'installments',
-        'current_installment',
+        'number_of_cycles',
+        'fixed_rate',
         'start_date',
-        'next_payment_date',
-        'status'
-    ];
-
-    protected $attributes = [
-        'current_installment' => 0,
     ];
 
     protected $casts = [
         'start_date' => 'datetime',
-        'next_payment_date' => 'datetime',
     ];
 
 
