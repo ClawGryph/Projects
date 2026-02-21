@@ -159,6 +159,52 @@ export default function Dashboard() {
         }
     }, [client, projects, clientsProject, transactions]);
 
+    const getPaymentSummary = (project) => {
+        const schedules = project.payment_schedules || [];
+        const total = schedules.length;
+        const paid = schedules.filter((s) => s.status === "paid").length;
+        const anyOverdue = schedules.some((s) => s.status === "overdue");
+        const anyEnded = schedules.some((s) => s.status === "ended");
+        const allPaid = total > 0 && paid === total;
+
+        // Overall status
+        const overallStatus = allPaid
+            ? "paid"
+            : anyEnded
+              ? "ended"
+              : anyOverdue
+                ? "overdue"
+                : paid > 0
+                  ? "active"
+                  : "pending";
+
+        // Cycle progress label
+        const paymentType = project.payment?.payment_type;
+        const recurringType = project.payment?.recurring_type;
+
+        let cycleLabel = "";
+        if (paymentType === "one_time") {
+            cycleLabel = paid > 0 ? "Paid" : "Unpaid";
+        } else {
+            const unit =
+                paymentType === "installment"
+                    ? "installment"
+                    : recurringType === "weekly"
+                      ? "week"
+                      : recurringType === "yearly"
+                        ? "year"
+                        : "month";
+            cycleLabel = `${paid} / ${total} ${unit}${total !== 1 ? "s" : ""} paid`;
+        }
+
+        // Total cost paid
+        const totalCostPaid = schedules
+            .filter((s) => s.status === "paid")
+            .reduce((sum, s) => sum + Number(s.expected_amount || 0), 0);
+
+        return { overallStatus, cycleLabel, totalCostPaid };
+    };
+
     // Function to export CSV
     const exportDashboardCSV = (projectsData) => {
         if (!projectsData || projectsData.length === 0) {
@@ -526,25 +572,22 @@ export default function Dashboard() {
                     <thead>
                         <tr className="bg-cyan-800">
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Project Name
+                                Client
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Client
+                                Project
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 Payment Type
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Payment Status
+                                Payment Cycle
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Due Date
+                                Total Cost Paid
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 Status
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Amount
                             </th>
                         </tr>
                     </thead>
@@ -576,12 +619,6 @@ export default function Dashboard() {
                                                 : "hover:bg-cyan-50"
                                         }`}
                                     >
-                                        {/* Project Name */}
-                                        <td className="px-4 py-2">
-                                            {project.project.title ||
-                                                "Untitled Project"}
-                                        </td>
-
                                         {/* Client */}
                                         <td className="px-4 py-2">
                                             {project.client &&
@@ -590,58 +627,95 @@ export default function Dashboard() {
                                                 : "No Client"}
                                         </td>
 
+                                        {/* Project Name */}
+                                        <td className="px-4 py-2">
+                                            {project.project.title ||
+                                                "Untitled Project"}
+                                        </td>
+
                                         {/* Payment Type */}
                                         <td className="px-4 py-2">
                                             {formatPaymentType(
-                                                project.payment.payment_type,
+                                                project.payment
+                                                    ?.payment_type ===
+                                                    "recurring"
+                                                    ? project.payment
+                                                          ?.recurring_type
+                                                    : project.payment
+                                                          ?.payment_type,
                                             )}
                                         </td>
 
                                         {/* Payment Status / Progress */}
                                         <td className="px-4 py-2">
-                                            {project.payment.payment_type ===
-                                                "installment" &&
-                                            project.payment.installments
-                                                ? `${project.payment.current_installment}/${project.payment.installments}`
-                                                : project.payment
-                                                        .payment_type ===
-                                                    "recurring"
-                                                  ? `${formatPaymentType(project.payment.recurring_type)}`
-                                                  : project.payment.status ===
-                                                          "Paid" ||
-                                                      "Active" ||
-                                                      "Partial"
-                                                    ? "Paid"
-                                                    : "Pending"}
+                                            {project.payment?.payment_type ===
+                                                "installment" ||
+                                            project.payment?.payment_type ===
+                                                "recurring" ? (
+                                                <span
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${
+                                                        project.payment
+                                                            ?.payment_type ===
+                                                        "installment"
+                                                            ? "bg-purple-50 text-purple-600 border-purple-100"
+                                                            : "bg-blue-50 text-blue-600 border-blue-100"
+                                                    }`}
+                                                >
+                                                    <svg
+                                                        className="w-3 h-3"
+                                                        fill="currentColor"
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                    <span className="font-semibold">
+                                                        {project.payment
+                                                            ?.paid_installments_count ||
+                                                            0}
+                                                    </span>
+                                                    <span
+                                                        className={`${
+                                                            project.payment
+                                                                ?.payment_type ===
+                                                            "installment"
+                                                                ? "text-purple-400"
+                                                                : "text-blue-400"
+                                                        }`}
+                                                    >
+                                                        /
+                                                    </span>
+                                                    <span>
+                                                        {project.payment
+                                                            ?.number_of_cycles ||
+                                                            0}
+                                                    </span>
+                                                </span>
+                                            ) : (
+                                                " - "
+                                            )}
                                         </td>
 
-                                        {/* Due Date */}
+                                        {/* Total Cost Paid */}
                                         <td className="px-4 py-2">
-                                            {project.payment &&
-                                            project.payment.next_payment_date
-                                                ? new Date(
-                                                      project.payment
-                                                          .next_payment_date,
-                                                  )
-                                                      .toISOString()
-                                                      .split("T")[0] // gets YYYY-MM-DD
-                                                : " - "}
+                                            ₱
+                                            {getPaymentSummary(
+                                                project,
+                                            ).totalCostPaid.toLocaleString()}
                                         </td>
 
                                         {/* Status */}
                                         <td className="px-4 py-2">
                                             <StatusBadge
-                                                status={project.payment.status}
+                                                status={
+                                                    getPaymentSummary(project)
+                                                        .overallStatus
+                                                }
                                             />
-                                        </td>
-
-                                        {/* Amount */}
-                                        <td className="px-4 py-2">
-                                            ₱
-                                            {Number(
-                                                project.payment_transaction
-                                                    .amount || 0,
-                                            ).toLocaleString()}
                                         </td>
                                     </tr>
                                 );

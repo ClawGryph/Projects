@@ -118,8 +118,8 @@ export default function StatusBadge({ status, isEnded = false }) {
             ),
         },
         active: {
-            bg: "bg-teal-100",
-            text: "text-teal-700",
+            bg: "bg-blue-100",
+            text: "text-blue-700",
             label: "Active",
             icon: (
                 <svg
