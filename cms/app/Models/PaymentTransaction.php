@@ -21,4 +21,19 @@ class PaymentTransaction extends Model
     {
         return $this->belongsTo(ClientsProject::class);
     }
+
+    public function paymentSchedule()
+    {
+        return $this->belongsTo(PaymentSchedule::class);
+    }
+
+    public function getClientAttribute()
+    {
+        return $this->paymentSchedule?->payment?->clientsProject?->client;
+    }
+
+    public function getProjectAttribute()
+    {
+        return $this->paymentSchedule?->payment?->clientsProject?->project;
+    }
 }

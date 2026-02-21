@@ -2,7 +2,7 @@
 
 namespace App\Console;
 
-use App\Models\Payment;
+use App\Models\PaymentSchedule;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -24,17 +24,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->call(function () {
-            $today = now()->toDateString();
-
-            // Get all payments with a next payment date today
-            $payments = Payment::whereDate('next_payment_date', $today)->get();
-
-            foreach ($payments as $payment) {
-                $payment->status = 'pending';
-                $payment->save();
-            }
-        })->daily(); // runs once every day
+       $schedule->call(function () {
+            PaymentSchedule::where('status', 'pending')
+                ->whereNotNull('due_date')
+                ->whereDate('due_date', '<=', now()->subDays(2))
+                ->update(['status' => 'overdue']);
+        })->daily();
     }
 
     /**
@@ -42,6 +37,8 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-        require base_path('app/Console/Commands');
+        $this->load(__DIR__.'/Commands');
+
+        require base_path('routes/console.php');
     }
 }

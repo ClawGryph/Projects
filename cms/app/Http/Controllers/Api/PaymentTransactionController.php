@@ -12,7 +12,10 @@ class PaymentTransactionController extends Controller
     public function index()
     {
         return PaymentTransactionResource::collection(
-            PaymentTransaction::latest()->get()
+            PaymentTransaction::with([
+                'paymentSchedule.payment.clientsProject.client',
+                'paymentSchedule.payment.clientsProject.project',
+            ])->latest()->get()
         );
     }
 }

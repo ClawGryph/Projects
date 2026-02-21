@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../axios-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileExport } from "@fortawesome/free-solid-svg-icons";
+import { faFileExport, faEye } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge.jsx";
 
 export default function Dashboard() {
@@ -9,6 +9,12 @@ export default function Dashboard() {
     const [projects, setProjects] = useState([]);
     const [clientsProject, setClientsProject] = useState([]);
     const [transactions, setTransactions] = useState([]);
+    const [showPaymentsModal, setShowPaymentsModal] = useState(false);
+    const [selectedMonth, setSelectedMonth] = useState("all");
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [showOverdueModal, setShowOverdueModal] = useState(false);
+    const [overdueMonth, setOverdueMonth] = useState("all");
+    const [overdueYear, setOverdueYear] = useState(new Date().getFullYear());
     const [currentPage, setCurrentPage] = useState(1);
     const [metrics, setMetrics] = useState({
         clientChange: 0,
@@ -23,7 +29,10 @@ export default function Dashboard() {
     useEffect(() => {
         axiosClient
             .get("/transactions")
-            .then(({ data }) => setTransactions(data.data))
+            .then(({ data }) => {
+                console.log(data.data[0]);
+                setTransactions(data.data);
+            })
             .catch(() => console.error("Failed to load payment transactions"));
     }, []);
 
@@ -37,37 +46,26 @@ export default function Dashboard() {
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
-
-        // Get last month
         const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         const lastMonthYear =
             currentMonth === 0 ? currentYear - 1 : currentYear;
 
-        // Filter projects by date
-        const currentMonthProjects = projectsData.filter((p) => {
-            if (!p.created_at) return false;
-            const date = new Date(p.created_at);
+        // Only count transactions that are actually paid (have a paid_at date)
+        const paidTransactions = transactionsData.filter((t) => !!t.paid_at);
 
-            return (
-                date.getMonth() === currentMonth &&
-                date.getFullYear() === currentYear
-            );
-        });
-
-        // Calculate revenue
-        const currentMonthRevenue = transactionsData
+        const currentMonthRevenue = paidTransactions
             .filter((t) => {
-                const date = new Date(t.paid_at || t.created_at);
+                const date = new Date(t.paid_at);
                 return (
                     date.getMonth() === currentMonth &&
                     date.getFullYear() === currentYear
                 );
             })
-            .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+            .reduce((sum, t) => sum + Number(t.amount_paid || 0), 0);
 
-        const lastMonthRevenue = transactionsData
+        const lastMonthRevenue = paidTransactions
             .filter((t) => {
-                const date = new Date(t.paid_at || t.created_at);
+                const date = new Date(t.paid_at);
                 return (
                     date.getMonth() === lastMonth &&
                     date.getFullYear() === lastMonthYear
@@ -86,23 +84,26 @@ export default function Dashboard() {
                   ? 100
                   : 0;
 
-        // Calculate overdue payments
-        const overduePayments = transactionsData.filter((t) => {
-            const payment = t.payment;
-            return (
-                payment &&
-                new Date(payment.next_payment_date) < now &&
-                payment.status !== "paid" &&
-                payment.status !== "completed"
-            );
-        });
-        const overdueTotal = overduePayments.reduce(
-            (sum, t) => sum + Number(t.amount || 0),
-            0,
-        );
+        // Overdue: based on payment schedules, not transactions
+        const overdueSchedulesThisMonth = clientsProjectsData
+            .flatMap((cp) => cp.payment_schedules || [])
+            .filter((s) => {
+                if (!s.due_date) return false;
 
-        // Calculate client change (you may need to adjust this based on your data structure)
-        // This assumes client have a created_at field
+                const dueDate = new Date(s.due_date);
+
+                return (
+                    s.status === "overdue" &&
+                    dueDate.getMonth() === currentMonth &&
+                    dueDate.getFullYear() === currentYear
+                );
+            });
+
+        const overdueCount =
+            overdueSchedulesThisMonth.length > 0
+                ? overdueSchedulesThisMonth.length
+                : 0;
+
         const currentMonthClients = clientData.filter((c) => {
             if (!c.created_at) return false;
             const createdDate = new Date(c.created_at);
@@ -112,13 +113,21 @@ export default function Dashboard() {
             );
         });
 
+        const currentMonthProjects = projectsData.filter((p) => {
+            if (!p.created_at) return false;
+            const date = new Date(p.created_at);
+            return (
+                date.getMonth() === currentMonth &&
+                date.getFullYear() === currentYear
+            );
+        });
+
         setMetrics({
             clientChange: currentMonthClients.length,
             projectsChange: currentMonthProjects.length,
             revenueChange: revenueChangePercent,
             monthlyRevenue: currentMonthRevenue,
-            overduePayments: overdueTotal,
-            overdueCount: overduePayments.length,
+            overdueCount: overdueCount,
         });
     };
 
@@ -158,6 +167,50 @@ export default function Dashboard() {
             calculateMetrics(client, projects, clientsProject, transactions);
         }
     }, [client, projects, clientsProject, transactions]);
+
+    // View for all successful payments and filter
+    const paidTransactions = transactions.filter((t) => t.paid_at);
+
+    const filteredPayments = paidTransactions.filter((t) => {
+        const paidDate = new Date(t.paid_at);
+
+        const matchMonth =
+            selectedMonth === "all"
+                ? true
+                : paidDate.getMonth() === Number(selectedMonth);
+
+        const matchYear = paidDate.getFullYear() === Number(selectedYear);
+
+        return matchMonth && matchYear;
+    });
+
+    // View for all overdue payments and filter
+    const overduePayments = clientsProject.flatMap((cp) =>
+        (cp.payment_schedules || [])
+            .filter((s) => s.status === "overdue")
+            .map((s) => ({
+                id: s.id,
+                client: cp.client,
+                project: cp.project,
+                expected_amount: s.expected_amount,
+                due_date: s.due_date,
+            })),
+    );
+
+    const filteredOverduePayments = overduePayments.filter((o) => {
+        if (!o.due_date) return false;
+
+        const dueDate = new Date(o.due_date);
+
+        const matchMonth =
+            overdueMonth === "all"
+                ? true
+                : dueDate.getMonth() === Number(overdueMonth);
+
+        const matchYear = dueDate.getFullYear() === Number(overdueYear);
+
+        return matchMonth && matchYear;
+    });
 
     const getPaymentSummary = (project) => {
         const schedules = project.payment_schedules || [];
@@ -481,7 +534,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Monthly Revenue */}
+                {/* Monthly Sales */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -502,13 +555,21 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500 font-medium">
-                                    Monthly Revenue
+                                    Monthly Sales
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
                                     ₱{metrics.monthlyRevenue.toLocaleString()}
                                 </h3>
                             </div>
                         </div>
+
+                        <button
+                            onClick={() => setShowPaymentsModal(true)}
+                            className="bg-sky-400 text-white text-sm font-semibold text-red-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                        >
+                            <FontAwesomeIcon icon={faEye} className="pr-1" />
+                            View
+                        </button>
                     </div>
                     <div className="flex items-center gap-2">
                         {renderChangeIndicator(metrics.revenueChange, true)}
@@ -542,10 +603,18 @@ export default function Dashboard() {
                                     Overdue Payments
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    ₱{metrics.overduePayments.toLocaleString()}
+                                    {metrics.overdueCount}
                                 </h3>
                             </div>
                         </div>
+
+                        <button
+                            onClick={() => setShowOverdueModal(true)}
+                            className="bg-sky-400 text-white text-sm font-semibold text-red-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                        >
+                            <FontAwesomeIcon icon={faEye} className="pr-1" />
+                            View
+                        </button>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-lg">
@@ -891,6 +960,221 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+            {showPaymentsModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">
+                                Successful Payments
+                            </h2>
+                            <button
+                                onClick={() => setShowPaymentsModal(false)}
+                                className="text-gray-500 hover:text-gray-800 cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="flex gap-4 mb-4">
+                            {/* Month */}
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) =>
+                                    setSelectedMonth(e.target.value)
+                                }
+                                className="border rounded-lg px-3 py-2"
+                            >
+                                <option value="all">All Months</option>
+                                {Array.from({ length: 12 }).map((_, i) => (
+                                    <option key={i} value={i}>
+                                        {new Date(0, i).toLocaleString(
+                                            "default",
+                                            {
+                                                month: "long",
+                                            },
+                                        )}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Year */}
+                            <select
+                                value={selectedYear}
+                                onChange={(e) =>
+                                    setSelectedYear(e.target.value)
+                                }
+                                className="border rounded-lg px-3 py-2"
+                            >
+                                {[2024, 2025, 2026].map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Table */}
+                        <div className="max-h-96 overflow-y-auto">
+                            <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
+                                <thead className="bg-cyan-800 text-white text-center">
+                                    <tr>
+                                        <th className="px-4 py-2">Client</th>
+                                        <th className="px-4 py-2">Project</th>
+                                        <th className="px-4 py-2">Amount</th>
+                                        <th className="px-4 py-2">Paid At</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-center">
+                                    {filteredPayments.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="4"
+                                                className="text-center py-4 text-gray-500"
+                                            >
+                                                No payments found
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredPayments.map((t) => (
+                                            <tr key={t.id} className="border-t">
+                                                <td className="px-4 py-2">
+                                                    {t.client?.name || "Client"}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.project?.title ||
+                                                        "Project"}
+                                                </td>
+                                                <td className="px-4 py-2 font-semibold">
+                                                    ₱
+                                                    {Number(
+                                                        t.amount_paid,
+                                                    ).toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {new Date(
+                                                        t.paid_at,
+                                                    ).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showOverdueModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">
+                                Overdue Payments
+                            </h2>
+                            <button
+                                onClick={() => setShowOverdueModal(false)}
+                                className="text-gray-500 hover:text-gray-800 cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="flex gap-4 mb-4">
+                            {/* Month */}
+                            <select
+                                value={overdueMonth}
+                                onChange={(e) =>
+                                    setOverdueMonth(e.target.value)
+                                }
+                                className="border rounded-lg px-3 py-2"
+                            >
+                                <option value="all">All Months</option>
+                                {Array.from({ length: 12 }).map((_, i) => (
+                                    <option key={i} value={i}>
+                                        {new Date(0, i).toLocaleString(
+                                            "default",
+                                            {
+                                                month: "long",
+                                            },
+                                        )}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Year */}
+                            <select
+                                value={overdueYear}
+                                onChange={(e) => setOverdueYear(e.target.value)}
+                                className="border rounded-lg px-3 py-2"
+                            >
+                                {[2024, 2025, 2026].map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Table */}
+                        <div className="max-h-96 overflow-y-auto">
+                            <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
+                                <thead className="bg-cyan-800 text-white text-center">
+                                    <tr>
+                                        <th className="px-4 py-2">Client</th>
+                                        <th className="px-4 py-2">Project</th>
+                                        <th className="px-4 py-2">
+                                            Amount Due
+                                        </th>
+                                        <th className="px-4 py-2">Due Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-center">
+                                    {filteredOverduePayments.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="4"
+                                                className="text-center py-4 text-gray-500"
+                                            >
+                                                No overdue payments found
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredOverduePayments.map((o) => (
+                                            <tr
+                                                key={o.id}
+                                                className="border-t bg-red-50"
+                                            >
+                                                <td className="px-4 py-2">
+                                                    {o.client?.name || "Client"}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {o.project?.title ||
+                                                        "Project"}
+                                                </td>
+                                                <td className="px-4 py-2 font-semibold text-red-600">
+                                                    ₱
+                                                    {Number(
+                                                        o.expected_amount || 0,
+                                                    ).toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {new Date(
+                                                        o.due_date,
+                                                    ).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

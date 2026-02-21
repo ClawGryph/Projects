@@ -23,6 +23,11 @@ class PaymentSchedule extends Model
         return $this->belongsTo(ClientsProject::class);
     }
 
+    public function payment()
+    {
+        return $this->belongsTo(Payment::class);
+    }
+
     public function paymentTransactions()
     {
         return $this->hasMany(PaymentTransaction::class);
