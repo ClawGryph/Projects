@@ -19,7 +19,9 @@ class ClientsProjectController extends Controller
      */
     public function index(Client $client)
     {
-        $clientProjects = ClientsProject::with(['project', 'payments'])
+        $clientProjects = ClientsProject::with(['project', 'payments.paymentSchedules' => function($query) {
+                                                    $query->orderBy('due_date', 'asc');
+                                                },])
             ->where('client_id', $client->id)
             ->orderBy('id', 'desc')
             ->get();
@@ -136,7 +138,14 @@ class ClientsProjectController extends Controller
 
     public function projectsWithClients()
     {
-        $clientsProjects = ClientsProject::with(['project', 'client', 'payments'])
+        $clientsProjects = ClientsProject::with([
+            'project',
+            'client',
+            'payments.paymentSchedules' => function ($query) {
+                $query->orderBy('due_date', 'asc');
+            },
+            'payments.paymentTransactions',
+        ])
             ->orderBy('created_at', 'desc')
             ->get();
 

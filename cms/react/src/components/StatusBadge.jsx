@@ -135,10 +135,10 @@ export default function StatusBadge({ status, isEnded = false }) {
                 </svg>
             ),
         },
-        cancelled: {
+        ended: {
             bg: "bg-gray-100",
             text: "text-gray-700",
-            label: "Cancelled",
+            label: "Ended",
             icon: (
                 <svg
                     className="w-3 h-3"

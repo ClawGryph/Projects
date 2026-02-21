@@ -33,7 +33,7 @@ class Payment extends Model
 
     public function paymentSchedules()
     {
-        return $this->hasMany(PaymentSchedule::class);
+        return $this->hasMany(PaymentSchedule::class)->orderBy('due_date', 'asc');
     }
 
     public function paymentTransactions()

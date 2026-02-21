@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientsProjectController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PaymentScheduleController;
 use App\Http\Controllers\Api\PaymentTransactionController;
 use App\Http\Controllers\Api\ProjectController;
 use Illuminate\Support\Facades\Route;
@@ -28,3 +29,4 @@ Route::get('/client-projects', [ClientsProjectController::class, 'projectsWithCl
 Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
 Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);
 Route::get('/transactions', [PaymentTransactionController::class, 'index']);
+Route::put('/payment-schedules/{schedule}/status', [PaymentScheduleController::class, 'updateStatus']);

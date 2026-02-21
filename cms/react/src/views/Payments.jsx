@@ -4,50 +4,57 @@ import { useStateContext } from "../context/ContextProvider";
 import StatusBadge from "../components/StatusBadge";
 
 export default function Payments() {
-    const [payment, setPayment] = useState([]);
+    const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [loading, setLoading] = useState(false);
     const { setNotification } = useStateContext();
     const [editingId, setEditingId] = useState(null);
 
-    const getPayments = () => {
+    const getPaymentSchedules = () => {
         setLoading(true);
-
         axiosClient
             .get("/client-projects")
             .then(({ data }) => {
                 setLoading(false);
-                setPayment(data.data);
+
+                const schedules = [];
+                (data.data || []).forEach((project) => {
+                    project.payment_schedules?.forEach((sched) => {
+                        schedules.push({
+                            ...sched,
+                            client: project.client,
+                            project: project.project,
+                            payment: project.payment,
+                            isEnded: project.isEnded,
+                        });
+                    });
+                });
+
+                schedules.sort((a, b) => {
+                    if (!a.due_date) return 1;
+                    if (!b.due_date) return -1;
+                    return a.due_date.localeCompare(b.due_date);
+                });
+
+                setPaymentSchedules(schedules);
             })
-            .catch(() => {
+            .catch((err) => {
                 setLoading(false);
+                console.error(err);
             });
     };
 
     useEffect(() => {
-        getPayments();
+        getPaymentSchedules();
     }, []);
 
-    const updateStatus = (paymentId, newStatus, paymentType) => {
-        // For installment payments, prevent overwriting the status to 'partial' manually
-        if (paymentType === "installment" && newStatus === "partial") {
-            // Send 'partial' status to trigger installment increment
-            axiosClient
-                .put(`/payments/${paymentId}/status`, { status: "partial" })
-                .then(() => {
-                    getPayments();
-                    setNotification("Installment updated successfully");
-                })
-                .catch(() => {
-                    setNotification("Failed to update installment");
-                });
-            return;
-        }
-
+    const updateStatus = (scheduleId, newStatus) => {
         // All other cases
         axiosClient
-            .put(`/payments/${paymentId}/status`, { status: newStatus })
+            .put(`/payment-schedules/${scheduleId}/status`, {
+                status: newStatus,
+            })
             .then(() => {
-                getPayments(); // refresh list
+                getPaymentSchedules(); // refresh list
                 setNotification("Payment status updated");
             })
             .catch(() => {
@@ -101,13 +108,7 @@ export default function Payments() {
                                 Payment
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Payment Start Date
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Next Payment Date
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Payment Progress
+                                Due Date
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 Status
@@ -125,26 +126,24 @@ export default function Payments() {
                     )}
                     {!loading && (
                         <tbody>
-                            {payment.length > 0 ? (
-                                payment.map((p) => (
+                            {paymentSchedules.length > 0 ? (
+                                paymentSchedules.map((p) => (
                                     <tr
-                                        key={p.payment?.id}
+                                        key={p.id}
                                         className="border-b border-gray-200 hover:bg-cyan-50 text-center"
                                     >
+                                        <td className="px-4 py-2">{p.id}</td>
                                         <td className="px-4 py-2">
-                                            {p.payment?.id}
+                                            {p.client?.name}
                                         </td>
                                         <td className="px-4 py-2">
-                                            {p.client.name}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {p.project.title}
+                                            {p.project?.title}
                                         </td>
                                         <td className="px-4 py-2">
                                             ₱
                                             {new Intl.NumberFormat(
                                                 "en-PH",
-                                            ).format(p.project.price)}
+                                            ).format(p.expected_amount)}
                                         </td>
                                         <td className="px-4 py-2">
                                             {formatPaymentType(
@@ -155,131 +154,51 @@ export default function Payments() {
                                             )}
                                         </td>
                                         <td className="px-4 py-2">
-                                            {p.payment?.start_date}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {p.payment?.next_payment_date
-                                                ? p.payment?.next_payment_date
-                                                : " - "}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {p.payment?.payment_type ===
-                                            "installment" ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-600 rounded-md text-xs font-medium border border-purple-100">
-                                                    <svg
-                                                        className="w-3 h-3"
-                                                        fill="currentColor"
-                                                        viewBox="0 0 20 20"
-                                                    >
-                                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-                                                            clipRule="evenodd"
-                                                        />
-                                                    </svg>
-                                                    <span>
-                                                        {
-                                                            p.payment
-                                                                ?.current_installment
-                                                        }
-                                                    </span>
-                                                    <span className="text-purple-400">
-                                                        /
-                                                    </span>
-                                                    <span className="font-semibold">
-                                                        {
-                                                            p.payment
-                                                                ?.installments
-                                                        }
-                                                    </span>
-                                                </span>
-                                            ) : (
-                                                " - "
-                                            )}
+                                            {p.due_date || " - "}
                                         </td>
                                         <td className="px-4 py-2 relative">
-                                            {editingId === p.payment?.id ? (
+                                            {editingId === p.id ? (
                                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
-                                                    {(() => {
-                                                        // Base statuses always visible
-                                                        const baseStatuses = [
-                                                            "pending",
-                                                            "paid",
-                                                            "overdue",
-                                                        ];
-
-                                                        // Conditional status based on payment type
-                                                        let conditionalStatus =
-                                                            [];
-                                                        if (
-                                                            p.payment
-                                                                .payment_type ===
-                                                            "installment"
-                                                        ) {
-                                                            conditionalStatus =
-                                                                ["partial"];
-                                                        } else if (
-                                                            p.payment
-                                                                ?.payment_type ===
-                                                            "recurring"
-                                                        ) {
-                                                            conditionalStatus =
-                                                                ["active"];
-                                                        }
-
-                                                        const statusesToShow = [
-                                                            ...conditionalStatus,
-                                                            ...baseStatuses,
-                                                        ];
-
-                                                        return statusesToShow.map(
-                                                            (status) => (
-                                                                <div
-                                                                    key={status}
-                                                                    onClick={() => {
-                                                                        updateStatus(
-                                                                            p
-                                                                                .payment
-                                                                                ?.id,
-                                                                            status,
-                                                                            p
-                                                                                .payment
-                                                                                ?.payment_type,
-                                                                        );
-                                                                        setEditingId(
-                                                                            null,
-                                                                        );
-                                                                    }}
-                                                                    className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                                >
-                                                                    <StatusBadge
-                                                                        status={
-                                                                            status
-                                                                        }
-                                                                        isEnded={
-                                                                            p.isEnded
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            ),
-                                                        );
-                                                    })()}
+                                                    {[
+                                                        "pending",
+                                                        "paid",
+                                                        "overdue",
+                                                        "ended",
+                                                    ].map((status) => (
+                                                        <div
+                                                            key={status}
+                                                            onClick={() => {
+                                                                updateStatus(
+                                                                    p.id,
+                                                                    status,
+                                                                    p.payment
+                                                                        ?.payment_type,
+                                                                );
+                                                                setEditingId(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                        >
+                                                            <StatusBadge
+                                                                status={status}
+                                                                isEnded={
+                                                                    p.isEnded
+                                                                }
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             ) : (
                                                 <div
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setEditingId(
-                                                            p.payment?.id,
-                                                        );
+                                                        setEditingId(p.id);
                                                     }}
                                                     className="cursor-pointer flex justify-center"
                                                 >
                                                     <StatusBadge
-                                                        status={
-                                                            p.payment?.status
-                                                        }
+                                                        status={p.status}
                                                         isEnded={p.isEnded}
                                                     />
                                                 </div>

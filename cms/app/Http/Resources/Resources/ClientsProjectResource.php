@@ -32,7 +32,9 @@ class ClientsProjectResource extends JsonResource
                     'expected_amount' => $schedule->expected_amount,
                     'status' => $schedule->status,
                 ];
-            });
+            })
+            ->sortBy(fn($s) => $s['due_date'] ?? '9999-99-99')
+            ->values();
 
         return [
             'id' => $this->id,
