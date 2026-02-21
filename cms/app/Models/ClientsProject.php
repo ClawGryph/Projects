@@ -27,14 +27,4 @@ class ClientsProject extends Model
     {
         return $this->hasMany(Payment::class);
     }
-
-    public function paymentSchedules()
-    {
-        return $this->hasManyThrough(PaymentSchedule::class, Payment::class);
-    }
-
-    public function paymentTransactions()
-    {
-        return $this->hasManyThrough(PaymentTransaction::class, PaymentSchedule::class);
-    }
 }

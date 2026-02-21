@@ -22,4 +22,9 @@ class PaymentSchedule extends Model
     {
         return $this->belongsTo(ClientsProject::class);
     }
+
+    public function paymentTransactions()
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
 }

@@ -13,13 +13,16 @@ export default function ClientsProject() {
     const [client, setClient] = useState(null);
     const [projects, setProjects] = useState([]);
     const [allProjects, setAllProjects] = useState([]);
+    const [installmentSchedule, setInstallmentSchedule] = useState([]);
     const [selectedProject, setSelectedProject] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState(null);
-    const [isOpen, setIsOpen] = useState(false);
     const [paymentType, setPaymentType] = useState("");
     const [recurringType, setRecurringType] = useState("");
     const [installmentMonths, setInstallmentMonths] = useState("");
+    const [recurringCycles, setRecurringCycles] = useState("");
+    const [recurringRate, setRecurringRate] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState(null);
+    const [isOpen, setIsOpen] = useState(false);
 
     // Fetch client info
     useEffect(() => {
@@ -75,6 +78,13 @@ export default function ClientsProject() {
             .finally(() => setLoading(false));
     };
 
+    const getRecurringCycleLabel = () => {
+        if (recurringType === "weekly") return "Number of weeks";
+        if (recurringType === "monthly") return "Number of months";
+        if (recurringType === "yearly") return "Number of years";
+        return "Number of cycles";
+    };
+
     const formatPaymentType = (type) => {
         if (!type) return "";
 
@@ -110,6 +120,43 @@ export default function ClientsProject() {
             return;
         }
 
+        if (paymentType === "installment") {
+            const totalRate = installmentSchedule.reduce(
+                (sum, item) => sum + Number(item.payment_rate || 0),
+                0,
+            );
+
+            if (totalRate !== 100) {
+                setErrors({
+                    general: [
+                        `Installment rates must total 100%. Currently: ${totalRate}%`,
+                    ],
+                });
+                return;
+            }
+        }
+
+        if (paymentType === "recurring") {
+            if (!recurringCycles || !recurringRate) {
+                setErrors({
+                    general: ["Please enter recurring cycles and rate."],
+                });
+                return;
+            }
+
+            const totalRecurringRate =
+                Number(recurringCycles) * Number(recurringRate);
+
+            if (totalRecurringRate !== 100) {
+                setErrors({
+                    general: [
+                        `Recurring cycles × rate must equal 100%. Currently: ${totalRecurringRate}%`,
+                    ],
+                });
+                return;
+            }
+        }
+
         // API Request
         axiosClient
             .post(`/clients/${id}/projects`, {
@@ -117,8 +164,17 @@ export default function ClientsProject() {
                 payment_type: paymentType,
                 recurring_type:
                     paymentType === "recurring" ? recurringType : null,
-                installments:
-                    paymentType === "installment" ? installmentMonths : null,
+                recurring_rate:
+                    paymentType === "recurring" ? recurringRate : null,
+                number_of_cycles:
+                    paymentType === "installment"
+                        ? installmentMonths
+                        : paymentType === "recurring"
+                          ? recurringCycles
+                          : null,
+
+                installment_schedule:
+                    paymentType === "installment" ? installmentSchedule : null,
                 start_date: new Date().toISOString().slice(0, 10),
             })
             .then(() => {
@@ -128,7 +184,10 @@ export default function ClientsProject() {
                 setSelectedProject("");
                 setPaymentType("");
                 setRecurringType("");
+                setRecurringCycles("");
+                setRecurringRate("");
                 setInstallmentMonths("");
+                setInstallmentSchedule([]);
 
                 closeModal();
                 getClientProjects(); // Refresh projects
@@ -150,6 +209,7 @@ export default function ClientsProject() {
 
     const openModal = () => setIsOpen(true);
     const closeModal = () => setIsOpen(false);
+    const today = new Date().toISOString().split("T")[0];
 
     return (
         <div className="p-6">
@@ -182,17 +242,17 @@ export default function ClientsProject() {
                             <div>
                                 {/* Title */}
                                 <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-cyan-800 transition-colors">
-                                    {project.project.title}
+                                    {project.project?.title}
                                 </h2>
 
                                 {/* Description */}
                                 <p className="text-gray-600 mb-4 line-clamp-2">
-                                    {project.project.description}
+                                    {project.project?.description}
                                 </p>
                             </div>
                             {/* Status */}
                             <p className="text-gray-600 mb-4 line-clamp-2">
-                                <StatusBadge status={project.project.status} />
+                                <StatusBadge status={project.project?.status} />
                             </p>
                         </div>
 
@@ -201,7 +261,7 @@ export default function ClientsProject() {
                             <p className="text-2xl font-bold text-cyan-800">
                                 ₱
                                 {new Intl.NumberFormat("en-PH").format(
-                                    project.project.price,
+                                    project.project?.price,
                                 )}
                             </p>
                         </div>
@@ -212,13 +272,15 @@ export default function ClientsProject() {
                                 <span className="font-medium text-gray-700">
                                     Start:
                                 </span>
-                                <span>{project.project.start_date || "-"}</span>
+                                <span>
+                                    {project.project?.start_date || "-"}
+                                </span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <span className="font-medium text-gray-700">
                                     End:
                                 </span>
-                                <span>{project.project.end_date || "-"}</span>
+                                <span>{project.project?.end_date || "-"}</span>
                             </div>
                         </div>
 
@@ -229,46 +291,65 @@ export default function ClientsProject() {
                             </span>
 
                             <div className="flex items-center gap-2">
-                                <span
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm ${
-                                        project.payment?.payment_type ===
-                                        "one-time"
-                                            ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                                            : project.payment?.payment_type ===
-                                                "recurring"
-                                              ? "bg-blue-100 text-blue-700 border border-blue-200"
-                                              : project.payment
-                                                      ?.payment_type ===
-                                                  "installment"
-                                                ? "bg-purple-100 text-purple-700 border border-purple-200"
-                                                : "bg-gray-100 text-gray-600 border border-gray-200"
-                                    }`}
-                                >
-                                    {project.payment
-                                        ? formatPaymentType(
-                                              project.payment.payment_type,
-                                          )
-                                        : "Not Set"}
-                                </span>
+                                {project.payment?.payment_type !==
+                                    "recurring" && (
+                                    <span
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm ${
+                                            project.payment?.payment_type ===
+                                            "one-time"
+                                                ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                                : project.payment
+                                                        ?.payment_type ===
+                                                    "installment"
+                                                  ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                                  : "bg-gray-100 text-gray-600 border border-gray-200"
+                                        }`}
+                                    >
+                                        {project.payment
+                                            ? formatPaymentType(
+                                                  project.payment?.payment_type,
+                                              )
+                                            : "Not Set"}
+                                    </span>
+                                )}
 
                                 {project.payment?.payment_type ===
                                     "recurring" && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-xs font-medium border border-blue-100">
-                                        <svg
-                                            className="w-3 h-3"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                            />
-                                        </svg>
-                                        {project.payment.recurring_type}
-                                    </span>
+                                    <>
+                                        <span className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm bg-blue-100 text-blue-700 border border-blue-200">
+                                            {formatPaymentType(
+                                                project.payment?.recurring_type,
+                                            )}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-xs font-medium border border-blue-100">
+                                            <svg
+                                                className="w-3 h-3"
+                                                fill="currentColor"
+                                                viewBox="0 0 20 20"
+                                            >
+                                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
+                                                    clipRule="evenodd"
+                                                />
+                                            </svg>
+                                            <span className="font-semibold">
+                                                {project.payment
+                                                    ?.paid_installments_count ||
+                                                    0}
+                                            </span>
+                                            <span className="text-blue-400">
+                                                /
+                                            </span>
+                                            <span>
+                                                {
+                                                    project.payment
+                                                        ?.number_of_cycles
+                                                }
+                                            </span>
+                                        </span>
+                                    </>
                                 )}
 
                                 {project.payment?.payment_type ===
@@ -287,16 +368,14 @@ export default function ClientsProject() {
                                             />
                                         </svg>
                                         <span className="font-semibold">
-                                            {
-                                                project.payment
-                                                    .current_installment
-                                            }
+                                            {project.payment
+                                                ?.paid_installments_count || 0}
                                         </span>
                                         <span className="text-purple-400">
                                             /
                                         </span>
                                         <span>
-                                            {project.payment.installments}
+                                            {project.payment?.number_of_cycles}
                                         </span>
                                     </span>
                                 )}
@@ -307,7 +386,7 @@ export default function ClientsProject() {
             </div>
             {isOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-50/70">
-                    <div className="bg-white p-6 rounded shadow-lg w-96">
+                    <div className="w-xl bg-white p-6 rounded shadow-lg w-96">
                         <h2 className="text-xl font-bold mb-4">
                             Add project to client
                         </h2>
@@ -351,6 +430,7 @@ export default function ClientsProject() {
                                     setPaymentType(value);
                                     setRecurringType("");
                                     setInstallmentMonths("");
+                                    setInstallmentSchedule("");
                                 }}
                                 className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             >
@@ -368,25 +448,74 @@ export default function ClientsProject() {
 
                         {/* IF PAYMENT TYPE IS RECURRING SHOW */}
                         {paymentType === "recurring" && (
-                            <div className="relative w-full mb-2">
-                                <select
-                                    value={recurringType}
-                                    onChange={(e) =>
-                                        setRecurringType(e.target.value)
-                                    }
-                                    className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                >
-                                    <option value="" disabled>
-                                        Select recurring type
-                                    </option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="yearly">Yearly</option>
-                                </select>
-                                <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                    Recurring Type
-                                </label>
-                            </div>
+                            <>
+                                {/* Recurring Type */}
+                                <div className="relative w-full mb-2">
+                                    <select
+                                        value={recurringType}
+                                        onChange={(e) => {
+                                            setRecurringType(e.target.value);
+                                            setRecurringCycles("");
+                                            setRecurringRate("");
+                                        }}
+                                        className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    >
+                                        <option value="" disabled>
+                                            Select recurring type
+                                        </option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                    <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                        Recurring Type
+                                    </label>
+                                </div>
+
+                                {/* Cycles + Rate */}
+                                {recurringType && (
+                                    <div className="flex gap-2 mb-2">
+                                        {/* Number of cycles */}
+                                        <div className="relative w-full">
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                value={recurringCycles}
+                                                onChange={(e) =>
+                                                    setRecurringCycles(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            />
+                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                {getRecurringCycleLabel()}
+                                            </label>
+                                        </div>
+
+                                        {/* Rate */}
+                                        <div className="relative w-full">
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                value={recurringRate}
+                                                onChange={(e) =>
+                                                    setRecurringRate(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-10 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            />
+                                            <span className="absolute right-3 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
+                                                %
+                                            </span>
+                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                Rate
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         {/* IF PAYMENT TYPE IS INSTALLMENT SHOW */}
@@ -396,14 +525,113 @@ export default function ClientsProject() {
                                     type="number"
                                     placeholder="0"
                                     value={installmentMonths}
-                                    onChange={(e) =>
-                                        setInstallmentMonths(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        const months =
+                                            parseInt(e.target.value) || 0;
+                                        setInstallmentMonths(months);
+
+                                        if (months > 0) {
+                                            const today = new Date()
+                                                .toISOString()
+                                                .split("T")[0];
+
+                                            const newSchedule = Array.from(
+                                                { length: months },
+                                                (_, index) => ({
+                                                    due_date:
+                                                        index === 0
+                                                            ? today
+                                                            : "",
+                                                    payment_rate: "",
+                                                }),
+                                            );
+
+                                            setInstallmentSchedule(newSchedule);
+                                        } else {
+                                            setInstallmentSchedule([]);
+                                        }
+                                    }}
                                     className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                 />
                                 <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
                                     Number of months
                                 </label>
+                            </div>
+                        )}
+                        {installmentSchedule.length > 0 && (
+                            <div className="mt-4 mb-5 space-y-3 max-h-64 overflow-y-auto">
+                                {installmentSchedule.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex gap-2 items-center"
+                                    >
+                                        {/* Due Date */}
+                                        <div className="relative w-full mb-2">
+                                            <input
+                                                type="date"
+                                                value={item.due_date}
+                                                onChange={(e) => {
+                                                    const value =
+                                                        e.target.value;
+
+                                                    setInstallmentSchedule(
+                                                        (prev) =>
+                                                            prev.map(
+                                                                (item, i) =>
+                                                                    i === index
+                                                                        ? {
+                                                                              ...item,
+                                                                              due_date:
+                                                                                  value,
+                                                                          }
+                                                                        : item,
+                                                            ),
+                                                    );
+                                                }}
+                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            />
+                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                                {index === 0
+                                                    ? "First Payment"
+                                                    : `${index} month due date`}
+                                            </label>
+                                        </div>
+
+                                        {/* Amount */}
+                                        <div className="relative w-full mb-2">
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                value={item.payment_rate}
+                                                onChange={(e) => {
+                                                    const value =
+                                                        e.target.value;
+
+                                                    setInstallmentSchedule(
+                                                        (prev) =>
+                                                            prev.map(
+                                                                (item, i) =>
+                                                                    i === index
+                                                                        ? {
+                                                                              ...item,
+                                                                              payment_rate:
+                                                                                  value,
+                                                                          }
+                                                                        : item,
+                                                            ),
+                                                    );
+                                                }}
+                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            />
+                                            <span className="absolute right-8 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
+                                                %
+                                            </span>
+                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                                Rate
+                                            </label>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
@@ -413,7 +641,10 @@ export default function ClientsProject() {
                                 setSelectedProject("");
                                 setPaymentType("");
                                 setRecurringType("");
+                                setRecurringCycles("");
+                                setRecurringRate("");
                                 setInstallmentMonths("");
+                                setInstallmentSchedule([]);
                             }}
                             className="px-4 py-2 bg-red-500 text-white rounded cursor-pointer"
                         >

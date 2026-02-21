@@ -8,6 +8,7 @@ use App\Http\Resources\Resources\ProjectResource;
 use App\Models\Client;
 use App\Models\ClientsProject;
 use App\Models\Payment;
+use App\Models\PaymentSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -41,8 +42,12 @@ class ClientsProjectController extends Controller
             'project_id' => 'required|exists:projects,id',
             'payment_type' => 'required|string',
             'recurring_type' => 'nullable|string',
-            'installments' => 'nullable|integer',
-            'start_date' => 'required|date'
+            'number_of_cycles' => 'nullable|integer|min:1',
+            'start_date' => 'required|date',
+            'installment_schedule' => 'nullable|array',
+            'installment_schedule.*.due_date' => 'required_with:installment_schedule|date',
+            'installment_schedule.*.payment_rate' => 'required_with:installment_schedule|numeric',
+            'recurring_rate' => 'nullable|numeric',
         ]);
 
         $exists = ClientsProject::where('client_id', $clientId)
@@ -63,41 +68,66 @@ class ClientsProjectController extends Controller
 
         // COMPUTE NEXT PAYMENT DATE
         $startDate = Carbon::parse($data['start_date']);
-        $nextPaymentDate = null;
-        $currentInstallment = 0;
-
-
-        if ($data['payment_type'] === 'recurring') {
-
-            if ($data['recurring_type'] === 'weekly') {
-                $nextPaymentDate = $startDate->copy()->addWeek();
-            }
-
-            if ($data['recurring_type'] === 'monthly') {
-                $nextPaymentDate = $startDate->copy()->addMonth();
-            }
-
-            if ($data['recurring_type'] === 'yearly') {
-                $nextPaymentDate = $startDate->copy()->addYear();
-            }
-        }
-
-        if ($data['payment_type'] === 'installment' && $data['installments']) {
-            $currentInstallment = 0;
-            $nextPaymentDate = $startDate->copy()->addMonth();
-        }
 
         // CREATE PAYMENT RECORD
-        Payment::create([
+        $payment = Payment::create([
             'clients_project_id' => $clientsProject->id,
             'payment_type' => $data['payment_type'],
             'recurring_type' => $data['recurring_type'] ?? null,
-            'installments' => $data['installments'] ?? null,
-            'current_installment' => $currentInstallment,
+            'number_of_cycles' => $data['number_of_cycles'] ?? null,
             'start_date' => $startDate,
-            'next_payment_date' => $nextPaymentDate,
-            'status' => 'pending'
+            'fixed_rate' => $data['payment_type'] === 'recurring' ? $data['recurring_rate'] : null,
         ]);
+
+        $projectPrice = $clientsProject->project->price;
+
+        // Only create schedules if payment is installment
+        if ($data['payment_type'] === 'one_time') {
+            PaymentSchedule::create([
+                'payment_id' => $payment->id,
+                'due_date' => $startDate->format('Y-m-d'),
+                'payment_rate' => 0,
+                'expected_amount' => $projectPrice,
+                'status' => 'pending',
+            ]);
+        }
+
+        // Only create schedules if payment is installment
+        if ($data['payment_type'] === 'installment' && !empty($data['installment_schedule'])) {
+            foreach ($data['installment_schedule'] as $schedule) {
+                PaymentSchedule::create([
+                    'payment_id' => $payment->id,
+                    'due_date' => $schedule['due_date'],
+                    'payment_rate' => $schedule['payment_rate'],
+                    'expected_amount' => ($schedule['payment_rate'] / 100) * $projectPrice,
+                    'status' => 'pending',
+                ]);
+            }
+        }
+
+        // Create schedules for recurring payments
+        if ($data['payment_type'] === 'recurring' && !empty($data['number_of_cycles']) && $data['recurring_rate']) {
+            $currentDate = $startDate->copy();
+
+            for ($i = 0; $i < $data['number_of_cycles']; $i++) {
+                PaymentSchedule::create([
+                    'payment_id' => $payment->id,
+                    'due_date' => $currentDate->format('Y-m-d'),
+                    'payment_rate' => $data['recurring_rate'],
+                    'expected_amount' => ($data['recurring_rate'] / 100) * $projectPrice,
+                    'status' => 'pending',
+                ]);
+
+                // Then increment date for next payment
+                if ($data['recurring_type'] === 'weekly') {
+                    $currentDate->addWeek();
+                } elseif ($data['recurring_type'] === 'monthly') {
+                    $currentDate->addMonth();
+                } elseif ($data['recurring_type'] === 'yearly') {
+                    $currentDate->addYear();
+                }
+            }
+        }
 
         return response()->json([
             'message' => 'Project assigned with payment successfully'

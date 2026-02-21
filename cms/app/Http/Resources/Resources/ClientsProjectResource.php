@@ -9,15 +9,30 @@ use Illuminate\Support\Carbon;
 class ClientsProjectResource extends JsonResource
 {
     public static $wrap = false;
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
+
     public function toArray(Request $request): array
     {
+        // Get first payment
         $payment = $this->payments->first();
-        $transaction = $this->paymentTransactions->sortByDesc('id')->first();
+
+        // Get latest payment transaction across all payments
+        $transaction = $this->payments
+            ->flatMap->paymentTransactions
+            ->sortByDesc('id')
+            ->first();
+
+        // Collect all payment schedules across payments
+        $schedules = $this->payments
+            ->flatMap->paymentSchedules
+            ->map(function ($schedule) {
+                return [
+                    'id' => $schedule->id,
+                    'due_date' => $schedule->due_date ? Carbon::parse($schedule->due_date)->format('Y-m-d') : null,
+                    'payment_rate' => $schedule->payment_rate,
+                    'expected_amount' => $schedule->expected_amount,
+                    'status' => $schedule->status,
+                ];
+            });
 
         return [
             'id' => $this->id,
@@ -29,26 +44,19 @@ class ClientsProjectResource extends JsonResource
                 'description' => $this->project->description,
                 'price' => $this->project->price,
                 'status' => $this->project->status,
-                'start_date' => $this->project->start_date
-                    ? Carbon::parse($this->project->start_date)->format('Y-m-d')
-                    : null,
-                'end_date' => $this->project->end_date
-                    ? Carbon::parse($this->project->end_date)->format('Y-m-d')
-                    : null,
+                'start_date' => $this->project->start_date ? Carbon::parse($this->project->start_date)->format('Y-m-d') : null,
+                'end_date' => $this->project->end_date ? Carbon::parse($this->project->end_date)->format('Y-m-d') : null,
                 'created_at' => $this->project->created_at,
             ] : null,
 
             'payment' => $payment ? [
-                'id' => $payment->id, 
+                'id' => $payment->id,
                 'payment_type' => $payment->payment_type,
                 'recurring_type' => $payment->recurring_type,
-                'installments' => $payment->installments,
-                'current_installment' => $payment->current_installment,
-                'start_date' => $payment->start_date ? Carbon::parse($payment->start_date)->format('Y-m-d')
-                                : null,
-                'next_payment_date' => $payment->next_payment_date ? Carbon::parse($payment->next_payment_date)->format('Y-m-d')
-                                : null,
-                'status' => $payment->status,
+                'number_of_cycles' => $payment->number_of_cycles,
+                'fixed_rate' => $payment->fixed_rate,
+                'start_date' => $payment->start_date ? Carbon::parse($payment->start_date)->format('Y-m-d') : null,
+                'paid_installments_count' => $payment->paymentTransactions->count(),
             ] : null,
 
             'client' => [
@@ -57,16 +65,17 @@ class ClientsProjectResource extends JsonResource
             ],
 
             'payment_transaction' => $transaction ? [
-            'id' => $transaction->id,
-            'amount' => $transaction->amount ?? 0,
-            'paid_at' => $transaction->paid_at ? Carbon::parse($transaction->paid_at)->format('Y-m-d') : null,
-            'installment_number' => $transaction->installment_number,
-        ] : [
-            'id' => null,
-            'amount' => 0,
-            'paid_at' => null,
-            'installment_number' => null,
-        ],
+                'id' => $transaction->id,
+                'amount' => $transaction->amount ?? 0,
+                'paid_at' => $transaction->paid_at ? Carbon::parse($transaction->paid_at)->format('Y-m-d') : null,
+            ] : [
+                'id' => null,
+                'amount' => 0,
+                'paid_at' => null,
+                'installment_number' => null,
+            ],
+
+            'payment_schedules' => $schedules,
         ];
     }
 }

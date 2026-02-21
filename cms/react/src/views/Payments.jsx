@@ -128,11 +128,11 @@ export default function Payments() {
                             {payment.length > 0 ? (
                                 payment.map((p) => (
                                     <tr
-                                        key={p.payment.id}
+                                        key={p.payment?.id}
                                         className="border-b border-gray-200 hover:bg-cyan-50 text-center"
                                     >
                                         <td className="px-4 py-2">
-                                            {p.payment.id}
+                                            {p.payment?.id}
                                         </td>
                                         <td className="px-4 py-2">
                                             {p.client.name}
@@ -148,18 +148,18 @@ export default function Payments() {
                                         </td>
                                         <td className="px-4 py-2">
                                             {formatPaymentType(
-                                                p.payment.payment_type ===
+                                                p.payment?.payment_type ===
                                                     "recurring"
-                                                    ? p.payment.recurring_type
-                                                    : p.payment.payment_type,
+                                                    ? p.payment?.recurring_type
+                                                    : p.payment?.payment_type,
                                             )}
                                         </td>
                                         <td className="px-4 py-2">
-                                            {p.payment.start_date}
+                                            {p.payment?.start_date}
                                         </td>
                                         <td className="px-4 py-2">
-                                            {p.payment.next_payment_date
-                                                ? p.payment.next_payment_date
+                                            {p.payment?.next_payment_date
+                                                ? p.payment?.next_payment_date
                                                 : " - "}
                                         </td>
                                         <td className="px-4 py-2">
@@ -181,14 +181,17 @@ export default function Payments() {
                                                     <span>
                                                         {
                                                             p.payment
-                                                                .current_installment
+                                                                ?.current_installment
                                                         }
                                                     </span>
                                                     <span className="text-purple-400">
                                                         /
                                                     </span>
                                                     <span className="font-semibold">
-                                                        {p.payment.installments}
+                                                        {
+                                                            p.payment
+                                                                ?.installments
+                                                        }
                                                     </span>
                                                 </span>
                                             ) : (
@@ -196,7 +199,7 @@ export default function Payments() {
                                             )}
                                         </td>
                                         <td className="px-4 py-2 relative">
-                                            {editingId === p.payment.id ? (
+                                            {editingId === p.payment?.id ? (
                                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
                                                     {(() => {
                                                         // Base statuses always visible
@@ -218,7 +221,7 @@ export default function Payments() {
                                                                 ["partial"];
                                                         } else if (
                                                             p.payment
-                                                                .payment_type ===
+                                                                ?.payment_type ===
                                                             "recurring"
                                                         ) {
                                                             conditionalStatus =
@@ -238,11 +241,11 @@ export default function Payments() {
                                                                         updateStatus(
                                                                             p
                                                                                 .payment
-                                                                                .id,
+                                                                                ?.id,
                                                                             status,
                                                                             p
                                                                                 .payment
-                                                                                .payment_type,
+                                                                                ?.payment_type,
                                                                         );
                                                                         setEditingId(
                                                                             null,
@@ -268,14 +271,14 @@ export default function Payments() {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setEditingId(
-                                                            p.payment.id,
+                                                            p.payment?.id,
                                                         );
                                                     }}
                                                     className="cursor-pointer flex justify-center"
                                                 >
                                                     <StatusBadge
                                                         status={
-                                                            p.payment.status
+                                                            p.payment?.status
                                                         }
                                                         isEnded={p.isEnded}
                                                     />

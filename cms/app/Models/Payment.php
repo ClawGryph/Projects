@@ -31,8 +31,26 @@ class Payment extends Model
         return $this->clientsProject ? $this->clientsProject->project : null;
     }
 
+    public function paymentSchedules()
+    {
+        return $this->hasMany(PaymentSchedule::class);
+    }
+
     public function paymentTransactions()
     {
-        return $this->hasMany(PaymentTransaction::class);
+        return $this->hasManyThrough(
+            PaymentTransaction::class,
+            PaymentSchedule::class,
+            'payment_id',
+            'payment_schedule_id',
+            'id',
+            'id'
+        );
+    }
+
+    public function getPaidInstallmentsCountAttribute()
+    {
+        // Only count transactions that belong to this payment
+        return $this->paymentTransactions()->count();
     }
 }
