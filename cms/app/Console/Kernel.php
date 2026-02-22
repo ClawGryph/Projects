@@ -27,7 +27,7 @@ class Kernel extends ConsoleKernel
        $schedule->call(function () {
             PaymentSchedule::where('status', 'pending')
                 ->whereNotNull('due_date')
-                ->whereDate('due_date', '<=', now()->subDays(2))
+                ->whereDate('due_date', '<=', now()->subDays(1))
                 ->update(['status' => 'overdue']);
         })->daily();
     }

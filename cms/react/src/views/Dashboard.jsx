@@ -30,7 +30,6 @@ export default function Dashboard() {
         axiosClient
             .get("/transactions")
             .then(({ data }) => {
-                console.log(data.data[0]);
                 setTransactions(data.data);
             })
             .catch(() => console.error("Failed to load payment transactions"));
@@ -337,33 +336,54 @@ export default function Dashboard() {
         );
     };
 
-    // ================== UPCOMING PAYMENTS ==================
-    const now = new Date();
-    const oneWeekFromNow = new Date();
-    oneWeekFromNow.setDate(now.getDate() + 7);
+    // UPCOMING PAYMENTS
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const oneWeekFromNow = new Date(today);
+    oneWeekFromNow.setDate(today.getDate() + 7);
 
     const upcomingPayments = clientsProject
-        .filter((project) => {
-            if (!project.payment?.next_payment_date) return false;
-
-            if (
-                ["paid", "partial", "active"].includes(
-                    project.payment.status?.toLowerCase(),
-                )
-            )
-                return false;
-
-            const nextPayment = new Date(project.payment.next_payment_date);
-
-            return nextPayment >= now && nextPayment <= oneWeekFromNow;
+        .flatMap((project) => {
+            const schedules = project.payment_schedules || [];
+            return schedules
+                .filter((s) => {
+                    if (!s.due_date || s.status === "paid") return false;
+                    const due = new Date(s.due_date);
+                    due.setHours(0, 0, 0, 0);
+                    return due >= today && due <= oneWeekFromNow;
+                })
+                .map((s) => ({ ...project, _upcomingSchedule: s }));
         })
-        // Sort by nearest due date first
         .sort(
             (a, b) =>
-                new Date(a.payment.next_payment_date) -
-                new Date(b.payment.next_payment_date),
+                new Date(a._upcomingSchedule.due_date) -
+                new Date(b._upcomingSchedule.due_date),
         )
         .slice(0, 5);
+
+    // LATE PAYMENTS
+    const latePaymentsThisMonth = clientsProject
+        .flatMap((project) => {
+            const schedules = project.payment_schedules || [];
+            return schedules
+                .filter((s) => {
+                    if (!s.due_date || s.status === "paid") return false;
+                    const due = new Date(s.due_date);
+                    due.setHours(0, 0, 0, 0);
+                    const isOverdue = due < today;
+                    const isThisMonth =
+                        due.getMonth() === today.getMonth() &&
+                        due.getFullYear() === today.getFullYear();
+                    return isOverdue && isThisMonth;
+                })
+                .map((s) => ({ ...project, _lateSchedule: s }));
+        })
+        .sort(
+            (a, b) =>
+                new Date(a._lateSchedule.due_date) -
+                new Date(b._lateSchedule.due_date),
+        );
 
     const buildActivities = () => {
         const activities = [];
@@ -393,7 +413,7 @@ export default function Dashboard() {
                 type: "payment_received",
                 title: "Payment Received",
                 description: `From ${t.client?.name || "Client"}`,
-                amount: t.amount,
+                amount: t.amount_paid,
                 date: new Date(t.paid_at),
             });
         });
@@ -823,7 +843,7 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* ACTIVITIES */}
+            {/* UPCOMING & LATE PAYMENTS */}
             <div className="min-w-full bg-white rounded-xl overflow-hidden shadow-sm p-6 mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* UPCOMING PAYMENTS */}
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm p-6">
@@ -838,17 +858,17 @@ export default function Dashboard() {
                     ) : (
                         upcomingPayments.map((project) => {
                             const nextPayment = new Date(
-                                project.payment.next_payment_date,
+                                project._upcomingSchedule.due_date,
                             );
 
-                            const threeDaysFromNow = new Date();
-                            threeDaysFromNow.setDate(now.getDate() + 3);
+                            const dayFromNow = new Date();
+                            dayFromNow.setDate(today.getDate() + 1);
 
-                            const isUrgent = nextPayment <= threeDaysFromNow;
+                            const isUrgent = nextPayment <= dayFromNow;
 
                             return (
                                 <div
-                                    key={project.id}
+                                    key={`${project.id}-${project._upcomingSchedule.id}`}
                                     className={`flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 ${
                                         isUrgent
                                             ? "bg-red-50 hover:bg-red-100"
@@ -869,8 +889,8 @@ export default function Dashboard() {
                                         <p className="text-gray-800 font-bold">
                                             ₱
                                             {Number(
-                                                project.payment_transaction
-                                                    ?.amount || 0,
+                                                project._upcomingSchedule
+                                                    .expected_amount || 0,
                                             ).toLocaleString()}
                                         </p>
                                         <p className="text-gray-500 text-sm">
@@ -886,7 +906,76 @@ export default function Dashboard() {
                     )}
                 </div>
 
-                {/* RECENT ACTIVITIES */}
+                {/* LATE PAYMENTS */}
+                <div className="bg-white rounded-xl overflow-hidden shadow-sm p-6">
+                    <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
+                        Late Payments
+                    </h2>
+                    <div className="space-y-4">
+                        {latePaymentsThisMonth.length === 0 ? (
+                            <p className="text-center text-gray-500 py-6">
+                                No late payments this month
+                            </p>
+                        ) : (
+                            latePaymentsThisMonth.map((project) => {
+                                const dueDate = new Date(
+                                    project._lateSchedule.due_date,
+                                );
+
+                                const now = new Date();
+                                const MS_PER_DAY = 86400000;
+
+                                const daysLate =
+                                    now > dueDate
+                                        ? Math.floor(
+                                              (now - dueDate) / MS_PER_DAY,
+                                          )
+                                        : 0;
+
+                                return (
+                                    <div
+                                        key={`${project.id}-${project._lateSchedule.id}`}
+                                        className="flex items-center justify-between border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 bg-red-50 hover:bg-red-100 transition-colors"
+                                    >
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-800">
+                                                {project.project.title}
+                                            </h3>
+                                            <p className="text-gray-500">
+                                                {project.client?.name ||
+                                                    "No Client"}
+                                            </p>
+                                            <span className="text-xs font-semibold text-red-500">
+                                                {daysLate} day
+                                                {daysLate !== 1 ? "s" : ""} late
+                                            </span>
+                                        </div>
+
+                                        <div className="text-right">
+                                            <p className="text-red-600 font-bold">
+                                                ₱
+                                                {Number(
+                                                    project._lateSchedule
+                                                        .expected_amount || 0,
+                                                ).toLocaleString()}
+                                            </p>
+                                            <p className="text-gray-500 text-sm">
+                                                Due:{" "}
+                                                {dueDate.toLocaleDateString(
+                                                    "en-CA",
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* RECENT ACTIVITY */}
+            <div className="min-w-full bg-white rounded-xl overflow-hidden shadow-sm p-6 mt-6">
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm p-6">
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                         Recent Activity
@@ -960,6 +1049,7 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
             {showPaymentsModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
