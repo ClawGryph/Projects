@@ -1128,7 +1128,10 @@ export default function Dashboard() {
                                         </tr>
                                     ) : (
                                         filteredPayments.map((t) => (
-                                            <tr key={t.id} className="border-t">
+                                            <tr
+                                                key={t.id}
+                                                className="border-b border-gray-200"
+                                            >
                                                 <td className="px-4 py-2">
                                                     {t.client?.name || "Client"}
                                                 </td>
@@ -1236,7 +1239,7 @@ export default function Dashboard() {
                                         filteredOverduePayments.map((o) => (
                                             <tr
                                                 key={o.id}
-                                                className="border-t bg-red-50"
+                                                className="border-b border-gray-200 bg-red-50"
                                             >
                                                 <td className="px-4 py-2">
                                                     {o.client?.name || "Client"}
