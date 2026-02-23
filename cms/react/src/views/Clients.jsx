@@ -12,6 +12,7 @@ import { useStateContext } from "../context/ContextProvider";
 
 export default function Clients() {
     const [clients, setClients] = useState([]);
+    const [meta, setMeta] = useState({});
     const [loading, setLoading] = useState(false);
     const { setNotification } = useStateContext();
 
@@ -30,14 +31,15 @@ export default function Clients() {
         });
     };
 
-    const getUsers = () => {
+    const getUsers = (page = 1) => {
         setLoading(true);
 
         axiosClient
-            .get("/clients")
+            .get(`/clients?page=${page}`)
             .then(({ data }) => {
                 setLoading(false);
                 setClients(data.data);
+                setMeta(data.meta);
             })
             .catch(() => {
                 setLoading(false);
@@ -161,6 +163,35 @@ export default function Clients() {
                         </tbody>
                     )}
                 </table>
+                <div className="flex justify-center items-center gap-2 mt-4">
+                    {meta?.current_page > 1 && (
+                        <button
+                            onClick={() =>
+                                getPaymentSchedules(meta.current_page - 1)
+                            }
+                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                        >
+                            Previous
+                        </button>
+                    )}
+
+                    {meta?.current_page && (
+                        <span className="text-sm text-gray-600">
+                            Page {meta.current_page} of {meta.last_page}
+                        </span>
+                    )}
+
+                    {meta?.current_page < meta?.last_page && (
+                        <button
+                            onClick={() =>
+                                getPaymentSchedules(meta.current_page + 1)
+                            }
+                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                        >
+                            Next
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

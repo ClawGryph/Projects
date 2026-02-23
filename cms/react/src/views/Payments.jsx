@@ -8,11 +8,17 @@ export default function Payments() {
     const [loading, setLoading] = useState(false);
     const { setNotification } = useStateContext();
     const [editingId, setEditingId] = useState(null);
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        return `${year}-${month}`;
+    });
 
     const getPaymentSchedules = () => {
         setLoading(true);
         axiosClient
-            .get("/client-projects")
+            .get(`/client-projects`)
             .then(({ data }) => {
                 setLoading(false);
 
@@ -48,13 +54,12 @@ export default function Payments() {
     }, []);
 
     const updateStatus = (scheduleId, newStatus) => {
-        // All other cases
         axiosClient
             .put(`/payment-schedules/${scheduleId}/status`, {
                 status: newStatus,
             })
             .then(() => {
-                getPaymentSchedules(); // refresh list
+                getPaymentSchedules();
                 setNotification("Payment status updated");
             })
             .catch(() => {
@@ -70,155 +75,193 @@ export default function Payments() {
 
     const formatPaymentType = (type) => {
         if (!type) return "";
-
-        // Replace underscores with spaces
-        const formatted = type.replace(/_/g, " ");
-
-        // Capitalize first letter of every word
-        return formatted
+        return type
+            .replace(/_/g, " ")
             .split(" ")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
     };
 
+    const filteredSchedules = selectedMonth
+        ? paymentSchedules.filter((p) => {
+              if (!p.due_date) return false;
+              // due_date format assumed to be YYYY-MM-DD
+              return p.due_date.slice(0, 7) === selectedMonth;
+          })
+        : paymentSchedules;
+
     return (
         <>
             <div className="flex justify-between items-center p-5 mt-5">
-                <h1 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Payments
                 </h1>
-            </div>
-            <div className="flex flex-col h-full justify-start items-center overflow-x-auto">
-                <table className="max-w-[1100px] w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
-                    <thead>
-                        <tr className="bg-cyan-800">
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                ID
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Client
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Project
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Cost
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Payment
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Due Date
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    {loading && (
-                        <tbody>
-                            <tr>
-                                <td colSpan="9" className="text-center">
-                                    Loading...
-                                </td>
-                            </tr>
-                        </tbody>
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="month-filter"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                        Filter by Month:
+                    </label>
+                    <input
+                        id="month-filter"
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                    />
+                    {selectedMonth && (
+                        <button
+                            onClick={() => setSelectedMonth("")}
+                            className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
+                        >
+                            Clear
+                        </button>
                     )}
-                    {!loading && (
-                        <tbody>
-                            {paymentSchedules.length > 0 ? (
-                                paymentSchedules.map((p) => (
-                                    <tr
-                                        key={p.id}
-                                        className="border-b border-gray-200 hover:bg-cyan-50 text-center"
-                                    >
-                                        <td className="px-4 py-2">{p.id}</td>
-                                        <td className="px-4 py-2">
-                                            {p.client?.name}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {p.project?.title}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            ₱
-                                            {new Intl.NumberFormat(
-                                                "en-PH",
-                                            ).format(p.expected_amount)}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {formatPaymentType(
-                                                p.payment?.payment_type ===
-                                                    "recurring"
-                                                    ? p.payment?.recurring_type
-                                                    : p.payment?.payment_type,
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {p.due_date || " - "}
-                                        </td>
-                                        <td className="px-4 py-2 relative">
-                                            {editingId === p.id ? (
-                                                <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
-                                                    {[
-                                                        "pending",
-                                                        "paid",
-                                                        "overdue",
-                                                        "ended",
-                                                    ].map((status) => (
-                                                        <div
-                                                            key={status}
-                                                            onClick={() => {
-                                                                updateStatus(
-                                                                    p.id,
-                                                                    status,
-                                                                    p.payment
-                                                                        ?.payment_type,
-                                                                );
-                                                                setEditingId(
-                                                                    null,
-                                                                );
-                                                            }}
-                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                        >
-                                                            <StatusBadge
-                                                                status={status}
-                                                                isEnded={
-                                                                    p.isEnded
-                                                                }
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingId(p.id);
-                                                    }}
-                                                    className="cursor-pointer flex justify-center"
-                                                >
-                                                    <StatusBadge
-                                                        status={p.status}
-                                                        isEnded={p.isEnded}
-                                                    />
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
+                </div>
+            </div>
+            <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto">
+                <div className="max-w-[1100px] w-full overflow-auto rounded-lg hide-scrollbar max-height">
+                    <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
+                        <thead className="sticky top-0 z-20 bg-cyan-800">
+                            <tr>
+                                <th className="px-4 text-white text-sm font-medium">
+                                    ID
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Client
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Project
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Cost
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Payment
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Due Date
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Status
+                                </th>
+                            </tr>
+                        </thead>
+                        {loading && (
+                            <tbody>
                                 <tr>
                                     <td
-                                        colSpan={9}
-                                        className="px-4 py-6 text-center text-gray-500"
+                                        colSpan="7"
+                                        className="text-center py-4"
                                     >
-                                        No payments
+                                        Loading...
                                     </td>
                                 </tr>
-                            )}
-                        </tbody>
-                    )}
-                </table>
+                            </tbody>
+                        )}
+                        {!loading && (
+                            <tbody>
+                                {filteredSchedules.length > 0 ? (
+                                    filteredSchedules.map((p) => (
+                                        <tr
+                                            key={p.id}
+                                            className="hover:bg-cyan-50 text-center"
+                                        >
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {p.id}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {p.client?.name}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {p.project?.title}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                ₱
+                                                {new Intl.NumberFormat(
+                                                    "en-PH",
+                                                ).format(p.expected_amount)}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {formatPaymentType(
+                                                    p.payment?.payment_type ===
+                                                        "recurring"
+                                                        ? p.payment
+                                                              ?.recurring_type
+                                                        : p.payment
+                                                              ?.payment_type,
+                                                )}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {p.due_date || " - "}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2 relative">
+                                                {editingId === p.id ? (
+                                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
+                                                        {[
+                                                            "pending",
+                                                            "paid",
+                                                            "overdue",
+                                                            "ended",
+                                                        ].map((status) => (
+                                                            <div
+                                                                key={status}
+                                                                onClick={() => {
+                                                                    updateStatus(
+                                                                        p.id,
+                                                                        status,
+                                                                    );
+                                                                    setEditingId(
+                                                                        null,
+                                                                    );
+                                                                }}
+                                                                className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                            >
+                                                                <StatusBadge
+                                                                    status={
+                                                                        status
+                                                                    }
+                                                                    isEnded={
+                                                                        p.isEnded
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingId(p.id);
+                                                        }}
+                                                        className="cursor-pointer flex justify-center"
+                                                    >
+                                                        <StatusBadge
+                                                            status={p.status}
+                                                            isEnded={p.isEnded}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td
+                                            colSpan={7}
+                                            className="px-4 py-6 text-center text-gray-500"
+                                        >
+                                            {selectedMonth
+                                                ? "No payments for the selected month"
+                                                : "No payments"}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        )}
+                    </table>
+                </div>
             </div>
         </>
     );

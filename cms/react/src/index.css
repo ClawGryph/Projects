@@ -6,3 +6,13 @@
 .nav-item:hover {
     background: #1d7077;
 }
+.max-height {
+    max-height: 75vh;
+}
+.hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}

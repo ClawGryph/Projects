@@ -8,27 +8,29 @@ import StatusBadge from "../components/StatusBadge.jsx";
 
 export default function Projects() {
     const [projects, setProjects] = useState([]);
+    const [meta, setMeta] = useState({});
     const [loading, setLoading] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const { setNotification } = useStateContext();
 
-    const getProjects = () => {
+    useEffect(() => {
+        getProjects();
+    }, []);
+
+    const getProjects = (page = 1) => {
         setLoading(true);
 
         axiosClient
-            .get("/projects")
+            .get(`/projects?page=${page}`)
             .then(({ data }) => {
                 setLoading(false);
                 setProjects(data.data);
+                setMeta(data.meta);
             })
             .catch(() => {
                 setLoading(false);
             });
     };
-
-    useEffect(() => {
-        getProjects();
-    }, []);
 
     const onDelete = (p) => {
         if (!window.confirm("Are you sure you want to delete this project?")) {
@@ -208,6 +210,35 @@ export default function Projects() {
                         </tbody>
                     )}
                 </table>
+                <div className="flex justify-center items-center gap-2 mt-4">
+                    {meta?.current_page > 1 && (
+                        <button
+                            onClick={() =>
+                                getPaymentSchedules(meta.current_page - 1)
+                            }
+                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                        >
+                            Previous
+                        </button>
+                    )}
+
+                    {meta?.current_page && (
+                        <span className="text-sm text-gray-600">
+                            Page {meta.current_page} of {meta.last_page}
+                        </span>
+                    )}
+
+                    {meta?.current_page < meta?.last_page && (
+                        <button
+                            onClick={() =>
+                                getPaymentSchedules(meta.current_page + 1)
+                            }
+                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                        >
+                            Next
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
