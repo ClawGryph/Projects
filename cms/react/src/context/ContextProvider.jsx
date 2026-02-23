@@ -1,11 +1,13 @@
 import { createContext, useContext, useState } from "react";
 
 const StateContext = createContext({
+    user: null,
     client: null,
     project: null,
     token: null,
     notification: null,
     payment: null,
+    setUser: () => {},
     setClient: () => {},
     setToken: () => {},
     setNotification: () => {},
@@ -14,6 +16,7 @@ const StateContext = createContext({
 });
 
 export const ContextProvider = ({ children }) => {
+    const [user, setUser] = useState({});
     const [client, setClient] = useState({});
     const [project, setProject] = useState({});
     const [payment, setPayment] = useState({});
@@ -39,8 +42,10 @@ export const ContextProvider = ({ children }) => {
     return (
         <StateContext.Provider
             value={{
+                user,
                 client,
                 token,
+                setUser,
                 setClient,
                 setToken,
                 notification,

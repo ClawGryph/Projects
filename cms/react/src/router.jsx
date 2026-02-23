@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { Navigate } from "react-router-dom";
+import Login from "./views/Login.jsx";
+import GuestLayout from "./components/GuestLayout.jsx";
 import DefaultLayout from "./components/DefaultLayout.jsx";
 import Dashboard from "./views/Dashboard.jsx";
 import Clients from "./views/Clients.jsx";
@@ -54,6 +56,16 @@ const router = createBrowserRouter([
             {
                 path: "/payments",
                 element: <Payments />,
+            },
+        ],
+    },
+    {
+        path: "/",
+        element: <GuestLayout />,
+        children: [
+            {
+                path: "/login",
+                element: <Login />,
             },
         ],
     },

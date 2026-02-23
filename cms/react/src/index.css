@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-.body {
+body {
     min-height: 100vh;
 }
 .nav-item:hover {

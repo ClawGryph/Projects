@@ -1,4 +1,6 @@
-import { Outlet, Link } from "react-router-dom";
+import { Navigate, Outlet, Link } from "react-router-dom";
+import axiosClient from "../axios-client";
+import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import logo from "../assets/logo.png";
 import {
@@ -7,10 +9,22 @@ import {
     faDiagramProject,
     faMoneyBill,
 } from "@fortawesome/free-solid-svg-icons";
-import { useStateContext } from "../context/ContextProvider";
 
 export default function DefaultLayout() {
-    const { notification } = useStateContext();
+    const { user, token, notification, setUser, setToken } = useStateContext();
+
+    if (!token) {
+        return <Navigate to="/login" />;
+    }
+
+    const onLogout = (e) => {
+        e.preventDefault();
+
+        axiosClient.post("/logout").then(() => {
+            setUser({});
+            setToken(null);
+        });
+    };
 
     return (
         <div className="bg-gray-100 font-family-karla flex">
@@ -54,12 +68,12 @@ export default function DefaultLayout() {
                 <header className="w-full items-center bg-white py-2 px-6 hidden sm:flex">
                     <div className="w-1/2"></div>
                     <div className="relative w-1/2 flex justify-end">
-                        <a
-                            href="#"
-                            className="w-20 bg-cyan-800 text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-cyan-900 flex items-center justify-center"
+                        <button
+                            onClick={onLogout}
+                            className="w-20 bg-cyan-800 text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-cyan-900 flex items-center justify-center cursor-pointer"
                         >
                             Logout
-                        </a>
+                        </button>
                     </div>
                 </header>
                 <Outlet />

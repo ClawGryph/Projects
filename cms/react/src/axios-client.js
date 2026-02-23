@@ -4,14 +4,25 @@ const axiosClient = axios.create({
     baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
 });
 
-// No request interceptor needed since no auth
-// No response interceptor needed unless you want general error handling
+axiosClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem("ACCESS_TOKEN");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 axiosClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        // handle global errors here
         console.error("API Error:", error.response?.data || error.message);
-        throw error;
+
+        const { response } = error;
+        if (response && response.status === 401) {
+            localStorage.removeItem("ACCESS_TOKEN");
+        }
+
+        return Promise.reject(error);
     },
 );
 
