@@ -16,6 +16,8 @@ export default function Dashboard() {
     const [overdueMonth, setOverdueMonth] = useState("all");
     const [overdueYear, setOverdueYear] = useState(new Date().getFullYear());
     const [currentPage, setCurrentPage] = useState(1);
+    const [paymentsPage, setPaymentsPage] = useState(1);
+    const [overdueModalPage, setOverdueModalPage] = useState(1);
     const [metrics, setMetrics] = useState({
         clientChange: 0,
         projectsChange: 0,
@@ -359,8 +361,7 @@ export default function Dashboard() {
             (a, b) =>
                 new Date(a._upcomingSchedule.due_date) -
                 new Date(b._upcomingSchedule.due_date),
-        )
-        .slice(0, 5);
+        );
 
     // LATE PAYMENTS
     const latePaymentsThisMonth = clientsProject
@@ -457,6 +458,27 @@ export default function Dashboard() {
     useEffect(() => {
         setCurrentPage(1);
     }, [clientsProject]);
+
+    useEffect(() => {
+        setPaymentsPage(1);
+    }, [selectedMonth, selectedYear]);
+    useEffect(() => {
+        setOverdueModalPage(1);
+    }, [overdueMonth, overdueYear]);
+
+    const totalPaymentsPages = Math.ceil(filteredPayments.length / rowsPerPage);
+    const paginatedPayments = filteredPayments.slice(
+        (paymentsPage - 1) * rowsPerPage,
+        paymentsPage * rowsPerPage,
+    );
+
+    const totalOverdueModalPages = Math.ceil(
+        filteredOverduePayments.length / rowsPerPage,
+    );
+    const paginatedOverduePayments = filteredOverduePayments.slice(
+        (overdueModalPage - 1) * rowsPerPage,
+        overdueModalPage * rowsPerPage,
+    );
 
     return (
         <div className="p-6">
@@ -846,72 +868,74 @@ export default function Dashboard() {
             {/* UPCOMING & LATE PAYMENTS */}
             <div className="min-w-full bg-white rounded-xl overflow-hidden shadow-sm p-6 mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* UPCOMING PAYMENTS */}
-                <div className="bg-white rounded-xl overflow-hidden shadow-sm p-6">
+                <div className="bg-white rounded-xl overflow-hidden flex flex-col shadow-sm p-6 h-[500px]">
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                         Upcoming Payments
                     </h2>
 
-                    {upcomingPayments.length === 0 ? (
-                        <p className="text-center text-gray-500 py-6">
-                            No upcoming payments
-                        </p>
-                    ) : (
-                        upcomingPayments.map((project) => {
-                            const nextPayment = new Date(
-                                project._upcomingSchedule.due_date,
-                            );
+                    <div className="flex-1 overflow-y-auto pr-1">
+                        {upcomingPayments.length === 0 ? (
+                            <p className="text-center text-gray-500 py-6">
+                                No upcoming payments
+                            </p>
+                        ) : (
+                            upcomingPayments.map((project) => {
+                                const nextPayment = new Date(
+                                    project._upcomingSchedule.due_date,
+                                );
 
-                            const dayFromNow = new Date();
-                            dayFromNow.setDate(today.getDate() + 1);
+                                const dayFromNow = new Date();
+                                dayFromNow.setDate(today.getDate() + 1);
 
-                            const isUrgent = nextPayment <= dayFromNow;
+                                const isUrgent = nextPayment <= dayFromNow;
 
-                            return (
-                                <div
-                                    key={`${project.id}-${project._upcomingSchedule.id}`}
-                                    className={`flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 ${
-                                        isUrgent
-                                            ? "bg-red-50 hover:bg-red-100"
-                                            : "hover:bg-cyan-50"
-                                    } transition-colors`}
-                                >
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-800">
-                                            {project.project.title}
-                                        </h3>
-                                        <p className="text-gray-500">
-                                            {project.client?.name ||
-                                                "No Client"}
-                                        </p>
+                                return (
+                                    <div
+                                        key={`${project.id}-${project._upcomingSchedule.id}`}
+                                        className={`flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 ${
+                                            isUrgent
+                                                ? "bg-red-50 hover:bg-red-100"
+                                                : "hover:bg-cyan-50"
+                                        } transition-colors`}
+                                    >
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-800">
+                                                {project.project.title}
+                                            </h3>
+                                            <p className="text-gray-500">
+                                                {project.client?.name ||
+                                                    "No Client"}
+                                            </p>
+                                        </div>
+
+                                        <div className="text-right">
+                                            <p className="text-gray-800 font-bold">
+                                                ₱
+                                                {Number(
+                                                    project._upcomingSchedule
+                                                        .expected_amount || 0,
+                                                ).toLocaleString()}
+                                            </p>
+                                            <p className="text-gray-500 text-sm">
+                                                Due:{" "}
+                                                {nextPayment.toLocaleDateString(
+                                                    "en-CA",
+                                                )}
+                                            </p>
+                                        </div>
                                     </div>
-
-                                    <div className="text-right">
-                                        <p className="text-gray-800 font-bold">
-                                            ₱
-                                            {Number(
-                                                project._upcomingSchedule
-                                                    .expected_amount || 0,
-                                            ).toLocaleString()}
-                                        </p>
-                                        <p className="text-gray-500 text-sm">
-                                            Due:{" "}
-                                            {nextPayment.toLocaleDateString(
-                                                "en-CA",
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
 
                 {/* LATE PAYMENTS */}
-                <div className="bg-white rounded-xl overflow-hidden shadow-sm p-6">
+                <div className="bg-white rounded-xl overflow-hidden flex flex-col shadow-sm p-6 h-[500px]">
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                         Late Payments
                     </h2>
-                    <div className="space-y-4">
+                    <div className="flex-1 overflow-y-auto pr-1">
                         {latePaymentsThisMonth.length === 0 ? (
                             <p className="text-center text-gray-500 py-6">
                                 No late payments this month
@@ -1050,6 +1074,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
+            {/* MODALS */}
             {showPaymentsModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
@@ -1117,7 +1142,7 @@ export default function Dashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="text-center">
-                                    {filteredPayments.length === 0 ? (
+                                    {paginatedPayments.length === 0 ? (
                                         <tr>
                                             <td
                                                 colSpan="4"
@@ -1127,7 +1152,7 @@ export default function Dashboard() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredPayments.map((t) => (
+                                        paginatedPayments.map((t) => (
                                             <tr
                                                 key={t.id}
                                                 className="border-b border-gray-200"
@@ -1156,9 +1181,46 @@ export default function Dashboard() {
                                 </tbody>
                             </table>
                         </div>
+                        {totalPaymentsPages > 1 && (
+                            <div className="flex justify-between items-center mt-4">
+                                <button
+                                    onClick={() =>
+                                        setPaymentsPage((prev) =>
+                                            Math.max(prev - 1, 1),
+                                        )
+                                    }
+                                    disabled={paymentsPage === 1}
+                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                                >
+                                    Previous
+                                </button>
+
+                                <span className="text-sm text-gray-600">
+                                    Page {paymentsPage} of {totalPaymentsPages}
+                                </span>
+
+                                <button
+                                    onClick={() =>
+                                        setPaymentsPage((prev) =>
+                                            Math.min(
+                                                prev + 1,
+                                                totalPaymentsPages,
+                                            ),
+                                        )
+                                    }
+                                    disabled={
+                                        paymentsPage === totalPaymentsPages
+                                    }
+                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
+
             {showOverdueModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
@@ -1226,7 +1288,7 @@ export default function Dashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="text-center">
-                                    {filteredOverduePayments.length === 0 ? (
+                                    {paginatedOverduePayments.length === 0 ? (
                                         <tr>
                                             <td
                                                 colSpan="4"
@@ -1236,7 +1298,7 @@ export default function Dashboard() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredOverduePayments.map((o) => (
+                                        paginatedOverduePayments.map((o) => (
                                             <tr
                                                 key={o.id}
                                                 className="border-b border-gray-200 bg-red-50"
@@ -1265,6 +1327,44 @@ export default function Dashboard() {
                                 </tbody>
                             </table>
                         </div>
+                        {totalOverdueModalPages > 1 && (
+                            <div className="flex justify-between items-center mt-4">
+                                <button
+                                    onClick={() =>
+                                        setOverdueModalPage((prev) =>
+                                            Math.max(prev - 1, 1),
+                                        )
+                                    }
+                                    disabled={overdueModalPage === 1}
+                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                                >
+                                    Previous
+                                </button>
+
+                                <span className="text-sm text-gray-600">
+                                    Page {overdueModalPage} of{" "}
+                                    {totalOverdueModalPages}
+                                </span>
+
+                                <button
+                                    onClick={() =>
+                                        setOverdueModalPage((prev) =>
+                                            Math.min(
+                                                prev + 1,
+                                                totalOverdueModalPages,
+                                            ),
+                                        )
+                                    }
+                                    disabled={
+                                        overdueModalPage ===
+                                        totalOverdueModalPages
+                                    }
+                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
