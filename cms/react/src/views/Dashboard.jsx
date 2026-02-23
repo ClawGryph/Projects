@@ -24,7 +24,7 @@ export default function Dashboard() {
         overduePayments: 0,
         overdueCount: 0,
     });
-    const rowsPerPage = 10;
+    const rowsPerPage = 5;
 
     useEffect(() => {
         axiosClient
@@ -83,7 +83,7 @@ export default function Dashboard() {
                   ? 100
                   : 0;
 
-        // Overdue: based on payment schedules, not transactions
+        // Overdue
         const overdueSchedulesThisMonth = clientsProjectsData
             .flatMap((cp) => cp.payment_schedules || [])
             .filter((s) => {
@@ -735,7 +735,7 @@ export default function Dashboard() {
                                             )}
                                         </td>
 
-                                        {/* Payment Status / Progress */}
+                                        {/* Payment Progress */}
                                         <td className="px-4 py-2">
                                             {project.payment?.payment_type ===
                                                 "installment" ||
@@ -819,7 +819,7 @@ export default function Dashboard() {
                                 setCurrentPage((prev) => Math.max(prev - 1, 1))
                             }
                             disabled={currentPage === 1}
-                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+                            className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
                         >
                             Previous
                         </button>
@@ -835,7 +835,7 @@ export default function Dashboard() {
                                 )
                             }
                             disabled={currentPage === totalPages}
-                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+                            className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
                         >
                             Next
                         </button>
