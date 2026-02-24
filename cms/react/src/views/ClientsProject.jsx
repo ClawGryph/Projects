@@ -8,7 +8,7 @@ import StatusBadge from "../components/StatusBadge.jsx";
 
 export default function ClientsProject() {
     const { id } = useParams(); // client ID from URL
-    const { setNotification } = useStateContext();
+    const { setNotification, user } = useStateContext();
 
     const [client, setClient] = useState(null);
     const [projects, setProjects] = useState([]);
@@ -217,13 +217,15 @@ export default function ClientsProject() {
                 <h1 className="text-3xl font-bold">
                     {client ? `${client.name}'s Projects` : "Projects"}
                 </h1>
-                <button
-                    onClick={openModal}
-                    className="w-25 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center cursor-pointer"
-                >
-                    <FontAwesomeIcon icon={faPlus} />
-                    Add project
-                </button>
+                {user?.role_name !== "viewer" && (
+                    <button
+                        onClick={openModal}
+                        className="w-25 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center cursor-pointer"
+                    >
+                        <FontAwesomeIcon icon={faPlus} />
+                        Add project
+                    </button>
+                )}
             </div>
 
             {projects.length === 0 && (

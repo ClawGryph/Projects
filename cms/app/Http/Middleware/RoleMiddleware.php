@@ -11,6 +11,10 @@ class RoleMiddleware
     {
         $user = $request->user();
 
+        \Log::info('Authenticated user: ', ['id' => $user?->id, 'email' => $user?->email]);
+        \Log::info('Required roles: ', $roles);
+        \Log::info('User roles: ', $user?->roles->pluck('name')->toArray() ?? []);
+
         if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }

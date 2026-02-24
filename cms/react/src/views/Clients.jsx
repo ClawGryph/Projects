@@ -14,7 +14,7 @@ export default function Clients() {
     const [clients, setClients] = useState([]);
     const [meta, setMeta] = useState({});
     const [loading, setLoading] = useState(false);
-    const { setNotification } = useStateContext();
+    const { setNotification, user } = useStateContext();
 
     useEffect(() => {
         getUsers();
@@ -52,13 +52,15 @@ export default function Clients() {
                 <h1 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                     Clients
                 </h1>
-                <Link
-                    to={"/clients/new"}
-                    className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center"
-                >
-                    <FontAwesomeIcon icon={faPlus} />
-                    Add new
-                </Link>
+                {user?.role_name !== "viewer" && (
+                    <Link
+                        to={"/clients/new"}
+                        className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center"
+                    >
+                        <FontAwesomeIcon icon={faPlus} />
+                        Add new
+                    </Link>
+                )}
             </div>
             <div className="flex flex-col justify-center items-center overflow-x-auto">
                 <table className="max-w-[1100px] w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
@@ -85,9 +87,11 @@ export default function Clients() {
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 Projects
                             </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Actions
-                            </th>
+                            {user?.role_name !== "viewer" && (
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Actions
+                                </th>
+                            )}
                         </tr>
                     </thead>
                     {loading && (
@@ -130,24 +134,32 @@ export default function Clients() {
                                                 Projects
                                             </Link>
                                         </td>
-                                        <td className="px-4 py-2 flex justify-center items-center gap-2">
-                                            <Link
-                                                to={"/clients/" + u.id}
-                                                className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
-                                            >
-                                                <FontAwesomeIcon icon={faPen} />
-                                                Edit
-                                            </Link>
-                                            <button
-                                                onClick={() => onDelete(u)}
-                                                className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
-                                            >
-                                                <FontAwesomeIcon
-                                                    icon={faTrash}
-                                                />
-                                                Delete
-                                            </button>
-                                        </td>
+                                        {user?.role_name !== "viewer" && (
+                                            <td className="px-4 py-2 flex justify-center items-center gap-2">
+                                                {user?.role_name ===
+                                                    "super_admin" && (
+                                                    <Link
+                                                        to={"/clients/" + u.id}
+                                                        className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={faPen}
+                                                        />
+                                                        Edit
+                                                    </Link>
+                                                )}
+
+                                                <button
+                                                    onClick={() => onDelete(u)}
+                                                    className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                >
+                                                    <FontAwesomeIcon
+                                                        icon={faTrash}
+                                                    />
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             ) : (

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PaymentScheduleController;
 use App\Http\Controllers\Api\PaymentTransactionController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Resources\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,23 +23,47 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function () {
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
-    Route::apiResource('/users', UserController::class);
-    Route::apiResource('/clients', ClientController::class);
-    Route::apiResource('/projects', ProjectController::class);
-    Route::apiResource('/payments', PaymentController::class);
-    Route::post('/logout', [AuthController::class, 'logout']);
+Route::post('/login', [AuthController::class, 'login']);
 
-    Route::get('/clients/{client}/projects', [ClientsProjectController::class, 'index']);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', function (Request $request) {
+        return new UserResource(
+            $request->user()->load('roles')
+        );
+    });
+});
+
+// Super Admin only
+Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
+    Route::apiResource('/users', UserController::class);
+    Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
+    Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
+});
+
+// Super Admin and Admin only
+Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function () {
+    Route::post('/clients', [ClientController::class, 'store']);
+    Route::put('/clients/{client}', [ClientController::class, 'update']);
+    Route::post('/projects', [ProjectController::class, 'store']);
+    Route::put('/projects/{project}', [ProjectController::class, 'update']);
+    Route::post('/payments', [PaymentController::class, 'store']);
+    Route::put('/payments/{payment}', [PaymentController::class, 'update']);
     Route::post('/clients/{client}/projects', [ClientsProjectController::class, 'assignProject']);
-    Route::get('/client-projects', [ClientsProjectController::class, 'projectsWithClients']);
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
     Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);
-    Route::get('/transactions', [PaymentTransactionController::class, 'index']);
     Route::put('/payment-schedules/{schedule}/status', [PaymentScheduleController::class, 'updateStatus']);
 });
 
-Route::post('/login', [AuthController::class, 'login']);
+// All roles can view - super_admin, admin, viewer
+Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer'])->group(function () {
+    Route::get('/clients', [ClientController::class, 'index']);
+    Route::get('/clients/{client}', [ClientController::class, 'show']);
+    Route::get('/projects', [ProjectController::class, 'index']);
+    Route::get('/projects/{project}', [ProjectController::class, 'show']);
+    Route::get('/payments', [PaymentController::class, 'index']);
+    Route::get('/payments/{payment}', [PaymentController::class, 'show']);
+    Route::get('/transactions', [PaymentTransactionController::class, 'index']);
+    Route::get('/client-projects', [ClientsProjectController::class, 'projectsWithClients']);
+    Route::get('/clients/{client}/projects', [ClientsProjectController::class, 'index']);
+});

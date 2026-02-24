@@ -51,13 +51,15 @@ export default function DefaultLayout() {
                         <FontAwesomeIcon icon={faGauge} />
                         Dashboard
                     </Link>
-                    <Link
-                        to="/users"
-                        className="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item"
-                    >
-                        <FontAwesomeIcon icon={faUserTie} />
-                        Employees
-                    </Link>
+                    {user?.role_name === "super_admin" && (
+                        <Link
+                            to="/users"
+                            className="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item"
+                        >
+                            <FontAwesomeIcon icon={faUserTie} />
+                            Employees
+                        </Link>
+                    )}
                     <Link
                         to="/clients"
                         className="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item"
