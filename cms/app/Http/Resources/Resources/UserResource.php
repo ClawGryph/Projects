@@ -19,10 +19,12 @@ class UserResource extends JsonResource
             'id'=> $this->id,
             'name'=> $this->name,
             'email'=> $this->email,
-            'phone_number' => $this->phone_number,
-            'company_name' => $this->company_name,
-            'company_address' => $this->company_address,
-            'created_at'=> $this->created_at->format('Y-m-d H:i:s'),
+            'created_at'=> $this->created_at->format('Y-m-d'),
+            'roles' => $this->roles->map(fn ($role) => [
+                'id'    => $role->id,
+                'name'  => $role->name,
+                'label' => $role->label,
+            ]),
         ];
     }
 }

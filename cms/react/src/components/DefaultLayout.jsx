@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Outlet, Link } from "react-router-dom";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
@@ -8,10 +9,19 @@ import {
     faUser,
     faDiagramProject,
     faMoneyBill,
+    faUserTie,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function DefaultLayout() {
     const { user, token, notification, setUser, setToken } = useStateContext();
+
+    useEffect(() => {
+        if (token) {
+            axiosClient.get("/user").then(({ data }) => {
+                setUser(data);
+            });
+        }
+    }, [token]);
 
     if (!token) {
         return <Navigate to="/login" />;
@@ -42,6 +52,13 @@ export default function DefaultLayout() {
                         Dashboard
                     </Link>
                     <Link
+                        to="/users"
+                        className="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item"
+                    >
+                        <FontAwesomeIcon icon={faUserTie} />
+                        Employees
+                    </Link>
+                    <Link
                         to="/clients"
                         className="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item"
                     >
@@ -66,11 +83,24 @@ export default function DefaultLayout() {
             </aside>
             <main className="relative w-full h-full flex flex-col h-screen overflow-y-auto">
                 <header className="w-full items-center bg-white py-2 px-6 hidden sm:flex">
-                    <div className="w-1/2"></div>
-                    <div className="relative w-1/2 flex justify-end">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                            <FontAwesomeIcon
+                                icon={faUserTie}
+                                className="text-cyan-800"
+                            />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Employee</p>
+                            <p className="text-lg font-bold text-gray-800">
+                                {user?.name || ""}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="ml-auto">
                         <button
                             onClick={onLogout}
-                            className="w-20 bg-cyan-800 text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-cyan-900 flex items-center justify-center cursor-pointer"
+                            className="bg-cyan-800 text-white font-semibold py-2 px-4 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-cyan-900 flex items-center justify-center cursor-pointer"
                         >
                             Logout
                         </button>

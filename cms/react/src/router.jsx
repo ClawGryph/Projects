@@ -11,6 +11,7 @@ import Projects from "./views/Projects.jsx";
 import ProjectsForm from "./views/ProjectsForm.jsx";
 import ClientsProject from "./views/ClientsProject.jsx";
 import Payments from "./views/Payments.jsx";
+import Users from "./views/Users.jsx";
 
 const router = createBrowserRouter([
     {
@@ -24,6 +25,18 @@ const router = createBrowserRouter([
             {
                 path: "/dashboard",
                 element: <Dashboard />,
+            },
+            {
+                path: "/users",
+                element: <Users />,
+            },
+            {
+                path: "/users/new",
+                element: <ClientForm key="userCreate" />,
+            },
+            {
+                path: "/users/:id",
+                element: <ClientForm key="userUpdate" />,
             },
             {
                 path: "/clients",
