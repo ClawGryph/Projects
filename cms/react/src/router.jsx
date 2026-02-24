@@ -12,6 +12,7 @@ import ProjectsForm from "./views/ProjectsForm.jsx";
 import ClientsProject from "./views/ClientsProject.jsx";
 import Payments from "./views/Payments.jsx";
 import Users from "./views/Users.jsx";
+import UserForm from "./views/UserForm.jsx";
 
 const router = createBrowserRouter([
     {
@@ -32,11 +33,11 @@ const router = createBrowserRouter([
             },
             {
                 path: "/users/new",
-                element: <ClientForm key="userCreate" />,
+                element: <UserForm key="userCreate" />,
             },
             {
                 path: "/users/:id",
-                element: <ClientForm key="userUpdate" />,
+                element: <UserForm key="userUpdate" />,
             },
             {
                 path: "/clients",

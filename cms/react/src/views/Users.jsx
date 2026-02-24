@@ -1,12 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-    faPlus,
-    faDiagramProject,
-    faPen,
-    faTrash,
-} from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 
@@ -25,7 +20,7 @@ export default function Users() {
         }
 
         axiosClient.delete(`/users/${u.id}`).then(() => {
-            setNotification("Client was successfully deleted");
+            setNotification("Employee was successfully deleted");
             getUsers();
         });
     };
@@ -104,16 +99,14 @@ export default function Users() {
                                         <td className="px-4 py-2">{u.name}</td>
                                         <td className="px-4 py-2">{u.email}</td>
                                         <td className="px-4 py-2">
-                                            {u.roles
-                                                .map((r) => r.label)
-                                                .join(", ")}
+                                            {u.role_label}
                                         </td>
                                         <td className="px-4 py-2">
                                             {u.created_at}
                                         </td>
                                         <td className="px-4 py-2 flex justify-center items-center gap-2">
                                             <Link
-                                                to={"/clients/" + u.id}
+                                                to={"/users/" + u.id}
                                                 className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
                                             >
                                                 <FontAwesomeIcon icon={faPen} />

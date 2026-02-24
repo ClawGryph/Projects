@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\Resources\UserResource;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -22,20 +24,18 @@ class UserController extends Controller
         );
     }
 
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone_number' => 'required',
-            'company_name' => 'required',
-            'company_address' => 'required',
-        ]);
+        $data = $request->validated();
+        $data['password'] = bcrypt($data['password']);
 
+        $role = Role::where('name', $data['role_name'])->firstOrFail();
+        unset($data['role_name']);
 
         $user = User::create($data);
+        $user->roles()->sync([$role->id]);
 
-        return new UserResource($user);
+        return response(new UserResource($user), 201);
     }
 
     /**
@@ -55,7 +55,16 @@ class UserController extends Controller
         if(isset($data['password'])){
             $data['password'] = bcrypt($data['password']);
         }
+
+        $roleName = $data['role_name'] ?? null;
+        unset($data['role_name']);
+
         $user->update($data);
+
+        if ($roleName) {
+            $role = Role::where('name', $roleName)->firstOrFail();
+            $user->roles()->sync([$role->id]);
+        }
 
         return new UserResource($user);
     }
