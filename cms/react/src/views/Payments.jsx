@@ -14,6 +14,7 @@ export default function Payments() {
         const month = String(now.getMonth() + 1).padStart(2, "0");
         return `${year}-${month}`;
     });
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
     const getPaymentSchedules = () => {
         setLoading(true);
@@ -201,7 +202,17 @@ export default function Payments() {
                                             {user?.role_name !== "viewer" && (
                                                 <td className="border-b border-gray-200 px-4 py-2 relative">
                                                     {editingId === p.id ? (
-                                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
+                                                        <div
+                                                            style={{
+                                                                position:
+                                                                    "fixed",
+                                                                top: dropdownPos.top,
+                                                                left: dropdownPos.left,
+                                                                transform:
+                                                                    "translateX(-50%)",
+                                                            }}
+                                                            className="bg-white border rounded shadow-md z-50"
+                                                        >
                                                             {[
                                                                 "pending",
                                                                 "paid",
@@ -236,6 +247,19 @@ export default function Payments() {
                                                         <div
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
+                                                                const rect =
+                                                                    e.currentTarget.getBoundingClientRect();
+                                                                setDropdownPos({
+                                                                    top:
+                                                                        rect.bottom +
+                                                                        window.scrollY -
+                                                                        30,
+                                                                    left:
+                                                                        rect.left +
+                                                                        rect.width /
+                                                                            2 +
+                                                                        window.scrollX,
+                                                                });
                                                                 setEditingId(
                                                                     p.id,
                                                                 );
