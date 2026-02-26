@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
+import logo from "../assets/logo1.png";
 
 export default function Login() {
     const emailRef = useRef();
@@ -40,24 +41,11 @@ export default function Login() {
 
     return (
         <div className="rounded-xl border border-gray-200 py-8 px-6 max-w-90 w-full self-start mt-auto mb-auto">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-                <svg
-                    className="h-8 w-8 text-blue-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    ></path>
-                </svg>
+            <div className="mx-auto mb-6 flex h-16 w-full items-center justify-center">
+                <img src={logo} alt="csm logo" />
             </div>
 
-            <h3 className="mb-6 text-center text-xl font-bold text-gray-800">
+            <h3 className="mb-6 text-center text-xl font-bold text-[#3AA99C]">
                 Quick Login
             </h3>
 

@@ -3,7 +3,7 @@ import { Navigate, Outlet, Link } from "react-router-dom";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo1.png";
 import {
     faGauge,
     faUser,
@@ -40,8 +40,7 @@ export default function DefaultLayout() {
         <div className="bg-gray-100 font-family-karla flex">
             <aside className="relative bg-cyan-800 h-screen w-64 hidden sm:block shadow-xl">
                 <div className="m-5 flex flex-col items-center justify-center">
-                    <img src={logo} alt="cms logo" className="w-25" />
-                    <p className="text-white">CMS</p>
+                    <img src={logo} alt="cms logo" className="w-full h-17" />
                 </div>
                 <nav className="text-white text-base font-semibold pt-3">
                     <Link
