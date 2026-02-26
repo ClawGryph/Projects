@@ -482,8 +482,8 @@ export default function Dashboard() {
 
     return (
         <div className="p-6">
-            <div className="flex justify-between items-center mt-5 mb-5">
-                <div className="flex flex-col">
+            <div className="flex flex-wrap sm:flex-nowrap justify-between items-center mt-5 mb-5">
+                <div className="flex flex-col min-w-0">
                     <h1 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                         Dashboard
                     </h1>
@@ -493,10 +493,10 @@ export default function Dashboard() {
                 </div>
                 <button
                     onClick={() => exportDashboardCSV(clientsProject)}
-                    className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center cursor-pointer"
+                    className="bg-sky-400 text-xs text-white cta-btn font-semibold py-2 px-3 sm:px-4 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center cursor-pointer"
                 >
                     <FontAwesomeIcon icon={faFileExport} />
-                    Export
+                    <span className="hidden sm:inline ml-1">Export</span>
                 </button>
             </div>
 
@@ -610,7 +610,7 @@ export default function Dashboard() {
                             className="bg-sky-400 text-white text-sm font-semibold text-red-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
                         >
                             <FontAwesomeIcon icon={faEye} className="pr-1" />
-                            View
+                            <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -655,7 +655,7 @@ export default function Dashboard() {
                             className="bg-sky-400 text-white text-sm font-semibold text-red-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
                         >
                             <FontAwesomeIcon icon={faEye} className="pr-1" />
-                            View
+                            <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -675,7 +675,7 @@ export default function Dashboard() {
             </div>
 
             {/* RECENT PROJECTS */}
-            <div className="min-w-full bg-white rounded-xl overflow-hidden shadow-sm p-6 mt-6">
+            <div className="min-w-full bg-white rounded-xl overflow-x-auto shadow-sm p-6 mt-6">
                 <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                     Recent Projects
                 </h2>

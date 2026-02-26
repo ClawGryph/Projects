@@ -7,6 +7,7 @@ import { useStateContext } from "../context/ContextProvider";
 
 export default function Users() {
     const [users, setUsers] = useState([]);
+    const [meta, setMeta] = useState({});
     const [loading, setLoading] = useState(false);
     const { setNotification } = useStateContext();
 
@@ -25,7 +26,7 @@ export default function Users() {
         });
     };
 
-    const getUsers = () => {
+    const getUsers = (page = 1) => {
         setLoading(true);
 
         axiosClient
@@ -33,7 +34,7 @@ export default function Users() {
             .then(({ data }) => {
                 setLoading(false);
                 setUsers(data.data);
-                console.log(data);
+                setMeta(data.meta);
             })
             .catch(() => {
                 setLoading(false);
@@ -54,118 +55,124 @@ export default function Users() {
                     Add new
                 </Link>
             </div>
-            <div className="flex flex-col justify-center items-center overflow-x-auto">
-                <table className="max-w-[1100px] w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
-                    <thead>
-                        <tr className="bg-cyan-800">
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                ID
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Name
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Email
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Role
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Created at
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    {loading && (
-                        <tbody>
-                            <tr>
-                                <td colSpan="6" className="text-center">
-                                    Loading...
-                                </td>
+            <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
+                <div className="max-w-[1100px] w-full overflow-auto rounded-lg max-height">
+                    <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
+                        <thead>
+                            <tr className="bg-cyan-800">
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    ID
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Name
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Email
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Role
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Created at
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Actions
+                                </th>
                             </tr>
-                        </tbody>
-                    )}
-                    {!loading && (
-                        <tbody>
-                            {users.length > 0 ? (
-                                users.map((u) => (
-                                    <tr
-                                        key={u.id}
-                                        className="border-b border-gray-200 hover:bg-cyan-50 text-center"
-                                    >
-                                        <td className="px-4 py-2">{u.id}</td>
-                                        <td className="px-4 py-2">{u.name}</td>
-                                        <td className="px-4 py-2">{u.email}</td>
-                                        <td className="px-4 py-2">
-                                            {u.role_label}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {u.created_at}
-                                        </td>
-                                        <td className="px-4 py-2 flex justify-center items-center gap-2">
-                                            <Link
-                                                to={"/users/" + u.id}
-                                                className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
-                                            >
-                                                <FontAwesomeIcon icon={faPen} />
-                                                Edit
-                                            </Link>
-                                            <button
-                                                onClick={() => onDelete(u)}
-                                                className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
-                                            >
-                                                <FontAwesomeIcon
-                                                    icon={faTrash}
-                                                />
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
+                        </thead>
+                        {loading && (
+                            <tbody>
                                 <tr>
-                                    <td
-                                        colSpan={8}
-                                        className="px-4 py-6 text-center text-gray-500"
-                                    >
-                                        No clients
+                                    <td colSpan="6" className="text-center">
+                                        Loading...
                                     </td>
                                 </tr>
-                            )}
-                        </tbody>
-                    )}
-                </table>
-                {/* <div className="flex justify-center items-center gap-2 mt-4">
-                    {meta?.current_page > 1 && (
-                        <button
-                            onClick={() =>
-                                getPaymentSchedules(meta.current_page - 1)
-                            }
-                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
-                        >
-                            Previous
-                        </button>
-                    )}
+                            </tbody>
+                        )}
+                        {!loading && (
+                            <tbody>
+                                {users.length > 0 ? (
+                                    users.map((u) => (
+                                        <tr
+                                            key={u.id}
+                                            className="hover:bg-cyan-50 text-center"
+                                        >
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.id}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.name}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.email}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.role_label}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.created_at}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2 flex justify-center items-center gap-2">
+                                                <Link
+                                                    to={"/users/" + u.id}
+                                                    className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                                >
+                                                    <FontAwesomeIcon
+                                                        icon={faPen}
+                                                    />
+                                                    Edit
+                                                </Link>
+                                                <button
+                                                    onClick={() => onDelete(u)}
+                                                    className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                >
+                                                    <FontAwesomeIcon
+                                                        icon={faTrash}
+                                                    />
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td
+                                            colSpan={8}
+                                            className="px-4 py-6 text-center text-gray-500"
+                                        >
+                                            No clients
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        )}
+                    </table>
+                    <div className="flex justify-center items-center gap-2 mt-4">
+                        {meta?.current_page > 1 && (
+                            <button
+                                onClick={() => getUsers(meta.current_page - 1)}
+                                className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                            >
+                                Previous
+                            </button>
+                        )}
 
-                    {meta?.current_page && (
-                        <span className="text-sm text-gray-600">
-                            Page {meta.current_page} of {meta.last_page}
-                        </span>
-                    )}
+                        {meta?.current_page && (
+                            <span className="text-sm text-gray-600">
+                                Page {meta.current_page} of {meta.last_page}
+                            </span>
+                        )}
 
-                    {meta?.current_page < meta?.last_page && (
-                        <button
-                            onClick={() =>
-                                getPaymentSchedules(meta.current_page + 1)
-                            }
-                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
-                        >
-                            Next
-                        </button>
-                    )}
-                </div> */}
+                        {meta?.current_page < meta?.last_page && (
+                            <button
+                                onClick={() => getUsers(meta.current_page + 1)}
+                                className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                            >
+                                Next
+                            </button>
+                        )}
+                    </div>
+                </div>
             </div>
         </>
     );

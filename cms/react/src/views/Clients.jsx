@@ -17,7 +17,7 @@ export default function Clients() {
     const { setNotification, user } = useStateContext();
 
     useEffect(() => {
-        getUsers();
+        getClients();
     }, []);
 
     const onDelete = (u) => {
@@ -27,11 +27,11 @@ export default function Clients() {
 
         axiosClient.delete(`/clients/${u.id}`).then(() => {
             setNotification("Client was successfully deleted");
-            getUsers();
+            getClients();
         });
     };
 
-    const getUsers = (page = 1) => {
+    const getClients = (page = 1) => {
         setLoading(true);
 
         axiosClient
@@ -47,7 +47,7 @@ export default function Clients() {
     };
 
     return (
-        <div>
+        <>
             <div className="flex justify-between items-center p-5 mt-5">
                 <h1 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                     Clients
@@ -62,149 +62,165 @@ export default function Clients() {
                     </Link>
                 )}
             </div>
-            <div className="flex flex-col justify-center items-center overflow-x-auto">
-                <table className="max-w-[1100px] w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
-                    <thead>
-                        <tr className="bg-cyan-800">
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                ID
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Name
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Email
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Phone
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Company
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Address
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Projects
-                            </th>
-                            {user?.role_name !== "viewer" && (
+            <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
+                <div className="max-w-[1100px] w-full overflow-auto rounded-lg max-height">
+                    <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
+                        <thead>
+                            <tr className="bg-cyan-800">
                                 <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Actions
+                                    ID
                                 </th>
-                            )}
-                        </tr>
-                    </thead>
-                    {loading && (
-                        <tbody>
-                            <tr>
-                                <td colSpan="8" className="text-center">
-                                    Loading...
-                                </td>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Name
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Email
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Phone
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Company
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Address
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Projects
+                                </th>
+                                {user?.role_name !== "viewer" && (
+                                    <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                        Actions
+                                    </th>
+                                )}
                             </tr>
-                        </tbody>
-                    )}
-                    {!loading && (
-                        <tbody>
-                            {clients.length > 0 ? (
-                                clients.map((u) => (
-                                    <tr
-                                        key={u.id}
-                                        className="border-b border-gray-200 hover:bg-cyan-50 text-center"
-                                    >
-                                        <td className="px-4 py-2">{u.id}</td>
-                                        <td className="px-4 py-2">{u.name}</td>
-                                        <td className="px-4 py-2">{u.email}</td>
-                                        <td className="px-4 py-2">
-                                            {u.phone_number}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {u.company_name}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {u.company_address}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            <Link
-                                                to={"/clients/project/" + u.id}
-                                                className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border-solid border border-cyan-800 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white"
-                                            >
-                                                <FontAwesomeIcon
-                                                    icon={faDiagramProject}
-                                                />
-                                                Projects
-                                            </Link>
-                                        </td>
-                                        {user?.role_name !== "viewer" && (
-                                            <td className="px-4 py-2 flex justify-center items-center gap-2">
-                                                {user?.role_name ===
-                                                    "super_admin" && (
-                                                    <Link
-                                                        to={"/clients/" + u.id}
-                                                        className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faPen}
-                                                        />
-                                                        Edit
-                                                    </Link>
-                                                )}
-
-                                                <button
-                                                    onClick={() => onDelete(u)}
-                                                    className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
-                                                >
-                                                    <FontAwesomeIcon
-                                                        icon={faTrash}
-                                                    />
-                                                    Delete
-                                                </button>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))
-                            ) : (
+                        </thead>
+                        {loading && (
+                            <tbody>
                                 <tr>
-                                    <td
-                                        colSpan={8}
-                                        className="px-4 py-6 text-center text-gray-500"
-                                    >
-                                        No clients
+                                    <td colSpan="8" className="text-center">
+                                        Loading...
                                     </td>
                                 </tr>
-                            )}
-                        </tbody>
-                    )}
-                </table>
-                <div className="flex justify-center items-center gap-2 mt-4">
-                    {meta?.current_page > 1 && (
-                        <button
-                            onClick={() =>
-                                getPaymentSchedules(meta.current_page - 1)
-                            }
-                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
-                        >
-                            Previous
-                        </button>
-                    )}
+                            </tbody>
+                        )}
+                        {!loading && (
+                            <tbody>
+                                {clients.length > 0 ? (
+                                    clients.map((u) => (
+                                        <tr
+                                            key={u.id}
+                                            className="hover:bg-cyan-50 text-center"
+                                        >
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.id}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.name}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.email}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.phone_number}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.company_name}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.company_address}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                <Link
+                                                    to={
+                                                        "/clients/project/" +
+                                                        u.id
+                                                    }
+                                                    className="border-b border-gray-200 inline-block px-2 py-1 text-xs text-[#0d1b2a] border-solid border border-cyan-800 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white"
+                                                >
+                                                    <FontAwesomeIcon
+                                                        icon={faDiagramProject}
+                                                    />
+                                                    Projects
+                                                </Link>
+                                            </td>
+                                            {user?.role_name !== "viewer" && (
+                                                <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
+                                                    {user?.role_name ===
+                                                        "super_admin" && (
+                                                        <Link
+                                                            to={
+                                                                "/clients/" +
+                                                                u.id
+                                                            }
+                                                            className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={faPen}
+                                                            />
+                                                            Edit
+                                                        </Link>
+                                                    )}
 
-                    {meta?.current_page && (
-                        <span className="text-sm text-gray-600">
-                            Page {meta.current_page} of {meta.last_page}
-                        </span>
-                    )}
+                                                    <button
+                                                        onClick={() =>
+                                                            onDelete(u)
+                                                        }
+                                                        className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={faTrash}
+                                                        />
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td
+                                            colSpan={8}
+                                            className="px-4 py-6 text-center text-gray-500"
+                                        >
+                                            No clients
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        )}
+                    </table>
+                    <div className="flex justify-center items-center gap-2 mt-4">
+                        {meta?.current_page > 1 && (
+                            <button
+                                onClick={() =>
+                                    getClients(meta.current_page - 1)
+                                }
+                                className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                            >
+                                Previous
+                            </button>
+                        )}
 
-                    {meta?.current_page < meta?.last_page && (
-                        <button
-                            onClick={() =>
-                                getPaymentSchedules(meta.current_page + 1)
-                            }
-                            className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
-                        >
-                            Next
-                        </button>
-                    )}
+                        {meta?.current_page && (
+                            <span className="text-sm text-gray-600">
+                                Page {meta.current_page} of {meta.last_page}
+                            </span>
+                        )}
+
+                        {meta?.current_page < meta?.last_page && (
+                            <button
+                                onClick={() =>
+                                    getClients(meta.current_page + 1)
+                                }
+                                className="px-3 py-1 text-sm bg-cyan-800 text-white rounded hover:bg-cyan-900"
+                            >
+                                Next
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

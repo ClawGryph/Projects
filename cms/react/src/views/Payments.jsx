@@ -93,11 +93,11 @@ export default function Payments() {
 
     return (
         <>
-            <div className="flex justify-between items-center p-5 mt-5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 mt-5 gap-3">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Payments
                 </h1>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <label
                         htmlFor="month-filter"
                         className="text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -121,7 +121,7 @@ export default function Payments() {
                     )}
                 </div>
             </div>
-            <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto">
+            <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
                 <div className="max-w-[1100px] w-full overflow-auto rounded-lg hide-scrollbar max-height">
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                         <thead className="sticky top-0 z-20 bg-cyan-800">
