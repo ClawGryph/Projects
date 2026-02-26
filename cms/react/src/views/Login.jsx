@@ -63,7 +63,7 @@ export default function Login() {
 
             <form onSubmit={onSubmit}>
                 {errors && (
-                    <div className="alert">
+                    <div className="px-4 py-3 mb-5 rounded shadow text-white bg-red-500 animate-slide-in">
                         {Object.keys(errors).map((key) => (
                             <p key={key}>{errors[key][0]}</p>
                         ))}

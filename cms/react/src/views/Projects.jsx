@@ -11,7 +11,7 @@ export default function Projects() {
     const [meta, setMeta] = useState({});
     const [loading, setLoading] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const { setNotification } = useStateContext();
+    const { setNotification, user } = useStateContext();
 
     useEffect(() => {
         getProjects();
@@ -66,13 +66,15 @@ export default function Projects() {
                 <h1 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                     Projects
                 </h1>
-                <Link
-                    to={"/projects/new"}
-                    className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center"
-                >
-                    <FontAwesomeIcon icon={faPlus} />
-                    Add new
-                </Link>
+                {user?.role_name !== "viewer" && (
+                    <Link
+                        to={"/projects/new"}
+                        className="w-20 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center"
+                    >
+                        <FontAwesomeIcon icon={faPlus} />
+                        Add new
+                    </Link>
+                )}
             </div>
             <div className="flex flex-col h-full justify-start items-center overflow-x-auto">
                 <table className="max-w-[1100px] w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
@@ -93,12 +95,16 @@ export default function Projects() {
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 End Date
                             </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Status
-                            </th>
-                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Actions
-                            </th>
+                            {user?.role_name !== "viewer" && (
+                                <>
+                                    <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                        Actions
+                                    </th>
+                                </>
+                            )}
                         </tr>
                     </thead>
                     {loading && (
@@ -132,69 +138,91 @@ export default function Projects() {
                                         <td className="px-4 py-2">
                                             {p.end_date}
                                         </td>
-                                        <td className="px-4 py-2 relative">
-                                            {editingId === p.id ? (
-                                                <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
-                                                    {[
-                                                        "pending",
-                                                        "ongoing",
-                                                        "completed",
-                                                    ].map((status) => (
+                                        {user?.role_name !== "viewer" && (
+                                            <>
+                                                <td className="px-4 py-2 relative">
+                                                    {editingId === p.id ? (
+                                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
+                                                            {[
+                                                                "pending",
+                                                                "ongoing",
+                                                                "completed",
+                                                            ].map((status) => (
+                                                                <div
+                                                                    key={status}
+                                                                    onClick={() => {
+                                                                        updateStatus(
+                                                                            p.id,
+                                                                            status,
+                                                                        );
+                                                                        setEditingId(
+                                                                            null,
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                                >
+                                                                    <StatusBadge
+                                                                        status={
+                                                                            status
+                                                                        }
+                                                                        isEnded={
+                                                                            p.isEnded
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
                                                         <div
-                                                            key={status}
-                                                            onClick={() => {
-                                                                updateStatus(
-                                                                    p.id,
-                                                                    status,
-                                                                );
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
                                                                 setEditingId(
-                                                                    null,
+                                                                    p.id,
                                                                 );
                                                             }}
-                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                            className="cursor-pointer flex justify-center"
                                                         >
                                                             <StatusBadge
-                                                                status={status}
+                                                                status={
+                                                                    p.status
+                                                                }
                                                                 isEnded={
                                                                     p.isEnded
                                                                 }
                                                             />
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingId(p.id);
-                                                    }}
-                                                    className="cursor-pointer flex justify-center"
-                                                >
-                                                    <StatusBadge
-                                                        status={p.status}
-                                                        isEnded={p.isEnded}
-                                                    />
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-2 flex justify-center items-center gap-2">
-                                            <Link
-                                                to={"/projects/" + p.id}
-                                                className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
-                                            >
-                                                <FontAwesomeIcon icon={faPen} />
-                                                Edit
-                                            </Link>
-                                            <button
-                                                onClick={() => onDelete(p)}
-                                                className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
-                                            >
-                                                <FontAwesomeIcon
-                                                    icon={faTrash}
-                                                />
-                                                Delete
-                                            </button>
-                                        </td>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2 flex justify-center items-center gap-2">
+                                                    {user?.role_name ===
+                                                        "super_admin" && (
+                                                        <Link
+                                                            to={
+                                                                "/projects/" +
+                                                                p.id
+                                                            }
+                                                            className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={faPen}
+                                                            />
+                                                            Edit
+                                                        </Link>
+                                                    )}
+                                                    <button
+                                                        onClick={() =>
+                                                            onDelete(p)
+                                                        }
+                                                        className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={faTrash}
+                                                        />
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </>
+                                        )}
                                     </tr>
                                 ))
                             ) : (

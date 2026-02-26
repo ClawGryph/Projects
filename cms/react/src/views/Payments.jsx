@@ -6,7 +6,7 @@ import StatusBadge from "../components/StatusBadge";
 export default function Payments() {
     const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [loading, setLoading] = useState(false);
-    const { setNotification } = useStateContext();
+    const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
     const [selectedMonth, setSelectedMonth] = useState(() => {
         const now = new Date();
@@ -143,9 +143,11 @@ export default function Payments() {
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     Due Date
                                 </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Status
-                                </th>
+                                {user?.role_name !== "viewer" && (
+                                    <th className="px-4 py-2 text-white text-sm font-medium">
+                                        Status
+                                    </th>
+                                )}
                             </tr>
                         </thead>
                         {loading && (
@@ -196,54 +198,62 @@ export default function Payments() {
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {p.due_date || " - "}
                                             </td>
-                                            <td className="border-b border-gray-200 px-4 py-2 relative">
-                                                {editingId === p.id ? (
-                                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
-                                                        {[
-                                                            "pending",
-                                                            "paid",
-                                                            "overdue",
-                                                            "ended",
-                                                        ].map((status) => (
-                                                            <div
-                                                                key={status}
-                                                                onClick={() => {
-                                                                    updateStatus(
-                                                                        p.id,
-                                                                        status,
-                                                                    );
-                                                                    setEditingId(
-                                                                        null,
-                                                                    );
-                                                                }}
-                                                                className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                            >
-                                                                <StatusBadge
-                                                                    status={
-                                                                        status
-                                                                    }
-                                                                    isEnded={
-                                                                        p.isEnded
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingId(p.id);
-                                                        }}
-                                                        className="cursor-pointer flex justify-center"
-                                                    >
-                                                        <StatusBadge
-                                                            status={p.status}
-                                                            isEnded={p.isEnded}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </td>
+                                            {user?.role_name !== "viewer" && (
+                                                <td className="border-b border-gray-200 px-4 py-2 relative">
+                                                    {editingId === p.id ? (
+                                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 bg-white border rounded shadow-md z-10">
+                                                            {[
+                                                                "pending",
+                                                                "paid",
+                                                                "overdue",
+                                                                "ended",
+                                                            ].map((status) => (
+                                                                <div
+                                                                    key={status}
+                                                                    onClick={() => {
+                                                                        updateStatus(
+                                                                            p.id,
+                                                                            status,
+                                                                        );
+                                                                        setEditingId(
+                                                                            null,
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                                >
+                                                                    <StatusBadge
+                                                                        status={
+                                                                            status
+                                                                        }
+                                                                        isEnded={
+                                                                            p.isEnded
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingId(
+                                                                    p.id,
+                                                                );
+                                                            }}
+                                                            className="cursor-pointer flex justify-center"
+                                                        >
+                                                            <StatusBadge
+                                                                status={
+                                                                    p.status
+                                                                }
+                                                                isEnded={
+                                                                    p.isEnded
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 ) : (
