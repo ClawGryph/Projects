@@ -1,6 +1,6 @@
 export default function StatusBadge({ status, isEnded = false }) {
     const statusConfig = {
-        completed: {
+        complete: {
             bg: "bg-green-100",
             text: "text-green-700",
             label: "Completed",

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('clients_projects', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
+            $table->dropForeign('users_projects_user_id_foreign');
 
             $table->renameColumn('user_id', 'client_id');
 

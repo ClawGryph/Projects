@@ -162,7 +162,7 @@ export default function Projects() {
                                                                 {[
                                                                     "pending",
                                                                     "ongoing",
-                                                                    "completed",
+                                                                    "complete",
                                                                 ].map(
                                                                     (
                                                                         status,

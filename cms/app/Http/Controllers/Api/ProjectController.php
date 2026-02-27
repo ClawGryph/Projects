@@ -28,7 +28,7 @@ class ProjectController extends Controller
             'start_date' => 'required',
             'end_date' => 'required',
             'price' => 'required',
-            'status' => 'string'
+            'status' => 'nullable|string|in:pending,ongoing,complete'
         ]);
 
 
@@ -69,8 +69,8 @@ class ProjectController extends Controller
     public function updateStatus(Request $request, Project $project)
     {
         $request->validate([
-            'status' => 'string|in:pending,ongoing,completed'
-        ]);
+    'status' => 'required|string|in:pending,ongoing,complete'
+]);
 
         $project->update([
             'status' => $request->status

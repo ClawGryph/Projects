@@ -37,18 +37,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
 // Super Admin only
 Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
     Route::apiResource('/users', UserController::class);
+});
+
+// Super Admin and Admin can delete
+Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function () {
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
+});
+
+// Super Admin only can edit
+Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
+    Route::put('/clients/{client}', [ClientController::class, 'update']);
+    Route::put('/projects/{project}', [ProjectController::class, 'update']);
+    Route::put('/payments/{payment}', [PaymentController::class, 'update']);
 });
 
 // Super Admin and Admin only
 Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function () {
     Route::post('/clients', [ClientController::class, 'store']);
-    Route::put('/clients/{client}', [ClientController::class, 'update']);
     Route::post('/projects', [ProjectController::class, 'store']);
-    Route::put('/projects/{project}', [ProjectController::class, 'update']);
     Route::post('/payments', [PaymentController::class, 'store']);
-    Route::put('/payments/{payment}', [PaymentController::class, 'update']);
     Route::post('/clients/{client}/projects', [ClientsProjectController::class, 'assignProject']);
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
     Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);
