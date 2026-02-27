@@ -45,7 +45,7 @@ export default function Login() {
                 <img src={logo} alt="csm logo" />
             </div>
 
-            <h3 className="mb-6 text-center text-xl font-bold text-[#3AA99C]">
+            <h3 className="mb-6 text-center text-xl font-bold text-cyan-800">
                 Quick Login
             </h3>
 

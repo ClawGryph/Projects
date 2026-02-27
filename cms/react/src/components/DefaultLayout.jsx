@@ -149,8 +149,8 @@ export default function DefaultLayout() {
                             />
                         </div>
                         <div>
-                            <p className="hidden xs:block text-xs text-gray-500">
-                                Employee
+                            <p className="hidden sm:block text-xs text-gray-500">
+                                {user?.role_label || ""}
                             </p>
                             <p className="hidden sm:block text-lg font-bold text-gray-800">
                                 {user?.name || ""}
