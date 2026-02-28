@@ -144,11 +144,9 @@ export default function Payments() {
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     Due Date
                                 </th>
-                                {user?.role_name !== "viewer" && (
-                                    <th className="px-4 py-2 text-white text-sm font-medium">
-                                        Status
-                                    </th>
-                                )}
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Status
+                                </th>
                             </tr>
                         </thead>
                         {loading && (
@@ -199,85 +197,87 @@ export default function Payments() {
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {p.due_date || " - "}
                                             </td>
-                                            {user?.role_name !== "viewer" && (
-                                                <td className="border-b border-gray-200 px-4 py-2 relative">
-                                                    {editingId === p.id ? (
-                                                        <div
-                                                            style={{
-                                                                position:
-                                                                    "fixed",
-                                                                top: dropdownPos.top,
-                                                                left: dropdownPos.left,
-                                                                transform:
-                                                                    "translateX(-50%)",
-                                                            }}
-                                                            className="bg-white border rounded shadow-md z-50"
-                                                        >
-                                                            {[
-                                                                "pending",
-                                                                "paid",
-                                                                "overdue",
-                                                                "ended",
-                                                            ].map((status) => (
-                                                                <div
-                                                                    key={status}
-                                                                    onClick={() => {
-                                                                        updateStatus(
-                                                                            p.id,
-                                                                            status,
-                                                                        );
-                                                                        setEditingId(
-                                                                            null,
-                                                                        );
-                                                                    }}
-                                                                    className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                                >
-                                                                    <StatusBadge
-                                                                        status={
-                                                                            status
-                                                                        }
-                                                                        isEnded={
-                                                                            p.isEnded
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <div
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const rect =
-                                                                    e.currentTarget.getBoundingClientRect();
-                                                                setDropdownPos({
-                                                                    top:
-                                                                        rect.bottom +
-                                                                        window.scrollY -
-                                                                        30,
-                                                                    left:
-                                                                        rect.left +
-                                                                        rect.width /
-                                                                            2 +
-                                                                        window.scrollX,
-                                                                });
-                                                                setEditingId(
-                                                                    p.id,
-                                                                );
-                                                            }}
-                                                            className="cursor-pointer flex justify-center"
-                                                        >
-                                                            <StatusBadge
-                                                                status={
-                                                                    p.status
-                                                                }
-                                                                isEnded={
-                                                                    p.isEnded
-                                                                }
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            )}
+                                            <td className="border-b border-gray-200 px-4 py-2 relative">
+                                                {editingId === p.id ? (
+                                                    <div
+                                                        style={{
+                                                            position: "fixed",
+                                                            top: dropdownPos.top,
+                                                            left: dropdownPos.left,
+                                                            transform:
+                                                                "translateX(-50%)",
+                                                        }}
+                                                        className="bg-white border rounded shadow-md z-50"
+                                                    >
+                                                        {[
+                                                            "pending",
+                                                            "paid",
+                                                            "overdue",
+                                                            "ended",
+                                                        ].map((status) => (
+                                                            <div
+                                                                key={status}
+                                                                onClick={() => {
+                                                                    updateStatus(
+                                                                        p.id,
+                                                                        status,
+                                                                    );
+                                                                    setEditingId(
+                                                                        null,
+                                                                    );
+                                                                }}
+                                                                className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                            >
+                                                                <StatusBadge
+                                                                    status={
+                                                                        status
+                                                                    }
+                                                                    isEnded={
+                                                                        p.isEnded
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const rect =
+                                                                e.currentTarget.getBoundingClientRect();
+                                                            setDropdownPos({
+                                                                top:
+                                                                    rect.bottom +
+                                                                    window.scrollY -
+                                                                    30,
+                                                                left:
+                                                                    rect.left +
+                                                                    rect.width /
+                                                                        2 +
+                                                                    window.scrollX,
+                                                            });
+                                                            {
+                                                                user?.role_name !==
+                                                                    "viewer" &&
+                                                                    setEditingId(
+                                                                        p.id,
+                                                                    );
+                                                            }
+                                                        }}
+                                                        className={`flex justify-center ${
+                                                            user?.role_name !==
+                                                            "viewer"
+                                                                ? "cursor-pointer"
+                                                                : "cursor-default"
+                                                        }`}
+                                                    >
+                                                        <StatusBadge
+                                                            status={p.status}
+                                                            isEnded={p.isEnded}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
