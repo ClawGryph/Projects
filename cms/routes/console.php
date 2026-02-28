@@ -16,4 +16,4 @@ app(Schedule::class)->call(function () {
         ->whereNotNull('due_date')
         ->whereDate('due_date', '<', now())
         ->update(['status' => 'overdue']);
-})->everyMinute();
+})->daily();
