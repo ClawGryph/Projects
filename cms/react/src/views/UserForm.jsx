@@ -10,6 +10,7 @@ export default function UserForm() {
     const [errors, setErrors] = useState(null);
     const [loading, setLoading] = useState(false);
     const { setNotification } = useStateContext();
+    const [formData, setFormData] = useState(null);
     const [user, setUser] = useState({
         id: null,
         name: "",
@@ -27,6 +28,7 @@ export default function UserForm() {
             .then(({ data }) => {
                 setLoading(false);
                 setUser(data);
+                setFormData(data);
             })
             .catch(() => setLoading(false));
     }, [id]);
@@ -66,7 +68,7 @@ export default function UserForm() {
         <>
             {user.id && (
                 <h2 className="text-2xl font-bold text-gray-800 m-6">
-                    Update Employee: {user.name}
+                    Update Employee: {formData.name}
                 </h2>
             )}
             {!user.id && (
