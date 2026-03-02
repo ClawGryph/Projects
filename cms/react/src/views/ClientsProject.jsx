@@ -220,7 +220,7 @@ export default function ClientsProject() {
                 {user?.role_name !== "viewer" && (
                     <button
                         onClick={openModal}
-                        className="w-25 bg-sky-400 text-xs text-white cta-btn font-semibold py-2 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center cursor-pointer"
+                        className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer"
                     >
                         <FontAwesomeIcon icon={faPlus} />
                         Add project
