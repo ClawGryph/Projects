@@ -8,12 +8,8 @@ export default function Payments() {
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
-    const [selectedMonth, setSelectedMonth] = useState(() => {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        return `${year}-${month}`;
-    });
+    const [selectedMonth, setSelectedMonth] = useState("");
+    const [selectedProject, setSelectedProject] = useState("");
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
     const getPaymentSchedules = () => {
@@ -83,13 +79,26 @@ export default function Payments() {
             .join(" ");
     };
 
-    const filteredSchedules = selectedMonth
-        ? paymentSchedules.filter((p) => {
-              if (!p.due_date) return false;
-              // due_date format assumed to be YYYY-MM-DD
-              return p.due_date.slice(0, 7) === selectedMonth;
-          })
-        : paymentSchedules;
+    const uniqueProjects = [
+        ...new Map(
+            paymentSchedules.map((p) => [
+                p.project?.id,
+                { id: p.project?.id, title: p.project?.title },
+            ]),
+        ).values(),
+    ].filter((p) => p.id);
+
+    const filteredSchedules = paymentSchedules.filter((p) => {
+        const matchMonth = selectedMonth
+            ? p.due_date?.slice(0, 7) === selectedMonth
+            : true;
+
+        const matchProject = selectedProject
+            ? p.project?.id === Number(selectedProject)
+            : true;
+
+        return matchMonth && matchProject;
+    });
 
     return (
         <>
@@ -98,6 +107,23 @@ export default function Payments() {
                     Payments
                 </h1>
                 <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Project:
+                        </label>
+                        <select
+                            value={selectedProject}
+                            onChange={(e) => setSelectedProject(e.target.value)}
+                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                        >
+                            <option value="">All Projects</option>
+                            {uniqueProjects.map((proj) => (
+                                <option key={proj.id} value={proj.id}>
+                                    {proj.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <label
                         htmlFor="month-filter"
                         className="text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -111,12 +137,15 @@ export default function Payments() {
                         onChange={(e) => setSelectedMonth(e.target.value)}
                         className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                     />
-                    {selectedMonth && (
+                    {(selectedMonth || selectedProject) && (
                         <button
-                            onClick={() => setSelectedMonth("")}
+                            onClick={() => {
+                                setSelectedMonth("");
+                                setSelectedProject("");
+                            }}
                             className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
                         >
-                            Clear
+                            Clear Filters
                         </button>
                     )}
                 </div>
