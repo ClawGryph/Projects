@@ -45,6 +45,7 @@ export default function DefaultLayout() {
                 className={`
                     fixed sm:relative z-40 bg-cyan-800 h-screen w-64 shadow-xl
                     transform transition-transform duration-300
+                    flex flex-col
                     ${openSidebar ? "translate-x-0" : "-translate-x-full"}
                     sm:translate-x-0
                 `}
@@ -67,22 +68,6 @@ export default function DefaultLayout() {
                         <FontAwesomeIcon icon={faGauge} />
                         Dashboard
                     </NavLink>
-                    {user?.role_name === "super_admin" && (
-                        <NavLink
-                            to="/users"
-                            onClick={() => setOpenSidebar(false)}
-                            className={({ isActive }) =>
-                                `flex items-center py-4 pl-6 nav-item transition-all ${
-                                    isActive
-                                        ? "bg-cyan-900 text-white"
-                                        : "text-white opacity-75 hover:opacity-100"
-                                }`
-                            }
-                        >
-                            <FontAwesomeIcon icon={faUserTie} />
-                            Employees
-                        </NavLink>
-                    )}
                     <NavLink
                         to="/clients"
                         onClick={() => setOpenSidebar(false)}
@@ -126,6 +111,27 @@ export default function DefaultLayout() {
                         Payments
                     </NavLink>
                 </nav>
+                {user?.role_name === "super_admin" && (
+                    <div className="border-t border-cyan-700 p-4 bg-cyan-900 mt-auto">
+                        <NavLink
+                            to="/users"
+                            onClick={() => setOpenSidebar(false)}
+                            className={({ isActive }) =>
+                                `text-sm flex items-center py-2 px-2 rounded-lg transition-all ${
+                                    isActive
+                                        ? "bg-white text-cyan-900"
+                                        : "text-white hover:bg-cyan-700"
+                                }`
+                            }
+                        >
+                            <FontAwesomeIcon
+                                icon={faUserTie}
+                                className="mr-2"
+                            />
+                            Account Management
+                        </NavLink>
+                    </div>
+                )}
             </aside>
             {openSidebar && (
                 <div
