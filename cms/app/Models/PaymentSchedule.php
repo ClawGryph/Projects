@@ -18,11 +18,6 @@ class PaymentSchedule extends Model
         'due_date' => 'datetime'
     ];
 
-    public function clientsProject()
-    {
-        return $this->belongsTo(ClientsProject::class);
-    }
-
     public function payment()
     {
         return $this->belongsTo(Payment::class);
@@ -30,6 +25,18 @@ class PaymentSchedule extends Model
 
     public function paymentTransactions()
     {
-        return $this->hasMany(PaymentTransaction::class);
+        return $this->hasMany(PaymentTransaction::class, 'payment_schedules_id');
+    }
+
+    public function clientsProject()
+    {
+        return $this->hasOneThrough(
+            ClientsProject::class,
+            Payment::class,
+            'id',                  // Foreign key on Payment? (payment_id? check below)
+            'id',                  // Foreign key on ClientsProject table (id)
+            'payment_id',          // Local key on PaymentSchedule (payment_id)
+            'clients_project_id'   // Local key on Payment (clients_project_id)
+        );
     }
 }

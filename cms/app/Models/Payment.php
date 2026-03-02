@@ -23,7 +23,7 @@ class Payment extends Model
 
     public function clientsProject()
     {
-        return $this->belongsTo(ClientsProject::class);
+        return $this->belongsTo(ClientsProject::class, 'clients_project_id');
     }
 
     public function getProjectAttribute()
@@ -33,7 +33,7 @@ class Payment extends Model
 
     public function paymentSchedules()
     {
-        return $this->hasMany(PaymentSchedule::class)->orderBy('due_date', 'asc');
+        return $this->hasMany(PaymentSchedule::class);
     }
 
     public function paymentTransactions()

@@ -5,6 +5,7 @@ import StatusBadge from "../components/StatusBadge";
 
 export default function Payments() {
     const [paymentSchedules, setPaymentSchedules] = useState([]);
+    const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
@@ -14,40 +15,34 @@ export default function Payments() {
 
     const getPaymentSchedules = () => {
         setLoading(true);
+
         axiosClient
-            .get(`/client-projects`)
+            .get("/payment-schedules", {
+                params: {
+                    month: selectedMonth || undefined,
+                    project_id: selectedProject || undefined,
+                },
+            })
             .then(({ data }) => {
+                setPaymentSchedules(data.data);
                 setLoading(false);
 
-                const schedules = [];
-                (data.data || []).forEach((project) => {
-                    project.payment_schedules?.forEach((sched) => {
-                        schedules.push({
-                            ...sched,
-                            client: project.client,
-                            project: project.project,
-                            payment: project.payment,
-                            isEnded: project.isEnded,
-                        });
-                    });
-                });
-
-                schedules.sort((a, b) => {
-                    if (!a.due_date) return 1;
-                    if (!b.due_date) return -1;
-                    return a.due_date.localeCompare(b.due_date);
-                });
-
-                setPaymentSchedules(schedules);
+                console.log(data);
             })
             .catch((err) => {
-                setLoading(false);
                 console.error(err);
+                setLoading(false);
             });
     };
 
     useEffect(() => {
         getPaymentSchedules();
+    }, [selectedMonth, selectedProject]);
+
+    useEffect(() => {
+        axiosClient.get("/projects").then(({ data }) => {
+            setProjects(data.data);
+        });
     }, []);
 
     const updateStatus = (scheduleId, newStatus) => {
@@ -79,35 +74,15 @@ export default function Payments() {
             .join(" ");
     };
 
-    const uniqueProjects = [
-        ...new Map(
-            paymentSchedules.map((p) => [
-                p.project?.id,
-                { id: p.project?.id, title: p.project?.title },
-            ]),
-        ).values(),
-    ].filter((p) => p.id);
-
-    const filteredSchedules = paymentSchedules.filter((p) => {
-        const matchMonth = selectedMonth
-            ? p.due_date?.slice(0, 7) === selectedMonth
-            : true;
-
-        const matchProject = selectedProject
-            ? p.project?.id === Number(selectedProject)
-            : true;
-
-        return matchMonth && matchProject;
-    });
-
     return (
         <>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 mt-5 gap-3">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Payments
                 </h1>
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Project Filter */}
+                    <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Project:
                         </label>
@@ -117,26 +92,32 @@ export default function Payments() {
                             className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                         >
                             <option value="">All Projects</option>
-                            {uniqueProjects.map((proj) => (
+                            {projects.map((proj) => (
                                 <option key={proj.id} value={proj.id}>
                                     {proj.title}
                                 </option>
                             ))}
                         </select>
                     </div>
-                    <label
-                        htmlFor="month-filter"
-                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                        Filter by Month:
-                    </label>
-                    <input
-                        id="month-filter"
-                        type="month"
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                    />
+
+                    {/* Month Filter */}
+                    <div className="flex items-center gap-2">
+                        <label
+                            htmlFor="month-filter"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                            Month:
+                        </label>
+                        <input
+                            id="month-filter"
+                            type="month"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                        />
+                    </div>
+
+                    {/* Clear Button */}
                     {(selectedMonth || selectedProject) && (
                         <button
                             onClick={() => {
@@ -192,8 +173,8 @@ export default function Payments() {
                         )}
                         {!loading && (
                             <tbody>
-                                {filteredSchedules.length > 0 ? (
-                                    filteredSchedules.map((p) => (
+                                {paymentSchedules.length > 0 ? (
+                                    paymentSchedules.map((p) => (
                                         <tr
                                             key={p.id}
                                             className="hover:bg-cyan-50 text-center"
@@ -202,10 +183,13 @@ export default function Payments() {
                                                 {p.id}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.client?.name}
+                                                {p.clientsProject?.client?.name}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.project?.title}
+                                                {
+                                                    p.clientsProject?.project
+                                                        ?.title
+                                                }
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 ₱
@@ -215,11 +199,14 @@ export default function Payments() {
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {formatPaymentType(
-                                                    p.payment?.payment_type ===
+                                                    p.clientsProject?.payment
+                                                        ?.payment_type ===
                                                         "recurring"
-                                                        ? p.payment
+                                                        ? p.clientsProject
+                                                              ?.payment
                                                               ?.recurring_type
-                                                        : p.payment
+                                                        : p.clientsProject
+                                                              ?.payment
                                                               ?.payment_type,
                                                 )}
                                             </td>

@@ -9,10 +9,32 @@ use Illuminate\Http\Request;
 
 class PaymentScheduleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $query = PaymentSchedule::with([
+            'clientsProject.client',
+            'clientsProject.project',
+            'clientsProject.payments',
+        ]);
+
+        // Filter by month (format: YYYY-MM)
+        if ($request->filled('month')) {
+            $query->where('due_date', 'like', $request->month . '%');
+        }
+
+        // Filter by project
+        if ($request->filled('project_id')) {
+            $query->whereHas('clientsProject.project', function ($q) use ($request) {
+                $q->where('id', $request->project_id);
+            });
+        }
+
+        // Optional sorting
+        $sortDirection = $request->get('direction', 'asc');
+        $query->orderBy('due_date', $sortDirection);
+
         return PaymentScheduleResource::collection(
-            PaymentSchedule::orderBy('due_date', 'asc')->get()
+            $query->paginate(15)
         );
     }
 
