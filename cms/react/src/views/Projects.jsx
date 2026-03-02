@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faTrash, faPen } from "@fortawesome/free-solid-svg-icons";
+import {
+    faPlus,
+    faTrash,
+    faPen,
+    faEye,
+} from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
@@ -97,9 +102,11 @@ export default function Projects() {
                                 <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                     End Date
                                 </th>
-
                                 <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                     Status
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    View
                                 </th>
                                 {user?.role_name !== "viewer" && (
                                     <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
@@ -224,9 +231,18 @@ export default function Projects() {
                                                     </div>
                                                 )}
                                             </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                <button className="border-b border-gray-200 inline-block px-2 py-1 text-xs text-[#0d1b2a] border-solid border border-cyan-800 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white">
+                                                    <FontAwesomeIcon
+                                                        icon={faEye}
+                                                        className="pr-1"
+                                                    />
+                                                    View
+                                                </button>
+                                            </td>
                                             {user?.role_name !== "viewer" && (
                                                 <>
-                                                    <td className="border-b border-gray-200 px-4 py-2 flex justify-center items-center gap-2">
+                                                    <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
                                                         {user?.role_name !==
                                                             "viewer" && (
                                                             <Link
