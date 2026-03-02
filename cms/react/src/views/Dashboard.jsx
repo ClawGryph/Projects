@@ -493,10 +493,23 @@ export default function Dashboard() {
                 </div>
                 <button
                     onClick={() => exportDashboardCSV(clientsProject)}
-                    className="bg-sky-400 text-xs text-white cta-btn font-semibold py-2 px-3 sm:px-4 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-sky-500 flex items-center justify-center cursor-pointer"
+                    className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer"
                 >
-                    <FontAwesomeIcon icon={faFileExport} />
-                    <span className="hidden sm:inline ml-1">Export</span>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span className="hidden sm:inline ml-1">Export CSV</span>
                 </button>
             </div>
 

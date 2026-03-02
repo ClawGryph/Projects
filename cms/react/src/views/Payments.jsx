@@ -26,8 +26,6 @@ export default function Payments() {
             .then(({ data }) => {
                 setPaymentSchedules(data.data);
                 setLoading(false);
-
-                console.log(data);
             })
             .catch((err) => {
                 console.error(err);
@@ -72,6 +70,69 @@ export default function Payments() {
             .split(" ")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
+    };
+
+    const exportCSV = () => {
+        const headers = [
+            "ID",
+            "Client",
+            "Project",
+            "Cost",
+            "Payment",
+            "Due Date",
+            "Status",
+        ];
+
+        const rows = paymentSchedules.map((p) => {
+            const paymentType =
+                p.clientsProject?.payment?.payment_type === "recurring"
+                    ? p.clientsProject?.payment?.recurring_type
+                    : p.clientsProject?.payment?.payment_type;
+
+            return [
+                p.id,
+                p.clientsProject?.client?.name ?? "",
+                p.clientsProject?.project?.title ?? "",
+                p.expected_amount,
+                formatPaymentType(paymentType),
+                p.due_date ?? "",
+                p.status,
+            ];
+        });
+
+        const csvContent = [headers, ...rows]
+            .map((row) =>
+                row
+                    .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+                    .join(","),
+            )
+            .join("\n");
+
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+
+        const filename = [
+            "payments",
+            selectedMonth || null,
+            selectedProject
+                ? projects.find((p) => String(p.id) === String(selectedProject))
+                      ?.title
+                : null,
+        ]
+            .filter(Boolean)
+            .join("_")
+            .replace(/\s+/g, "-")
+            .toLowerCase();
+
+        link.setAttribute("download", `${filename}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -129,6 +190,31 @@ export default function Payments() {
                             Clear Filters
                         </button>
                     )}
+
+                    {/* Export CSV Button */}
+                    <button
+                        onClick={exportCSV}
+                        disabled={paymentSchedules.length === 0}
+                        className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        <span className="hidden sm:inline ml-1">
+                            Export CSV
+                        </span>
+                    </button>
                 </div>
             </div>
             <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
@@ -272,13 +358,11 @@ export default function Payments() {
                                                                         2 +
                                                                     window.scrollX,
                                                             });
-                                                            {
-                                                                user?.role_name !==
-                                                                    "viewer" &&
-                                                                    setEditingId(
-                                                                        p.id,
-                                                                    );
-                                                            }
+                                                            user?.role_name !==
+                                                                "viewer" &&
+                                                                setEditingId(
+                                                                    p.id,
+                                                                );
                                                         }}
                                                         className={`flex justify-center ${
                                                             user?.role_name !==
