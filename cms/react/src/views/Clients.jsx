@@ -107,13 +107,13 @@ export default function Clients() {
                         {!loading && (
                             <tbody>
                                 {clients.length > 0 ? (
-                                    clients.map((u) => (
+                                    clients.map((u, index) => (
                                         <tr
                                             key={u.id}
                                             className="hover:bg-cyan-50 text-center"
                                         >
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {u.id}
+                                                {index + 1}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {u.name}

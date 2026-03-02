@@ -36,4 +36,16 @@ class Project extends Model
         return $this->hasMany(ClientsProject::class);
     }
 
+    public function payments()
+    {
+        return $this->hasManyThrough(
+            Payment::class,
+            ClientsProject::class,
+            'project_id',          // FK on clients_projects table
+            'clients_project_id',  // FK on payments table
+            'id',                  // Local key on projects table
+            'id'                   // Local key on clients_projects table
+        );
+    }
+
 }

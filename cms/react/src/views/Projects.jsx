@@ -5,6 +5,7 @@ import {
     faTrash,
     faPen,
     faEye,
+    faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
@@ -19,13 +20,18 @@ export default function Projects() {
     const { setNotification, user } = useStateContext();
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
+    // --- NEW MODAL STATE ---
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [payments, setPayments] = useState([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
+
     useEffect(() => {
         getProjects();
     }, []);
 
     const getProjects = (page = 1) => {
         setLoading(true);
-
         axiosClient
             .get(`/projects?page=${page}`)
             .then(({ data }) => {
@@ -42,7 +48,6 @@ export default function Projects() {
         if (!window.confirm("Are you sure you want to delete this project?")) {
             return;
         }
-
         axiosClient.delete(`/projects/${p.id}`).then(() => {
             setNotification("Projects was successfully deleted");
             getProjects();
@@ -51,13 +56,36 @@ export default function Projects() {
 
     const updateStatus = (projectId, newStatus) => {
         axiosClient
-            .put(`/projects/${projectId}/status`, {
-                status: newStatus,
-            })
+            .put(`/projects/${projectId}/status`, { status: newStatus })
             .then(() => {
-                getProjects(); // refresh list
+                getProjects();
                 setNotification("Project status updated");
             });
+    };
+
+    // --- NEW: Fetch payments and open modal ---
+    const onView = (p) => {
+        setSelectedProject(p);
+        setModalOpen(true);
+        setPayments([]);
+        setPaymentsLoading(true);
+
+        axiosClient
+            .get(`/projects/${p.id}/clients-projects`)
+            .then(({ data }) => {
+                setPayments(data.data ?? data);
+                console.log(data);
+                setPaymentsLoading(false);
+            })
+            .catch(() => {
+                setPaymentsLoading(false);
+            });
+    };
+
+    const closeModal = () => {
+        setModalOpen(false);
+        setSelectedProject(null);
+        setPayments([]);
     };
 
     useEffect(() => {
@@ -82,34 +110,35 @@ export default function Projects() {
                     </Link>
                 )}
             </div>
+
             <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
                 <div className="max-w-[1100px] w-full overflow-auto rounded-lg max-height">
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                         <thead>
                             <tr className="bg-cyan-800">
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     ID
                                 </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     Title
                                 </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     Cost
                                 </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     Start Date
                                 </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     End Date
                                 </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     Status
                                 </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     View
                                 </th>
                                 {user?.role_name !== "viewer" && (
-                                    <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    <th className="px-4 py-2 text-white text-sm font-medium">
                                         Actions
                                     </th>
                                 )}
@@ -127,13 +156,13 @@ export default function Projects() {
                         {!loading && (
                             <tbody>
                                 {projects.length > 0 ? (
-                                    projects.map((p) => (
+                                    projects.map((p, index) => (
                                         <tr
                                             key={p.id}
                                             className="hover:bg-cyan-50 text-center"
                                         >
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.id}
+                                                {index + 1}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {p.title}
@@ -209,13 +238,11 @@ export default function Projects() {
                                                                         2 +
                                                                     window.scrollX,
                                                             });
-                                                            {
-                                                                user?.role_name !==
-                                                                    "viewer" &&
-                                                                    setEditingId(
-                                                                        p.id,
-                                                                    );
-                                                            }
+                                                            user?.role_name !==
+                                                                "viewer" &&
+                                                                setEditingId(
+                                                                    p.id,
+                                                                );
                                                         }}
                                                         className={`flex justify-center ${
                                                             user?.role_name !==
@@ -231,8 +258,12 @@ export default function Projects() {
                                                     </div>
                                                 )}
                                             </td>
+
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                <button className="border-b border-gray-200 inline-block px-2 py-1 text-xs text-[#0d1b2a] border-solid border border-cyan-800 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white">
+                                                <button
+                                                    onClick={() => onView(p)}
+                                                    className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
+                                                >
                                                     <FontAwesomeIcon
                                                         icon={faEye}
                                                         className="pr-1"
@@ -240,42 +271,33 @@ export default function Projects() {
                                                     View
                                                 </button>
                                             </td>
+
                                             {user?.role_name !== "viewer" && (
-                                                <>
-                                                    <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
-                                                        {user?.role_name !==
-                                                            "viewer" && (
-                                                            <Link
-                                                                to={
-                                                                    "/projects/" +
-                                                                    p.id
-                                                                }
-                                                                className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
-                                                            >
-                                                                <FontAwesomeIcon
-                                                                    icon={faPen}
-                                                                />
-                                                                Edit
-                                                            </Link>
-                                                        )}
-                                                        {user?.role_name ===
-                                                            "super_admin" && (
-                                                            <button
-                                                                onClick={() =>
-                                                                    onDelete(p)
-                                                                }
-                                                                className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
-                                                            >
-                                                                <FontAwesomeIcon
-                                                                    icon={
-                                                                        faTrash
-                                                                    }
-                                                                />
-                                                                Delete
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                </>
+                                                <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
+                                                    <Link
+                                                        to={"/projects/" + p.id}
+                                                        className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={faPen}
+                                                        />{" "}
+                                                        Edit
+                                                    </Link>
+                                                    {user?.role_name ===
+                                                        "super_admin" && (
+                                                        <button
+                                                            onClick={() =>
+                                                                onDelete(p)
+                                                            }
+                                                            className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={faTrash}
+                                                            />{" "}
+                                                            Delete
+                                                        </button>
+                                                    )}
+                                                </td>
                                             )}
                                         </tr>
                                     ))
@@ -292,6 +314,7 @@ export default function Projects() {
                             </tbody>
                         )}
                     </table>
+
                     <div className="flex justify-center items-center gap-2 mt-4">
                         {meta?.current_page > 1 && (
                             <button
@@ -303,13 +326,11 @@ export default function Projects() {
                                 Previous
                             </button>
                         )}
-
                         {meta?.current_page && (
                             <span className="text-sm text-gray-600">
                                 Page {meta.current_page} of {meta.last_page}
                             </span>
                         )}
-
                         {meta?.current_page < meta?.last_page && (
                             <button
                                 onClick={() =>
@@ -323,6 +344,119 @@ export default function Projects() {
                     </div>
                 </div>
             </div>
+
+            {/* --- PAYMENTS MODAL --- */}
+            {modalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                    onClick={closeModal}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    {selectedProject?.title}
+                                </h2>
+                                <p className="text-sm text-gray-500">
+                                    Client Payments
+                                </p>
+                            </div>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            >
+                                <FontAwesomeIcon icon={faTimes} size="lg" />
+                            </button>
+                        </div>
+
+                        {/* Payments Table */}
+                        {paymentsLoading ? (
+                            <div className="text-center py-8 text-gray-500">
+                                Loading payments...
+                            </div>
+                        ) : payments.length > 0 ? (
+                            <div className="overflow-auto max-h-96">
+                                <table className="w-full text-sm border-separate border-spacing-0">
+                                    <thead>
+                                        <tr className="bg-cyan-800 text-white">
+                                            <th className="px-4 py-2 text-left rounded-tl-lg">
+                                                ID
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                Client
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                Amount
+                                            </th>
+                                            <th className="px-4 py-2 text-left">
+                                                Due Date
+                                            </th>
+                                            <th className="px-4 py-2 text-left rounded-tr-lg">
+                                                Status
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {payments
+                                            .flatMap((cp) =>
+                                                cp.payment_schedules.map(
+                                                    (schedule, index) => ({
+                                                        ...schedule,
+                                                        clientName:
+                                                            cp.client?.name ??
+                                                            "—",
+                                                        key: `${cp.id}-${schedule.id}-${index}`,
+                                                    }),
+                                                ),
+                                            )
+                                            .map((sched, idx) => (
+                                                <tr
+                                                    key={sched.key}
+                                                    className="hover:bg-cyan-50"
+                                                >
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {idx + 1}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {sched.clientName}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        ₱{" "}
+                                                        {new Intl.NumberFormat(
+                                                            "en-PH",
+                                                        ).format(
+                                                            sched.expected_amount ??
+                                                                0,
+                                                        )}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {sched.due_date ?? "—"}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2 capitalize">
+                                                        <StatusBadge
+                                                            status={
+                                                                sched.status ??
+                                                                "—"
+                                                            }
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-gray-500">
+                                No payments found for this project.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 }

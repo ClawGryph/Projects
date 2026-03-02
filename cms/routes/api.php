@@ -75,4 +75,5 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer'])->group(func
     Route::get('/client-projects', [ClientsProjectController::class, 'projectsWithClients']);
     Route::get('/clients/{client}/projects', [ClientsProjectController::class, 'index']);
     Route::get('/payment-schedules', [PaymentScheduleController::class, 'index']);
+    Route::get('/projects/{project}/clients-projects', [ProjectController::class, 'payments']);
 });

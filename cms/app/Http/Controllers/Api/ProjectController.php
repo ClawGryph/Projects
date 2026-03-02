@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Project;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProjectRequest;
+use App\Http\Resources\Resources\ClientsProjectResource;
 use App\Http\Resources\Resources\ProjectResource;
+use App\Models\Project;
+use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
@@ -69,8 +70,8 @@ class ProjectController extends Controller
     public function updateStatus(Request $request, Project $project)
     {
         $request->validate([
-    'status' => 'required|string|in:pending,ongoing,complete'
-]);
+            'status' => 'required|string|in:pending,ongoing,complete'
+        ]);
 
         $project->update([
             'status' => $request->status
@@ -79,6 +80,20 @@ class ProjectController extends Controller
         return response()->json([
             'message' => 'Status updated successfully'
         ]);
+    }
+
+    public function payments(Project $project)
+    {
+        return ClientsProjectResource::collection(
+        $project->clientsProjects()
+            ->with([
+                'project',
+                'client',
+                'payments.paymentSchedules',
+                'payments.paymentTransactions'
+            ])
+            ->get()
+    );
     }
 
 }

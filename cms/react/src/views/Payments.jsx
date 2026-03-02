@@ -249,13 +249,13 @@ export default function Payments() {
                         {!loading && (
                             <tbody>
                                 {paymentSchedules.length > 0 ? (
-                                    paymentSchedules.map((p) => (
+                                    paymentSchedules.map((p, index) => (
                                         <tr
                                             key={p.id}
                                             className="hover:bg-cyan-50 text-center"
                                         >
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.id}
+                                                {index + 1}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {p.clientsProject?.client?.name}
