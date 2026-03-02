@@ -34,7 +34,7 @@ class PaymentScheduleController extends Controller
         $query->orderBy('due_date', $sortDirection);
 
         return PaymentScheduleResource::collection(
-            $query->paginate(15)
+            $query->get()
         );
     }
 

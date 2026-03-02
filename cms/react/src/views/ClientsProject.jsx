@@ -7,7 +7,7 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge.jsx";
 
 export default function ClientsProject() {
-    const { id } = useParams(); // client ID from URL
+    const { id } = useParams();
     const { setNotification, user } = useStateContext();
 
     const [client, setClient] = useState(null);
@@ -120,42 +120,42 @@ export default function ClientsProject() {
             return;
         }
 
-        if (paymentType === "installment") {
-            const totalRate = installmentSchedule.reduce(
-                (sum, item) => sum + Number(item.payment_rate || 0),
-                0,
-            );
+        // if (paymentType === "installment") {
+        //     const totalRate = installmentSchedule.reduce(
+        //         (sum, item) => sum + Number(item.payment_rate || 0),
+        //         0,
+        //     );
 
-            if (totalRate !== 100) {
-                setErrors({
-                    general: [
-                        `Installment rates must total 100%. Currently: ${totalRate}%`,
-                    ],
-                });
-                return;
-            }
-        }
+        //     if (totalRate !== 100) {
+        //         setErrors({
+        //             general: [
+        //                 `Installment rates must total 100%. Currently: ${totalRate}%`,
+        //             ],
+        //         });
+        //         return;
+        //     }
+        // }
 
-        if (paymentType === "recurring") {
-            if (!recurringCycles || !recurringRate) {
-                setErrors({
-                    general: ["Please enter recurring cycles and rate."],
-                });
-                return;
-            }
+        // if (paymentType === "recurring") {
+        //     if (!recurringCycles || !recurringRate) {
+        //         setErrors({
+        //             general: ["Please enter recurring cycles and rate."],
+        //         });
+        //         return;
+        //     }
 
-            const totalRecurringRate =
-                Number(recurringCycles) * Number(recurringRate);
+        //     const totalRecurringRate =
+        //         Number(recurringCycles) * Number(recurringRate);
 
-            if (totalRecurringRate !== 100) {
-                setErrors({
-                    general: [
-                        `Recurring cycles × rate must equal 100%. Currently: ${totalRecurringRate}%`,
-                    ],
-                });
-                return;
-            }
-        }
+        //     if (totalRecurringRate !== 100) {
+        //         setErrors({
+        //             general: [
+        //                 `Recurring cycles × rate must equal 100%. Currently: ${totalRecurringRate}%`,
+        //             ],
+        //         });
+        //         return;
+        //     }
+        // }
 
         // API Request
         axiosClient
