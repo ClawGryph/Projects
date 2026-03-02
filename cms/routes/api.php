@@ -39,14 +39,14 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
     Route::apiResource('/users', UserController::class);
 });
 
-// Super Admin and Admin can delete
-Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function () {
+// Super Admin only can delete
+Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
 });
 
-// Super Admin only can edit
-Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
+// Super Admin and Admin can edit
+Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function () {
     Route::put('/clients/{client}', [ClientController::class, 'update']);
     Route::put('/projects/{project}', [ProjectController::class, 'update']);
     Route::put('/payments/{payment}', [PaymentController::class, 'update']);

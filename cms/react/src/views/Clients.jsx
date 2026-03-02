@@ -146,8 +146,8 @@ export default function Clients() {
                                             </td>
                                             {user?.role_name !== "viewer" && (
                                                 <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
-                                                    {user?.role_name ===
-                                                        "super_admin" && (
+                                                    {user?.role_name !==
+                                                        "viewer" && (
                                                         <Link
                                                             to={
                                                                 "/clients/" +
@@ -161,18 +161,20 @@ export default function Clients() {
                                                             Edit
                                                         </Link>
                                                     )}
-
-                                                    <button
-                                                        onClick={() =>
-                                                            onDelete(u)
-                                                        }
-                                                        className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faTrash}
-                                                        />
-                                                        Delete
-                                                    </button>
+                                                    {user?.role_name ===
+                                                        "super_admin" && (
+                                                        <button
+                                                            onClick={() =>
+                                                                onDelete(u)
+                                                            }
+                                                            className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={faTrash}
+                                                            />
+                                                            Delete
+                                                        </button>
+                                                    )}
                                                 </td>
                                             )}
                                         </tr>

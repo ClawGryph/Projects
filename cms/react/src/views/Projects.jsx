@@ -89,7 +89,7 @@ export default function Projects() {
                                     Title
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Price
+                                    Cost
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                     Start Date
@@ -227,8 +227,8 @@ export default function Projects() {
                                             {user?.role_name !== "viewer" && (
                                                 <>
                                                     <td className="border-b border-gray-200 px-4 py-2 flex justify-center items-center gap-2">
-                                                        {user?.role_name ===
-                                                            "super_admin" && (
+                                                        {user?.role_name !==
+                                                            "viewer" && (
                                                             <Link
                                                                 to={
                                                                     "/projects/" +
@@ -242,17 +242,22 @@ export default function Projects() {
                                                                 Edit
                                                             </Link>
                                                         )}
-                                                        <button
-                                                            onClick={() =>
-                                                                onDelete(p)
-                                                            }
-                                                            className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
-                                                        >
-                                                            <FontAwesomeIcon
-                                                                icon={faTrash}
-                                                            />
-                                                            Delete
-                                                        </button>
+                                                        {user?.role_name ===
+                                                            "super_admin" && (
+                                                            <button
+                                                                onClick={() =>
+                                                                    onDelete(p)
+                                                                }
+                                                                className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={
+                                                                        faTrash
+                                                                    }
+                                                                />
+                                                                Delete
+                                                            </button>
+                                                        )}
                                                     </td>
                                                 </>
                                             )}
