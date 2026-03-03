@@ -260,46 +260,123 @@ export default function Dashboard() {
     };
 
     // Function to export CSV
-    const exportDashboardCSV = (projectsData) => {
-        if (!projectsData || projectsData.length === 0) {
-            alert("No data to export");
-            return;
-        }
+    const exportDashboardCSV = () => {
+        const rows = [];
 
-        // Prepare CSV headers
-        const headers = [
-            "Project Name",
+        // =========================
+        // DASHBOARD SUMMARY
+        // =========================
+        rows.push(["DASHBOARD SUMMARY"]);
+        rows.push(["Total Clients", client.length]);
+        rows.push(["Active Projects", projects.length]);
+        rows.push(["Monthly Revenue", metrics.monthlyRevenue]);
+        rows.push(["Overdue Payments", metrics.overdueCount]);
+        rows.push([]);
+
+        // =========================
+        // CLIENTS
+        // =========================
+        rows.push(["CLIENTS"]);
+        rows.push(["Name", "Email", "Created At"]);
+        client.forEach((c) => {
+            rows.push([c.name || "", c.email || "", c.created_at || ""]);
+        });
+        rows.push([]);
+
+        // =========================
+        // PROJECTS
+        // =========================
+        rows.push(["PROJECTS"]);
+        rows.push(["Title", "End Date", "Created At"]);
+        projects.forEach((p) => {
+            rows.push([p.title || "", p.end_date || "", p.created_at || ""]);
+        });
+        rows.push([]);
+
+        // =========================
+        // CLIENT PROJECTS
+        // =========================
+        rows.push(["CLIENT PROJECTS"]);
+        rows.push([
             "Client",
+            "Project",
             "Payment Type",
+            "Total Paid",
             "Status",
-            "Amount",
-        ];
+        ]);
 
-        // Prepare CSV rows
-        const rows = projectsData.map((project) => {
-            const title = project.project?.title ?? "Untitled Project";
-            const clientName = project.client?.name ?? "No Client";
-            const paymentType =
-                formatPaymentType(project.payment?.payment_type) ?? "-";
-            const status = project.payment?.status ?? "-";
-            const amount = project.payment_transaction?.amount ?? 0;
+        clientsProject.forEach((cp) => {
+            const summary = getPaymentSummary(cp);
 
-            return [title, clientName, paymentType, status, amount];
+            rows.push([
+                cp.client?.name || "",
+                cp.project?.title || "",
+                formatPaymentType(
+                    cp.payment?.payment_type === "recurring"
+                        ? cp.payment?.recurring_type
+                        : cp.payment?.payment_type,
+                ),
+                summary.totalCostPaid,
+                summary.overallStatus,
+            ]);
         });
 
-        // Convert to CSV string
-        const csvContent = [headers, ...rows]
-            .map((row) => row.map((item) => `"${item}"`).join(",")) // wrap in quotes
+        rows.push([]);
+
+        // =========================
+        // SUCCESSFUL PAYMENTS
+        // =========================
+        rows.push(["SUCCESSFUL PAYMENTS"]);
+        rows.push(["Client", "Project", "Amount", "Paid At"]);
+
+        transactions
+            .filter((t) => t.paid_at)
+            .forEach((t) => {
+                rows.push([
+                    t.client?.name || "",
+                    t.project?.title || "",
+                    t.amount_paid || 0,
+                    t.paid_at || "",
+                ]);
+            });
+
+        rows.push([]);
+
+        // =========================
+        // OVERDUE PAYMENTS
+        // =========================
+        rows.push(["OVERDUE PAYMENTS"]);
+        rows.push(["Client", "Project", "Amount Due", "Due Date"]);
+
+        overduePayments.forEach((o) => {
+            rows.push([
+                o.client?.name || "",
+                o.project?.title || "",
+                o.expected_amount || 0,
+                o.due_date || "",
+            ]);
+        });
+
+        // Convert to CSV
+        const csvContent = rows
+            .map((row) =>
+                row
+                    .map((item) => `"${String(item).replace(/"/g, '""')}"`)
+                    .join(","),
+            )
             .join("\n");
 
-        // Create a Blob and trigger download
         const blob = new Blob([csvContent], {
             type: "text/csv;charset=utf-8;",
         });
+
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.setAttribute("download", `summary.csv`);
+
+        const today = new Date().toISOString().split("T")[0];
+        link.setAttribute("download", `dashboard_export_${today}.csv`);
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -448,12 +525,25 @@ export default function Dashboard() {
     const indexOfLastRow = currentPage * rowsPerPage;
     const indexOfFirstRow = indexOfLastRow - rowsPerPage;
 
-    const currentProjects = clientsProject.slice(
+    const ongoingProjects = clientsProject.filter((project) => {
+        const paymentStatus = getPaymentSummary(project).overallStatus;
+
+        const paymentsOngoing =
+            paymentStatus !== "paid" || paymentStatus !== "ended";
+
+        const projectOngoing =
+            project.project?.status !== "completed" ||
+            project.project?.status !== "pending";
+
+        return paymentsOngoing && projectOngoing;
+    });
+
+    const currentProjects = ongoingProjects.slice(
         indexOfFirstRow,
         indexOfLastRow,
     );
 
-    const totalPages = Math.ceil(clientsProject.length / rowsPerPage);
+    const totalPages = Math.ceil(ongoingProjects.length / rowsPerPage);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -689,6 +779,9 @@ export default function Dashboard() {
                                 Project
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                End Date
+                            </th>
+                            <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 Payment Type
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
@@ -742,6 +835,11 @@ export default function Dashboard() {
                                         <td className="px-4 py-2">
                                             {project.project.title ||
                                                 "Untitled Project"}
+                                        </td>
+
+                                        {/* Project End Date */}
+                                        <td className="px-4 py-2">
+                                            {project.project.end_date || "-"}
                                         </td>
 
                                         {/* Payment Type */}
@@ -1173,7 +1271,9 @@ export default function Dashboard() {
                                                 <td className="px-4 py-2">
                                                     {new Date(
                                                         t.paid_at,
-                                                    ).toLocaleDateString()}
+                                                    ).toLocaleDateString(
+                                                        "en-CA",
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
@@ -1319,7 +1419,9 @@ export default function Dashboard() {
                                                 <td className="px-4 py-2">
                                                     {new Date(
                                                         o.due_date,
-                                                    ).toLocaleDateString()}
+                                                    ).toLocaleDateString(
+                                                        "en-CA",
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
