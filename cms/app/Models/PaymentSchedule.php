@@ -25,7 +25,7 @@ class PaymentSchedule extends Model
 
     public function paymentTransactions()
     {
-        return $this->hasMany(PaymentTransaction::class, 'payment_schedules_id');
+        return $this->hasMany(PaymentTransaction::class, 'payment_schedule_id');
     }
 
     public function clientsProject()

@@ -427,10 +427,15 @@ export default function Dashboard() {
             const schedules = project.payment_schedules || [];
             return schedules
                 .filter((s) => {
-                    if (!s.due_date || s.status === "paid") return false;
+                    if (
+                        !s.due_date ||
+                        s.status === "paid" ||
+                        s.status === "ended"
+                    )
+                        return false;
                     const due = new Date(s.due_date);
                     due.setHours(0, 0, 0, 0);
-                    return due >= today && due <= oneWeekFromNow;
+                    return due >= today;
                 })
                 .map((s) => ({ ...project, _upcomingSchedule: s }));
         })
@@ -438,7 +443,8 @@ export default function Dashboard() {
             (a, b) =>
                 new Date(a._upcomingSchedule.due_date) -
                 new Date(b._upcomingSchedule.due_date),
-        );
+        )
+        .slice(0, 8);
 
     // LATE PAYMENTS
     const latePaymentsThisMonth = clientsProject
@@ -449,19 +455,16 @@ export default function Dashboard() {
                     if (!s.due_date || s.status === "paid") return false;
                     const due = new Date(s.due_date);
                     due.setHours(0, 0, 0, 0);
-                    const isOverdue = due < today;
-                    const isThisMonth =
-                        due.getMonth() === today.getMonth() &&
-                        due.getFullYear() === today.getFullYear();
-                    return isOverdue && isThisMonth;
+                    return due < today;
                 })
                 .map((s) => ({ ...project, _lateSchedule: s }));
         })
         .sort(
             (a, b) =>
-                new Date(a._lateSchedule.due_date) -
-                new Date(b._lateSchedule.due_date),
-        );
+                new Date(b._lateSchedule.due_date) -
+                new Date(a._lateSchedule.due_date),
+        )
+        .slice(0, 8);
 
     const buildActivities = () => {
         const activities = [];
