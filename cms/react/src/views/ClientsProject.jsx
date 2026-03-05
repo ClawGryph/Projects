@@ -20,6 +20,7 @@ export default function ClientsProject() {
     const [installmentMonths, setInstallmentMonths] = useState("");
     const [recurringCycles, setRecurringCycles] = useState("");
     const [recurringRate, setRecurringRate] = useState("");
+    const [includeVat, setIncludeVat] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -120,43 +121,6 @@ export default function ClientsProject() {
             return;
         }
 
-        // if (paymentType === "installment") {
-        //     const totalRate = installmentSchedule.reduce(
-        //         (sum, item) => sum + Number(item.payment_rate || 0),
-        //         0,
-        //     );
-
-        //     if (totalRate !== 100) {
-        //         setErrors({
-        //             general: [
-        //                 `Installment rates must total 100%. Currently: ${totalRate}%`,
-        //             ],
-        //         });
-        //         return;
-        //     }
-        // }
-
-        // if (paymentType === "recurring") {
-        //     if (!recurringCycles || !recurringRate) {
-        //         setErrors({
-        //             general: ["Please enter recurring cycles and rate."],
-        //         });
-        //         return;
-        //     }
-
-        //     const totalRecurringRate =
-        //         Number(recurringCycles) * Number(recurringRate);
-
-        //     if (totalRecurringRate !== 100) {
-        //         setErrors({
-        //             general: [
-        //                 `Recurring cycles × rate must equal 100%. Currently: ${totalRecurringRate}%`,
-        //             ],
-        //         });
-        //         return;
-        //     }
-        // }
-
         // API Request
         axiosClient
             .post(`/clients/${id}/projects`, {
@@ -176,6 +140,8 @@ export default function ClientsProject() {
                 installment_schedule:
                     paymentType === "installment" ? installmentSchedule : null,
                 start_date: new Date().toISOString().slice(0, 10),
+                is_vatable: includeVat,
+                final_price: displayPrice,
             })
             .then(() => {
                 setNotification("Project assigned successfully");
@@ -187,6 +153,7 @@ export default function ClientsProject() {
                 setRecurringCycles("");
                 setRecurringRate("");
                 setInstallmentMonths("");
+                setIncludeVat(false);
                 setInstallmentSchedule([]);
 
                 closeModal();
@@ -210,6 +177,11 @@ export default function ClientsProject() {
     const openModal = () => setIsOpen(true);
     const closeModal = () => setIsOpen(false);
     const today = new Date().toISOString().split("T")[0];
+    const selectedProjectData = allProjects.find(
+        (p) => String(p.id) === String(selectedProject),
+    );
+    const basePrice = selectedProjectData?.price || 0;
+    const displayPrice = includeVat ? basePrice * 1.12 : basePrice;
 
     return (
         <div className="p-6">
@@ -258,14 +230,18 @@ export default function ClientsProject() {
                             </p>
                         </div>
 
-                        {/* Price - highlighted */}
                         <div className="bg-blue-50 rounded-lg px-4 py-2 mb-4 inline-block">
                             <p className="text-2xl font-bold text-cyan-800">
                                 ₱
                                 {new Intl.NumberFormat("en-PH").format(
-                                    project.project?.price,
+                                    parseFloat(project.final_price),
                                 )}
                             </p>
+                            {project.is_vatable === 1 && (
+                                <p className="text-xs text-cyan-600 mt-0.5">
+                                    VAT Included (12%)
+                                </p>
+                            )}
                         </div>
 
                         {/* Dates */}
@@ -388,7 +364,7 @@ export default function ClientsProject() {
             </div>
             {isOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-50/70">
-                    <div className="w-xl bg-white p-6 rounded shadow-lg w-96">
+                    <div className="w-xl bg-white p-6 rounded shadow-lg w-96 max-h-[90vh] overflow-y-auto">
                         <h2 className="text-xl font-bold mb-4">
                             Add project to client
                         </h2>
@@ -448,6 +424,66 @@ export default function ClientsProject() {
                             </label>
                         </div>
 
+                        {paymentType &&
+                            paymentType !== "recurring" &&
+                            paymentType !== "installment" && (
+                                <>
+                                    <div className="relative w-full mb-2 border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2">
+                                        <div className="flex gap-4 pt-2 pb-1">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="include_vat"
+                                                    value="yes"
+                                                    checked={
+                                                        includeVat === true
+                                                    }
+                                                    onChange={() =>
+                                                        setIncludeVat(true)
+                                                    }
+                                                    className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                                />
+                                                Yes
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="include_vat"
+                                                    value="no"
+                                                    checked={
+                                                        includeVat === false
+                                                    }
+                                                    onChange={() =>
+                                                        setIncludeVat(false)
+                                                    }
+                                                    className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                                />
+                                                No
+                                            </label>
+                                        </div>
+                                        <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                            Include VAT
+                                        </label>
+                                    </div>
+                                    {selectedProject && (
+                                        <div className="relative w-full mb-2">
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={`₱${new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(displayPrice)}`}
+                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
+                                            />
+                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                Total Price{" "}
+                                                {includeVat
+                                                    ? "(VAT Included 12%)"
+                                                    : "(No VAT)"}
+                                            </label>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
                         {/* IF PAYMENT TYPE IS RECURRING SHOW */}
                         {paymentType === "recurring" && (
                             <>
@@ -459,6 +495,7 @@ export default function ClientsProject() {
                                             setRecurringType(e.target.value);
                                             setRecurringCycles("");
                                             setRecurringRate("");
+                                            setIncludeVat(false);
                                         }}
                                         className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                     >
@@ -476,9 +513,9 @@ export default function ClientsProject() {
 
                                 {/* Cycles + Rate */}
                                 {recurringType && (
-                                    <div className="flex gap-2 mb-2">
+                                    <>
                                         {/* Number of cycles */}
-                                        <div className="relative w-full">
+                                        <div className="relative w-full mb-2">
                                             <input
                                                 type="number"
                                                 placeholder="0"
@@ -495,146 +532,399 @@ export default function ClientsProject() {
                                             </label>
                                         </div>
 
-                                        {/* Rate */}
-                                        <div className="relative w-full">
-                                            <input
-                                                type="number"
-                                                placeholder="0"
-                                                value={recurringRate}
-                                                onChange={(e) =>
-                                                    setRecurringRate(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-10 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                            />
-                                            <span className="absolute right-3 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
-                                                %
-                                            </span>
+                                        {/* VAT */}
+                                        <div className="relative w-full mb-2 border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                            <div className="flex gap-4 pt-2 pb-1">
+                                                {/* YES */}
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="include_vat"
+                                                        value="yes"
+                                                        checked={
+                                                            includeVat === true
+                                                        }
+                                                        onChange={() =>
+                                                            setIncludeVat(true)
+                                                        }
+                                                        className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                                    />
+                                                    Yes
+                                                </label>
+
+                                                {/* NO */}
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="include_vat"
+                                                        value="no"
+                                                        checked={
+                                                            includeVat === false
+                                                        }
+                                                        onChange={() =>
+                                                            setIncludeVat(false)
+                                                        }
+                                                        className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                                    />
+                                                    No
+                                                </label>
+                                            </div>
+
+                                            {/* Floating label */}
                                             <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
-                                                Rate
+                                                Include VAT
                                             </label>
                                         </div>
-                                    </div>
+                                        {selectedProject && (
+                                            <div className="relative w-full mb-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={`₱${new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(displayPrice)}`}
+                                                    className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
+                                                />
+                                                <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                    Total Price{" "}
+                                                    {includeVat
+                                                        ? "(VAT Included 12%)"
+                                                        : "(No VAT)"}
+                                                </label>
+                                            </div>
+                                        )}
+
+                                        {/* Rate */}
+                                        <div className="flex gap-2 items-center">
+                                            <div className="relative w-full mb-2">
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    value={recurringRate}
+                                                    onChange={(e) =>
+                                                        setRecurringRate(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="block w-full border border-gray-300 rounded-md pl-3 pr-10 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                />
+                                                <span className="absolute right-3 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
+                                                    %
+                                                </span>
+                                                <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                    Rate
+                                                </label>
+                                            </div>
+                                            <div className="relative w-full mb-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={
+                                                        recurringRate &&
+                                                        displayPrice
+                                                            ? `₱${new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format((recurringRate / 100) * displayPrice)}`
+                                                            : "₱0.00"
+                                                    }
+                                                    className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
+                                                />
+                                                <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                    Amount
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
                             </>
                         )}
 
                         {/* IF PAYMENT TYPE IS INSTALLMENT SHOW */}
                         {paymentType === "installment" && (
-                            <div className="relative w-full mb-2">
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={installmentMonths}
-                                    onChange={(e) => {
-                                        const months =
-                                            parseInt(e.target.value) || 0;
-                                        setInstallmentMonths(months);
+                            <>
+                                <div className="relative w-full mb-2">
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={installmentMonths}
+                                        onChange={(e) => {
+                                            const months =
+                                                parseInt(e.target.value) || 0;
+                                            setInstallmentMonths(months);
 
-                                        if (months > 0) {
-                                            const today = new Date()
-                                                .toISOString()
-                                                .split("T")[0];
+                                            if (months > 0) {
+                                                const today = new Date()
+                                                    .toISOString()
+                                                    .split("T")[0];
 
-                                            const newSchedule = Array.from(
-                                                { length: months },
-                                                (_, index) => ({
-                                                    due_date:
-                                                        index === 0
-                                                            ? today
-                                                            : "",
-                                                    payment_rate: "",
-                                                }),
-                                            );
+                                                const newSchedule = Array.from(
+                                                    { length: months },
+                                                    (_, index) => ({
+                                                        due_date:
+                                                            index === 0
+                                                                ? today
+                                                                : "",
+                                                        payment_rate: "",
+                                                    }),
+                                                );
 
-                                            setInstallmentSchedule(newSchedule);
-                                        } else {
-                                            setInstallmentSchedule([]);
-                                        }
-                                    }}
-                                    className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                />
-                                <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                    Number of months
-                                </label>
-                            </div>
+                                                setInstallmentSchedule(
+                                                    newSchedule,
+                                                );
+                                            } else {
+                                                setInstallmentSchedule([]);
+                                            }
+                                        }}
+                                        className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    />
+                                    <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                        Number of months
+                                    </label>
+                                </div>
+
+                                {/* VAT */}
+                                <div className="relative w-full mb-2 border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                    <div className="flex gap-4 pt-2 pb-1">
+                                        {/* YES */}
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="include_vat"
+                                                value="yes"
+                                                checked={includeVat === true}
+                                                onChange={() =>
+                                                    setIncludeVat(true)
+                                                }
+                                                className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                            />
+                                            Yes
+                                        </label>
+
+                                        {/* NO */}
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="include_vat"
+                                                value="no"
+                                                checked={includeVat === false}
+                                                onChange={() =>
+                                                    setIncludeVat(false)
+                                                }
+                                                className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                                            />
+                                            No
+                                        </label>
+                                    </div>
+
+                                    {/* Floating label */}
+                                    <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                        Include VAT
+                                    </label>
+                                </div>
+                                {selectedProject && (
+                                    <div className="relative w-full mb-2">
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value={`₱${new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(displayPrice)}`}
+                                            className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
+                                        />
+                                        <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                            Total Price{" "}
+                                            {includeVat
+                                                ? "(VAT Included 12%)"
+                                                : "(No VAT)"}
+                                        </label>
+                                    </div>
+                                )}
+                            </>
                         )}
                         {installmentSchedule.length > 0 && (
-                            <div className="mt-4 mb-5 space-y-3 max-h-64 overflow-y-auto">
-                                {installmentSchedule.map((item, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex gap-2 items-center"
-                                    >
-                                        {/* Due Date */}
-                                        <div className="relative w-full mb-2">
-                                            <input
-                                                type="date"
-                                                value={item.due_date}
-                                                onChange={(e) => {
-                                                    const value =
-                                                        e.target.value;
+                            <>
+                                <div className="mt-4 mb-5 space-y-3 max-h-64 overflow-y-auto">
+                                    {installmentSchedule.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex gap-2 items-center"
+                                        >
+                                            {/* Due Date */}
+                                            <div className="relative w-full mb-2">
+                                                <input
+                                                    type="date"
+                                                    value={item.due_date}
+                                                    onChange={(e) => {
+                                                        const value =
+                                                            e.target.value;
 
-                                                    setInstallmentSchedule(
-                                                        (prev) =>
-                                                            prev.map(
-                                                                (item, i) =>
-                                                                    i === index
-                                                                        ? {
-                                                                              ...item,
-                                                                              due_date:
-                                                                                  value,
-                                                                          }
-                                                                        : item,
-                                                            ),
-                                                    );
-                                                }}
-                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                            />
-                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                                {index === 0
-                                                    ? "First Payment"
-                                                    : `${index} month due date`}
-                                            </label>
+                                                        setInstallmentSchedule(
+                                                            (prev) =>
+                                                                prev.map(
+                                                                    (
+                                                                        item,
+                                                                        i,
+                                                                    ) =>
+                                                                        i ===
+                                                                        index
+                                                                            ? {
+                                                                                  ...item,
+                                                                                  due_date:
+                                                                                      value,
+                                                                              }
+                                                                            : item,
+                                                                ),
+                                                        );
+                                                    }}
+                                                    className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                />
+                                                <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                                    {index === 0
+                                                        ? "First Payment"
+                                                        : `Next payment due date`}
+                                                </label>
+                                            </div>
+
+                                            {/* Amount */}
+                                            <div className="relative w-full mb-2">
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    value={item.payment_rate}
+                                                    onChange={(e) => {
+                                                        const value =
+                                                            e.target.value;
+                                                        setInstallmentSchedule(
+                                                            (prev) =>
+                                                                prev.map(
+                                                                    (
+                                                                        item,
+                                                                        i,
+                                                                    ) =>
+                                                                        i ===
+                                                                        index
+                                                                            ? {
+                                                                                  ...item,
+                                                                                  payment_rate:
+                                                                                      value,
+                                                                              }
+                                                                            : item,
+                                                                ),
+                                                        );
+                                                    }}
+                                                    className="block w-full border border-gray-300 rounded-md pl-3 pr-10 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                />
+                                                <span className="absolute right-3 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
+                                                    %
+                                                </span>
+                                                <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                                    Rate
+                                                </label>
+                                            </div>
+                                            <div className="relative w-full mb-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={
+                                                        item.payment_rate &&
+                                                        displayPrice
+                                                            ? `₱${new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format((item.payment_rate / 100) * displayPrice)}`
+                                                            : "₱0.00"
+                                                    }
+                                                    className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
+                                                />
+                                                <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                    Amount
+                                                </label>
+                                            </div>
                                         </div>
-
-                                        {/* Amount */}
-                                        <div className="relative w-full mb-2">
-                                            <input
-                                                type="number"
-                                                placeholder="0"
-                                                value={item.payment_rate}
-                                                onChange={(e) => {
-                                                    const value =
-                                                        e.target.value;
-
-                                                    setInstallmentSchedule(
-                                                        (prev) =>
-                                                            prev.map(
-                                                                (item, i) =>
-                                                                    i === index
-                                                                        ? {
-                                                                              ...item,
-                                                                              payment_rate:
-                                                                                  value,
-                                                                          }
-                                                                        : item,
-                                                            ),
-                                                    );
-                                                }}
-                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                            />
-                                            <span className="absolute right-8 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
-                                                %
-                                            </span>
-                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                                Rate
-                                            </label>
-                                        </div>
+                                    ))}
+                                </div>
+                                {/* TOTALS SUMMARY */}
+                                <div className="border-t border-gray-200 pt-3 mt-1 mb-2 space-y-1">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600 font-medium">
+                                            Total Rate:
+                                        </span>
+                                        <span className="font-semibold text-gray-800">
+                                            {installmentSchedule
+                                                .reduce(
+                                                    (sum, item) =>
+                                                        sum +
+                                                        (parseFloat(
+                                                            item.payment_rate,
+                                                        ) || 0),
+                                                    0,
+                                                )
+                                                .toFixed(2)}
+                                            %
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600 font-medium">
+                                            Total Amount:
+                                        </span>
+                                        <span className="font-semibold text-cyan-800">
+                                            ₱
+                                            {new Intl.NumberFormat("en-PH", {
+                                                minimumFractionDigits: 2,
+                                            }).format(
+                                                installmentSchedule.reduce(
+                                                    (sum, item) =>
+                                                        sum +
+                                                        ((parseFloat(
+                                                            item.payment_rate,
+                                                        ) || 0) /
+                                                            100) *
+                                                            displayPrice,
+                                                    0,
+                                                ),
+                                            )}
+                                        </span>
+                                    </div>
+                                    {(() => {
+                                        const totalRate =
+                                            installmentSchedule.reduce(
+                                                (sum, item) =>
+                                                    sum +
+                                                    (parseFloat(
+                                                        item.payment_rate,
+                                                    ) || 0),
+                                                0,
+                                            );
+                                        const remaining =
+                                            displayPrice -
+                                            (totalRate / 100) * displayPrice;
+                                        return remaining !== 0 ? (
+                                            <div className="flex justify-between text-sm">
+                                                <span
+                                                    className={`font-medium ${remaining > 0 ? "text-orange-500" : "text-red-500"}`}
+                                                >
+                                                    {remaining > 0
+                                                        ? "Remaining:"
+                                                        : "Exceeded by:"}
+                                                </span>
+                                                <span
+                                                    className={`font-semibold ${remaining > 0 ? "text-orange-500" : "text-red-500"}`}
+                                                >
+                                                    ₱
+                                                    {new Intl.NumberFormat(
+                                                        "en-PH",
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    ).format(
+                                                        Math.abs(remaining),
+                                                    )}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="font-medium text-emerald-600">
+                                                    Fully allocated
+                                                </span>
+                                                <span className="font-semibold text-emerald-600">
+                                                    ✓
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </>
                         )}
 
                         <button
@@ -646,6 +936,7 @@ export default function ClientsProject() {
                                 setRecurringCycles("");
                                 setRecurringRate("");
                                 setInstallmentMonths("");
+                                setIncludeVat(false);
                                 setInstallmentSchedule([]);
                             }}
                             className="px-4 py-2 bg-red-500 text-white rounded cursor-pointer"

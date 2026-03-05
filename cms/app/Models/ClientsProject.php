@@ -11,6 +11,8 @@ class ClientsProject extends Model
     protected $fillable = [
         'client_id',
         'project_id',
+        'final_price',
+        'is_vatable',
     ];
 
     public function client()

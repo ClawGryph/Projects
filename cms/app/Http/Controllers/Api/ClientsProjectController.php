@@ -50,6 +50,8 @@ class ClientsProjectController extends Controller
             'installment_schedule.*.due_date' => 'required_with:installment_schedule|date',
             'installment_schedule.*.payment_rate' => 'required_with:installment_schedule|numeric',
             'recurring_rate' => 'nullable|numeric',
+            'is_vatable' => 'required|boolean',
+            'final_price' => 'required|numeric|min:0',
         ]);
 
         $exists = ClientsProject::where('client_id', $clientId)
@@ -65,7 +67,9 @@ class ClientsProjectController extends Controller
         // CREATE CLIENT PROJECT RECORD
         $clientsProject = ClientsProject::create([
             'client_id' => $clientId,
-            'project_id' => $data['project_id']
+            'project_id' => $data['project_id'],
+            'final_price' => $data['final_price'],
+            'is_vatable'  => $data['is_vatable'],
         ]);
 
         // COMPUTE NEXT PAYMENT DATE
@@ -89,7 +93,7 @@ class ClientsProjectController extends Controller
                 'payment_id' => $payment->id,
                 'due_date' => $startDate->format('Y-m-d'),
                 'payment_rate' => 0,
-                'expected_amount' => $projectPrice,
+                'expected_amount' => $data['final_price'],
                 'status' => 'pending',
             ]);
         }
@@ -101,7 +105,7 @@ class ClientsProjectController extends Controller
                     'payment_id' => $payment->id,
                     'due_date' => $schedule['due_date'],
                     'payment_rate' => $schedule['payment_rate'],
-                    'expected_amount' => ($schedule['payment_rate'] / 100) * $projectPrice,
+                    'expected_amount' => ($schedule['payment_rate'] / 100) * $data['final_price'],
                     'status' => 'pending',
                 ]);
             }
@@ -116,7 +120,7 @@ class ClientsProjectController extends Controller
                     'payment_id' => $payment->id,
                     'due_date' => $currentDate->format('Y-m-d'),
                     'payment_rate' => $data['recurring_rate'],
-                    'expected_amount' => ($data['recurring_rate'] / 100) * $projectPrice,
+                    'expected_amount' => ($data['recurring_rate'] / 100) * $data['final_price'],
                     'status' => 'pending',
                 ]);
 
