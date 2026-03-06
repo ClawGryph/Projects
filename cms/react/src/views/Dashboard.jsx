@@ -693,20 +693,94 @@ export default function Dashboard() {
                                     Monthly Sales
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    ₱{metrics.monthlyRevenue.toLocaleString()}
+                                    ₱
+                                    {(() => {
+                                        const now = new Date();
+                                        const currentMonth = now.getMonth();
+                                        const currentYear = now.getFullYear();
+                                        return clientsProject
+                                            .flatMap(
+                                                (cp) =>
+                                                    cp.payment_schedules || [],
+                                            )
+                                            .filter((s) => {
+                                                if (
+                                                    !s.due_date ||
+                                                    s.status === "ended"
+                                                )
+                                                    return false;
+                                                const due = new Date(
+                                                    s.due_date,
+                                                );
+                                                return (
+                                                    due.getMonth() ===
+                                                        currentMonth &&
+                                                    due.getFullYear() ===
+                                                        currentYear
+                                                );
+                                            })
+                                            .reduce(
+                                                (sum, s) =>
+                                                    sum +
+                                                    Number(
+                                                        s.expected_amount || 0,
+                                                    ),
+                                                0,
+                                            )
+                                            .toLocaleString();
+                                    })()}
                                 </h3>
                             </div>
                         </div>
 
                         <button
                             onClick={() => setShowPaymentsModal(true)}
-                            className="bg-sky-400 text-white text-sm font-semibold text-red-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                            className="bg-sky-400 text-white text-sm font-semibold hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
                         >
                             <FontAwesomeIcon icon={faEye} className="pr-1" />
                             <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    {/* Overview Breakdown */}
+                    <div className="space-y-2 border-t border-gray-100 pt-3">
+                        {/* Count of paid payments this month */}
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+                                Paid payments this month
+                            </span>
+                            <span className="text-xs font-semibold text-green-600">
+                                {(() => {
+                                    const now = new Date();
+                                    const currentMonth = now.getMonth();
+                                    const currentYear = now.getFullYear();
+                                    return transactions.filter((t) => {
+                                        if (!t.paid_at) return false;
+                                        const d = new Date(t.paid_at);
+                                        return (
+                                            d.getMonth() === currentMonth &&
+                                            d.getFullYear() === currentYear
+                                        );
+                                    }).length;
+                                })()}{" "}
+                                payments
+                            </span>
+                        </div>
+
+                        {/* Sum of paid payments this month */}
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                                Total collected this month
+                            </span>
+                            <span className="text-xs font-semibold text-emerald-600">
+                                ₱{metrics.monthlyRevenue.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-3">
                         {renderChangeIndicator(metrics.revenueChange, true)}
                         <span className="text-sm text-gray-500">
                             from last month
@@ -715,7 +789,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Overdue Payments */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="flex flex-col bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
@@ -738,20 +812,93 @@ export default function Dashboard() {
                                     Overdue Payments
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    {metrics.overdueCount}
+                                    ₱
+                                    {(() => {
+                                        const now = new Date();
+                                        const currentMonth = now.getMonth();
+                                        const currentYear = now.getFullYear();
+                                        return clientsProject
+                                            .flatMap(
+                                                (cp) =>
+                                                    cp.payment_schedules || [],
+                                            )
+                                            .filter((s) => {
+                                                if (
+                                                    !s.due_date ||
+                                                    s.status !== "overdue"
+                                                )
+                                                    return false;
+                                                const due = new Date(
+                                                    s.due_date,
+                                                );
+                                                return (
+                                                    due.getMonth() ===
+                                                        currentMonth &&
+                                                    due.getFullYear() ===
+                                                        currentYear
+                                                );
+                                            })
+                                            .reduce(
+                                                (sum, s) =>
+                                                    sum +
+                                                    Number(
+                                                        s.expected_amount || 0,
+                                                    ),
+                                                0,
+                                            )
+                                            .toLocaleString();
+                                    })()}
                                 </h3>
                             </div>
                         </div>
 
                         <button
                             onClick={() => setShowOverdueModal(true)}
-                            className="bg-sky-400 text-white text-sm font-semibold text-red-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                            className="bg-sky-400 text-white text-sm font-semibold hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
                         >
                             <FontAwesomeIcon icon={faEye} className="pr-1" />
                             <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    {/* Overview Breakdown */}
+                    <div className="space-y-2 border-t border-gray-100 pt-3">
+                        {/* Count of overdue payments this month */}
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+                                Overdue payments this month
+                            </span>
+                            <span className="text-xs font-semibold text-red-600">
+                                {(() => {
+                                    const now = new Date();
+                                    const currentMonth = now.getMonth();
+                                    const currentYear = now.getFullYear();
+                                    const count = clientsProject
+                                        .flatMap(
+                                            (cp) => cp.payment_schedules || [],
+                                        )
+                                        .filter((s) => {
+                                            if (
+                                                !s.due_date ||
+                                                s.status !== "overdue"
+                                            )
+                                                return false;
+                                            const due = new Date(s.due_date);
+                                            return (
+                                                due.getMonth() ===
+                                                    currentMonth &&
+                                                due.getFullYear() ===
+                                                    currentYear
+                                            );
+                                        }).length;
+                                    return `${count} ${count === 1 ? "payment" : "payments"}`;
+                                })()}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-auto mt-3">
                         <span className="text-sm font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-lg">
                             {metrics.overdueCount}{" "}
                             {metrics.overdueCount === 1
