@@ -215,16 +215,16 @@ export default function Payments() {
                                     ID
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Client
+                                    Client Name
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Project
+                                    Project Name
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     Cost
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Payment
+                                    Payment Type
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     Due Date

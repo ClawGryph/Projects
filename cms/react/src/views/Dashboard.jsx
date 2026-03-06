@@ -923,10 +923,10 @@ export default function Dashboard() {
                     <thead>
                         <tr className="bg-cyan-800">
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Client
+                                Client Name
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Project
+                                Project Name
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 End Date
