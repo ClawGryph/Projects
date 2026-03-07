@@ -382,20 +382,20 @@ export default function Projects() {
                             <div className="overflow-auto max-h-96">
                                 <table className="w-full text-sm border-separate border-spacing-0">
                                     <thead>
-                                        <tr className="bg-cyan-800 text-white">
-                                            <th className="px-4 py-2 text-left rounded-tl-lg">
+                                        <tr className="bg-cyan-800 text-center text-white">
+                                            <th className="px-4 py-2 rounded-tl-lg">
                                                 ID
                                             </th>
-                                            <th className="px-4 py-2 text-left">
-                                                Client
+                                            <th className="px-4 py-2">
+                                                Client Name
                                             </th>
-                                            <th className="px-4 py-2 text-left">
-                                                Amount
+                                            <th className="px-4 py-2">
+                                                Project Cost
                                             </th>
-                                            <th className="px-4 py-2 text-left">
+                                            <th className="px-4 py-2">
                                                 Due Date
                                             </th>
-                                            <th className="px-4 py-2 text-left rounded-tr-lg">
+                                            <th className="px-4 py-2 rounded-tr-lg">
                                                 Status
                                             </th>
                                         </tr>
@@ -416,7 +416,7 @@ export default function Projects() {
                                             .map((sched, idx) => (
                                                 <tr
                                                     key={sched.key}
-                                                    className="hover:bg-cyan-50"
+                                                    className="text-center hover:bg-cyan-50"
                                                 >
                                                     <td className="border-b border-gray-200 px-4 py-2">
                                                         {idx + 1}

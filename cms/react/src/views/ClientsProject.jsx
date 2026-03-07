@@ -514,24 +514,6 @@ export default function ClientsProject() {
                                 {/* Cycles + Rate */}
                                 {recurringType && (
                                     <>
-                                        {/* Number of cycles */}
-                                        <div className="relative w-full mb-2">
-                                            <input
-                                                type="number"
-                                                placeholder="0"
-                                                value={recurringCycles}
-                                                onChange={(e) =>
-                                                    setRecurringCycles(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                            />
-                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
-                                                {getRecurringCycleLabel()}
-                                            </label>
-                                        </div>
-
                                         {/* VAT */}
                                         <div className="relative w-full mb-2 border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                             <div className="flex gap-4 pt-2 pb-1">
@@ -592,6 +574,24 @@ export default function ClientsProject() {
                                             </div>
                                         )}
 
+                                        {/* Number of cycles */}
+                                        <div className="relative w-full mb-2">
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                value={recurringCycles}
+                                                onChange={(e) =>
+                                                    setRecurringCycles(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            />
+                                            <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
+                                                {getRecurringCycleLabel()}
+                                            </label>
+                                        </div>
+
                                         {/* Rate */}
                                         <div className="flex gap-2 items-center">
                                             <div className="relative w-full mb-2">
@@ -630,6 +630,76 @@ export default function ClientsProject() {
                                                 </label>
                                             </div>
                                         </div>
+                                        {/* TOTALS SUMMARY */}
+                                        {recurringRate && recurringCycles && (
+                                            <div className="border-t border-gray-200 pt-3 mt-1 mb-2 space-y-1">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-600 font-medium">
+                                                        Total Amount:
+                                                    </span>
+                                                    <span className="font-semibold text-cyan-800">
+                                                        ₱
+                                                        {new Intl.NumberFormat(
+                                                            "en-PH",
+                                                            {
+                                                                minimumFractionDigits: 2,
+                                                            },
+                                                        ).format(
+                                                            (recurringRate /
+                                                                100) *
+                                                                displayPrice *
+                                                                recurringCycles,
+                                                        )}
+                                                    </span>
+                                                </div>
+
+                                                {(() => {
+                                                    const totalRecurringAmount =
+                                                        (recurringRate / 100) *
+                                                        displayPrice *
+                                                        recurringCycles;
+                                                    const remaining =
+                                                        displayPrice -
+                                                        totalRecurringAmount;
+
+                                                    return remaining !== 0 ? (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span
+                                                                className={`font-medium ${remaining > 0 ? "text-orange-500" : "text-red-500"}`}
+                                                            >
+                                                                {remaining > 0
+                                                                    ? "Remaining:"
+                                                                    : "Exceeded by:"}
+                                                            </span>
+                                                            <span
+                                                                className={`font-semibold ${remaining > 0 ? "text-orange-500" : "text-red-500"}`}
+                                                            >
+                                                                ₱
+                                                                {new Intl.NumberFormat(
+                                                                    "en-PH",
+                                                                    {
+                                                                        minimumFractionDigits: 2,
+                                                                    },
+                                                                ).format(
+                                                                    Math.abs(
+                                                                        remaining,
+                                                                    ),
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="font-medium text-emerald-600">
+                                                                Fully allocated
+                                                            </span>
+                                                            <span className="font-semibold text-emerald-600">
+                                                                ✓
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </>
@@ -638,46 +708,6 @@ export default function ClientsProject() {
                         {/* IF PAYMENT TYPE IS INSTALLMENT SHOW */}
                         {paymentType === "installment" && (
                             <>
-                                <div className="relative w-full mb-2">
-                                    <input
-                                        type="number"
-                                        placeholder="0"
-                                        value={installmentMonths}
-                                        onChange={(e) => {
-                                            const months =
-                                                parseInt(e.target.value) || 0;
-                                            setInstallmentMonths(months);
-
-                                            if (months > 0) {
-                                                const today = new Date()
-                                                    .toISOString()
-                                                    .split("T")[0];
-
-                                                const newSchedule = Array.from(
-                                                    { length: months },
-                                                    (_, index) => ({
-                                                        due_date:
-                                                            index === 0
-                                                                ? today
-                                                                : "",
-                                                        payment_rate: "",
-                                                    }),
-                                                );
-
-                                                setInstallmentSchedule(
-                                                    newSchedule,
-                                                );
-                                            } else {
-                                                setInstallmentSchedule([]);
-                                            }
-                                        }}
-                                        className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                    />
-                                    <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                        Number of months
-                                    </label>
-                                </div>
-
                                 {/* VAT */}
                                 <div className="relative w-full mb-2 border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                     <div className="flex gap-4 pt-2 pb-1">
@@ -733,6 +763,46 @@ export default function ClientsProject() {
                                         </label>
                                     </div>
                                 )}
+
+                                <div className="relative w-full mb-2">
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={installmentMonths}
+                                        onChange={(e) => {
+                                            const months =
+                                                parseInt(e.target.value) || 0;
+                                            setInstallmentMonths(months);
+
+                                            if (months > 0) {
+                                                const today = new Date()
+                                                    .toISOString()
+                                                    .split("T")[0];
+
+                                                const newSchedule = Array.from(
+                                                    { length: months },
+                                                    (_, index) => ({
+                                                        due_date:
+                                                            index === 0
+                                                                ? today
+                                                                : "",
+                                                        payment_rate: "",
+                                                    }),
+                                                );
+
+                                                setInstallmentSchedule(
+                                                    newSchedule,
+                                                );
+                                            } else {
+                                                setInstallmentSchedule([]);
+                                            }
+                                        }}
+                                        className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    />
+                                    <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                        Number of months
+                                    </label>
+                                </div>
                             </>
                         )}
                         {installmentSchedule.length > 0 && (
