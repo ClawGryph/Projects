@@ -4,10 +4,12 @@ import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge";
+import InvoiceModal from "../components/InvoiceModal";
 
 export default function Payments() {
     const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [projects, setProjects] = useState([]);
+    const [invoicePayment, setInvoicePayment] = useState(null);
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
@@ -232,6 +234,9 @@ export default function Payments() {
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     Status
                                 </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Invoice
+                                </th>
                             </tr>
                         </thead>
                         {loading && (
@@ -367,6 +372,16 @@ export default function Payments() {
                                                     </div>
                                                 )}
                                             </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                <button
+                                                    onClick={() =>
+                                                        setInvoicePayment(p)
+                                                    }
+                                                    className="text-xs text-sky-600 hover:underline"
+                                                >
+                                                    Invoice
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
@@ -386,6 +401,12 @@ export default function Payments() {
                     </table>
                 </div>
             </div>
+            {invoicePayment && (
+                <InvoiceModal
+                    payment={invoicePayment}
+                    onClose={() => setInvoicePayment(null)}
+                />
+            )}
         </>
     );
 }

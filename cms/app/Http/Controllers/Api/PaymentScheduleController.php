@@ -12,6 +12,7 @@ class PaymentScheduleController extends Controller
     public function index(Request $request)
     {
         $query = PaymentSchedule::with([
+            'clientsProject',
             'clientsProject.client',
             'clientsProject.project',
             'clientsProject.payments',

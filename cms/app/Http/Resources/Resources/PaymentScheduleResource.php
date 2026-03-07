@@ -20,15 +20,21 @@ class PaymentScheduleResource extends JsonResource
 
             'clientsProject' => $this->clientsProject ? [
                 'id' => $this->clientsProject->id,
+                'is_vatable' => $this->clientsProject->is_vatable,
+                'final_price' => $this->clientsProject->final_price,
 
                 'client' => $this->clientsProject->client ? [
                     'id' => $this->clientsProject->client->id,
                     'name' => $this->clientsProject->client->name,
+                    'company_name' => $this->clientsProject->client->company_name,
+                    'company_address' => $this->clientsProject->client->company_address,
                 ] : null,
 
                 'project' => $this->clientsProject->project ? [
                     'id' => $this->clientsProject->project->id,
                     'title' => $this->clientsProject->project->title,
+                    'start_date' => $this->clientsProject->project->start_date,
+                    'end_date' => $this->clientsProject->project->end_date,
                 ] : null,
 
                 'payment' => $this->clientsProject && $this->clientsProject->payments->first()
