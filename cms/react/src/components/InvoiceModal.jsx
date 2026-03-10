@@ -599,18 +599,23 @@ export default function InvoiceModal({ payment, onClose }) {
                                     color: "#333",
                                 }}
                             >
-                                <strong>Bank Name:</strong> BDO Unibank
+                                <strong>
+                                    Bank of the Philippine Island - (BPI)Savings
+                                    Account
+                                </strong>
                                 <br />
                                 <strong>Account Name:</strong> Chimes Consulting
+                                OPC
                                 <br />
-                                <strong>Account Number:</strong> 0000-0000-0000
+                                <strong>Account Number:</strong> 2771 0027 92
                                 <br />
                                 <br />
-                                <strong>Bank Name:</strong> GCash / Maya
+                                <strong>Union Bank of the Philippines</strong>
                                 <br />
                                 <strong>Account Name:</strong> Chimes Consulting
+                                OPC
                                 <br />
-                                <strong>Account Number:</strong> 09XX-XXX-XXXX
+                                <strong>Account Number:</strong> 0020 8001 1681
                             </div>
                         </div>
                     </div>

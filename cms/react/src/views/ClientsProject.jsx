@@ -139,7 +139,7 @@ export default function ClientsProject() {
 
                 installment_schedule:
                     paymentType === "installment" ? installmentSchedule : null,
-                start_date: new Date().toISOString().slice(0, 10),
+                start_date: today,
                 is_vatable: includeVat,
                 final_price: displayPrice,
             })
@@ -176,7 +176,7 @@ export default function ClientsProject() {
 
     const openModal = () => setIsOpen(true);
     const closeModal = () => setIsOpen(false);
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString("en-CA");
     const selectedProjectData = allProjects.find(
         (p) => String(p.id) === String(selectedProject),
     );

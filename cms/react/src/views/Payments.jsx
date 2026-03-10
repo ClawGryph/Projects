@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDownload } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faFileInvoice } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge";
 import InvoiceModal from "../components/InvoiceModal";
 
@@ -377,8 +377,12 @@ export default function Payments() {
                                                     onClick={() =>
                                                         setInvoicePayment(p)
                                                     }
-                                                    className="text-xs text-sky-600 hover:underline"
+                                                    className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
                                                 >
+                                                    <FontAwesomeIcon
+                                                        icon={faFileInvoice}
+                                                        className="pr-1"
+                                                    />
                                                     Invoice
                                                 </button>
                                             </td>
