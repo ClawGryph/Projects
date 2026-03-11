@@ -16,6 +16,7 @@ class PaymentScheduleController extends Controller
             'clientsProject.client',
             'clientsProject.project',
             'clientsProject.payments',
+            'officialReceipt'
         ]);
 
         // Filter by month (format: YYYY-MM)
@@ -50,7 +51,7 @@ class PaymentScheduleController extends Controller
         $schedule->save();
 
         // Optionally, create a transaction if marked as paid
-        if ($request->status === 'paid') {
+        if ($request->status === 'paid' && !$schedule->transaction()->exists()) {
             $schedule->paymentTransactions()->create([
                 'amount_paid' => $schedule->expected_amount,
                 'paid_at' => now(),

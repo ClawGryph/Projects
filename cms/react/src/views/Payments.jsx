@@ -2,24 +2,30 @@ import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDownload, faFileInvoice } from "@fortawesome/free-solid-svg-icons";
+import {
+    faDownload,
+    faFileInvoice,
+    faReceipt,
+} from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge";
 import InvoiceModal from "../components/InvoiceModal";
+import OfficialReceiptModal from "../components/OfficialReceiptModal";
 
 export default function Payments() {
     const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [projects, setProjects] = useState([]);
     const [invoicePayment, setInvoicePayment] = useState(null);
+    const [orPayment, setOrPayment] = useState(null);
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
+    const [editing2307Id, setEditing2307Id] = useState(null); // tracks by O.R. id
     const [selectedMonth, setSelectedMonth] = useState("");
     const [selectedProject, setSelectedProject] = useState("");
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 }); // shared
 
     const getPaymentSchedules = () => {
         setLoading(true);
-
         axiosClient
             .get("/payment-schedules", {
                 params: {
@@ -61,8 +67,12 @@ export default function Payments() {
             });
     };
 
+    // Close both dropdowns on outside click
     useEffect(() => {
-        const close = () => setEditingId(null);
+        const close = () => {
+            setEditingId(null);
+            setEditing2307Id(null);
+        };
         window.addEventListener("click", close);
         return () => window.removeEventListener("click", close);
     }, []);
@@ -85,6 +95,8 @@ export default function Payments() {
             "Payment",
             "Due Date",
             "Status",
+            "O.R. #",
+            "2307 Status",
         ];
 
         const rows = paymentSchedules.map((p) => {
@@ -92,6 +104,12 @@ export default function Payments() {
                 p.clientsProject?.payment?.payment_type === "recurring"
                     ? p.clientsProject?.payment?.recurring_type
                     : p.clientsProject?.payment?.payment_type;
+
+            const isPaid = p.status === "paid";
+            const orNumber = p.transaction?.officialReceipt?.or_number ?? "";
+            const form2307Status = isPaid
+                ? (p.transaction?.officialReceipt?.form_2307_status ?? "")
+                : "";
 
             return [
                 p.id,
@@ -101,6 +119,8 @@ export default function Payments() {
                 formatPaymentType(paymentType),
                 p.due_date ?? "",
                 p.status,
+                isPaid ? orNumber || "No O.R. issued" : "-",
+                form2307Status,
             ];
         });
 
@@ -208,8 +228,9 @@ export default function Payments() {
                     </button>
                 </div>
             </div>
+
             <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
-                <div className="max-w-[1100px] w-full overflow-auto rounded-lg hide-scrollbar max-height">
+                <div className="max-w-[1300px] w-full overflow-auto rounded-lg hide-scrollbar max-height">
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                         <thead className="sticky top-0 z-20 bg-cyan-800">
                             <tr>
@@ -235,7 +256,16 @@ export default function Payments() {
                                     Status
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
+                                    O.R
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
                                     Invoice
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Issue O.R
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    2307 Status
                                 </th>
                             </tr>
                         </thead>
@@ -243,7 +273,7 @@ export default function Payments() {
                             <tbody>
                                 <tr>
                                     <td
-                                        colSpan="7"
+                                        colSpan="11"
                                         className="text-center py-4"
                                     >
                                         Loading...
@@ -254,144 +284,328 @@ export default function Payments() {
                         {!loading && (
                             <tbody>
                                 {paymentSchedules.length > 0 ? (
-                                    paymentSchedules.map((p, index) => (
-                                        <tr
-                                            key={p.id}
-                                            className="hover:bg-cyan-50 text-center"
-                                        >
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {index + 1}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.clientsProject?.client?.name}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {
-                                                    p.clientsProject?.project
-                                                        ?.title
-                                                }
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                ₱
-                                                {new Intl.NumberFormat(
-                                                    "en-PH",
-                                                ).format(p.expected_amount)}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {formatPaymentType(
-                                                    p.clientsProject?.payment
-                                                        ?.payment_type ===
-                                                        "recurring"
-                                                        ? p.clientsProject
-                                                              ?.payment
-                                                              ?.recurring_type
-                                                        : p.clientsProject
-                                                              ?.payment
-                                                              ?.payment_type,
-                                                )}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.due_date || " - "}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2 relative">
-                                                {editingId === p.id ? (
-                                                    <div
-                                                        style={{
-                                                            position: "fixed",
-                                                            top: dropdownPos.top,
-                                                            left: dropdownPos.left,
-                                                            transform:
-                                                                "translateX(-50%)",
-                                                        }}
-                                                        className="bg-white border rounded shadow-md z-50"
-                                                    >
-                                                        {[
-                                                            "pending",
-                                                            "paid",
-                                                            "overdue",
-                                                            "ended",
-                                                        ].map((status) => (
-                                                            <div
-                                                                key={status}
-                                                                onClick={() => {
-                                                                    updateStatus(
-                                                                        p.id,
-                                                                        status,
-                                                                    );
+                                    paymentSchedules.map((p, index) => {
+                                        const isPaid = p.status === "paid";
+                                        const officialReceipt =
+                                            p.transaction?.officialReceipt;
+                                        const orNumber =
+                                            officialReceipt?.or_number;
+                                        const form2307Status =
+                                            officialReceipt?.form_2307_status;
+
+                                        return (
+                                            <tr
+                                                key={p.id}
+                                                className="hover:bg-cyan-50 text-center"
+                                            >
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {index + 1}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {
+                                                        p.clientsProject?.client
+                                                            ?.name
+                                                    }
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {
+                                                        p.clientsProject
+                                                            ?.project?.title
+                                                    }
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    ₱
+                                                    {new Intl.NumberFormat(
+                                                        "en-PH",
+                                                    ).format(p.expected_amount)}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {formatPaymentType(
+                                                        p.clientsProject
+                                                            ?.payment
+                                                            ?.payment_type ===
+                                                            "recurring"
+                                                            ? p.clientsProject
+                                                                  ?.payment
+                                                                  ?.recurring_type
+                                                            : p.clientsProject
+                                                                  ?.payment
+                                                                  ?.payment_type,
+                                                    )}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {p.due_date || " - "}
+                                                </td>
+
+                                                {/* Status */}
+                                                <td className="border-b border-gray-200 px-4 py-2 relative">
+                                                    {editingId === p.id ? (
+                                                        <div
+                                                            style={{
+                                                                position:
+                                                                    "fixed",
+                                                                top: dropdownPos.top,
+                                                                left: dropdownPos.left,
+                                                                transform:
+                                                                    "translateX(-50%)",
+                                                            }}
+                                                            className="bg-white border rounded shadow-md z-50"
+                                                        >
+                                                            {[
+                                                                "pending",
+                                                                "paid",
+                                                                "overdue",
+                                                                "ended",
+                                                            ].map((status) => (
+                                                                <div
+                                                                    key={status}
+                                                                    onClick={() => {
+                                                                        updateStatus(
+                                                                            p.id,
+                                                                            status,
+                                                                        );
+                                                                        setEditingId(
+                                                                            null,
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                                >
+                                                                    <StatusBadge
+                                                                        status={
+                                                                            status
+                                                                        }
+                                                                        isEnded={
+                                                                            p.isEnded
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const rect =
+                                                                    e.currentTarget.getBoundingClientRect();
+                                                                setDropdownPos({
+                                                                    top:
+                                                                        rect.bottom +
+                                                                        window.scrollY -
+                                                                        30,
+                                                                    left:
+                                                                        rect.left +
+                                                                        rect.width /
+                                                                            2 +
+                                                                        window.scrollX,
+                                                                });
+                                                                user?.role_name !==
+                                                                    "viewer" &&
                                                                     setEditingId(
-                                                                        null,
+                                                                        p.id,
+                                                                    );
+                                                            }}
+                                                            className={`flex justify-center ${
+                                                                user?.role_name !==
+                                                                "viewer"
+                                                                    ? "cursor-pointer"
+                                                                    : "cursor-default"
+                                                            }`}
+                                                        >
+                                                            <StatusBadge
+                                                                status={
+                                                                    p.status
+                                                                }
+                                                                isEnded={
+                                                                    p.isEnded
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </td>
+
+                                                {/* O.R # Column */}
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {isPaid ? (
+                                                        orNumber ? (
+                                                            <span className="text-xs font-mono text-gray-700">
+                                                                {orNumber}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400 italic">
+                                                                No O.R. issued
+                                                            </span>
+                                                        )
+                                                    ) : (
+                                                        <span className="text-gray-400">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                {/* Invoice */}
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    <button
+                                                        onClick={() =>
+                                                            setInvoicePayment(p)
+                                                        }
+                                                        className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={faFileInvoice}
+                                                            className="pr-1"
+                                                        />
+                                                        Invoice
+                                                    </button>
+                                                </td>
+
+                                                {/* Issue O.R Column */}
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {isPaid ? (
+                                                        <button
+                                                            onClick={() =>
+                                                                setOrPayment(p)
+                                                            }
+                                                            className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={faReceipt}
+                                                                className="pr-1"
+                                                            />
+                                                            Issue O.R
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-400">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                {/* 2307 Status Column */}
+                                                <td className="border-b border-gray-200 px-4 py-2 relative">
+                                                    {isPaid ? (
+                                                        editing2307Id ===
+                                                        officialReceipt?.id ? (
+                                                            <div
+                                                                style={{
+                                                                    position:
+                                                                        "fixed",
+                                                                    top: dropdownPos.top,
+                                                                    left: dropdownPos.left,
+                                                                    transform:
+                                                                        "translateX(-50%)",
+                                                                }}
+                                                                className="bg-white border rounded shadow-md z-50"
+                                                            >
+                                                                {[
+                                                                    "pending",
+                                                                    "issued",
+                                                                ].map(
+                                                                    (
+                                                                        status,
+                                                                    ) => (
+                                                                        <div
+                                                                            key={
+                                                                                status
+                                                                            }
+                                                                            onClick={() => {
+                                                                                axiosClient
+                                                                                    .put(
+                                                                                        `/official-receipts/${officialReceipt.id}`,
+                                                                                        {
+                                                                                            ...officialReceipt,
+                                                                                            form_2307_status:
+                                                                                                status,
+                                                                                        },
+                                                                                    )
+                                                                                    .then(
+                                                                                        () => {
+                                                                                            getPaymentSchedules();
+                                                                                            setNotification(
+                                                                                                "2307 status updated",
+                                                                                            );
+                                                                                        },
+                                                                                    )
+                                                                                    .catch(
+                                                                                        () =>
+                                                                                            setNotification(
+                                                                                                "Failed to update 2307 status",
+                                                                                            ),
+                                                                                    );
+                                                                                setEditing2307Id(
+                                                                                    null,
+                                                                                );
+                                                                            }}
+                                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                                        >
+                                                                            <StatusBadge
+                                                                                status={
+                                                                                    status
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    if (
+                                                                        user?.role_name ===
+                                                                            "viewer" ||
+                                                                        !officialReceipt
+                                                                    )
+                                                                        return;
+                                                                    e.stopPropagation();
+                                                                    const rect =
+                                                                        e.currentTarget.getBoundingClientRect();
+                                                                    setDropdownPos(
+                                                                        {
+                                                                            top:
+                                                                                rect.bottom +
+                                                                                window.scrollY -
+                                                                                30,
+                                                                            left:
+                                                                                rect.left +
+                                                                                rect.width /
+                                                                                    2 +
+                                                                                window.scrollX,
+                                                                        },
+                                                                    );
+                                                                    setEditing2307Id(
+                                                                        officialReceipt.id,
                                                                     );
                                                                 }}
-                                                                className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                                className={`flex justify-center ${
+                                                                    user?.role_name !==
+                                                                        "viewer" &&
+                                                                    officialReceipt
+                                                                        ? "cursor-pointer"
+                                                                        : "cursor-default"
+                                                                }`}
                                                             >
                                                                 <StatusBadge
                                                                     status={
-                                                                        status
-                                                                    }
-                                                                    isEnded={
-                                                                        p.isEnded
+                                                                        form2307Status ??
+                                                                        "pending"
                                                                     }
                                                                 />
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const rect =
-                                                                e.currentTarget.getBoundingClientRect();
-                                                            setDropdownPos({
-                                                                top:
-                                                                    rect.bottom +
-                                                                    window.scrollY -
-                                                                    30,
-                                                                left:
-                                                                    rect.left +
-                                                                    rect.width /
-                                                                        2 +
-                                                                    window.scrollX,
-                                                            });
-                                                            user?.role_name !==
-                                                                "viewer" &&
-                                                                setEditingId(
-                                                                    p.id,
-                                                                );
-                                                        }}
-                                                        className={`flex justify-center ${
-                                                            user?.role_name !==
-                                                            "viewer"
-                                                                ? "cursor-pointer"
-                                                                : "cursor-default"
-                                                        }`}
-                                                    >
-                                                        <StatusBadge
-                                                            status={p.status}
-                                                            isEnded={p.isEnded}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                <button
-                                                    onClick={() =>
-                                                        setInvoicePayment(p)
-                                                    }
-                                                    className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
-                                                >
-                                                    <FontAwesomeIcon
-                                                        icon={faFileInvoice}
-                                                        className="pr-1"
-                                                    />
-                                                    Invoice
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                        )
+                                                    ) : (
+                                                        <span className="text-gray-400">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={11}
                                             className="px-4 py-6 text-center text-gray-500"
                                         >
                                             {selectedMonth
@@ -405,10 +619,23 @@ export default function Payments() {
                     </table>
                 </div>
             </div>
+
             {invoicePayment && (
                 <InvoiceModal
                     payment={invoicePayment}
                     onClose={() => setInvoicePayment(null)}
+                />
+            )}
+
+            {orPayment && (
+                <OfficialReceiptModal
+                    payment={orPayment}
+                    onClose={() => setOrPayment(null)}
+                    onSaved={() => {
+                        setOrPayment(null);
+                        getPaymentSchedules();
+                        setNotification("Official Receipt saved");
+                    }}
                 />
             )}
         </>

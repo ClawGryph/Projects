@@ -28,6 +28,23 @@ class PaymentSchedule extends Model
         return $this->hasMany(PaymentTransaction::class, 'payment_schedule_id');
     }
 
+    public function transaction()
+    {
+        return $this->hasOne(PaymentTransaction::class, 'payment_schedule_id');
+    }
+
+    public function officialReceipt()
+    {
+        return $this->hasOneThrough(
+            OfficialReceipt::class,
+            PaymentTransaction::class,
+            'payment_schedule_id', // FK on payment_transactions
+            'payment_transaction_id', // FK on official_receipts
+            'id',                  // Local key on payment_schedules
+            'id'                   // Local key on payment_transactions
+        );
+    }
+
     public function clientsProject()
     {
         return $this->hasOneThrough(

@@ -27,6 +27,11 @@ class PaymentTransaction extends Model
         return $this->belongsTo(PaymentSchedule::class);
     }
 
+    public function officialReceipt()
+    {
+        return $this->hasOne(OfficialReceipt::class, 'payment_transaction_id');
+    }
+
     public function getClientAttribute()
     {
         return $this->paymentSchedule?->payment?->clientsProject?->client;

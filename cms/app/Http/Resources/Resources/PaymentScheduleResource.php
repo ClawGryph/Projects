@@ -45,6 +45,23 @@ class PaymentScheduleResource extends JsonResource
                     ]
                     : null,
             ] : null,
+
+            'transaction' => $this->transaction ? [
+                'id'          => $this->transaction->id,
+                'amount_paid' => $this->transaction->amount_paid,
+                'paid_at'     => $this->transaction->paid_at,
+                'officialReceipt' => $this->transaction->officialReceipt ? [
+                    'id'                     => $this->transaction->officialReceipt->id,
+                    'or_number'              => $this->transaction->officialReceipt->or_number,
+                    'or_date'                => $this->transaction->officialReceipt->or_date,
+                    'service_invoice_number' => $this->transaction->officialReceipt->service_invoice_number,
+                    'amount'                 => $this->transaction->officialReceipt->amount,
+                    'vat_amount'             => $this->transaction->officialReceipt->vat_amount,
+                    'other'                  => $this->transaction->officialReceipt->other,
+                    'total_amount'           => $this->transaction->officialReceipt->total_amount,
+                    'form_2307_status'       => $this->transaction->officialReceipt->form_2307_status,
+                ] : null,
+            ] : null,
         ];
     }
 }

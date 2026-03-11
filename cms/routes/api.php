@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientsProjectController;
+use App\Http\Controllers\Api\OfficialReceiptController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentScheduleController;
 use App\Http\Controllers\Api\PaymentTransactionController;
@@ -57,10 +58,12 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function ()
     Route::post('/clients', [ClientController::class, 'store']);
     Route::post('/projects', [ProjectController::class, 'store']);
     Route::post('/payments', [PaymentController::class, 'store']);
+    Route::post('/official-receipts', [OfficialReceiptController::class, 'store']);
     Route::post('/clients/{client}/projects', [ClientsProjectController::class, 'assignProject']);
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
     Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);
     Route::put('/payment-schedules/{schedule}/status', [PaymentScheduleController::class, 'updateStatus']);
+    Route::put('/official-receipts/{id}', [OfficialReceiptController::class, 'update']);
 });
 
 // All roles can view - super_admin, admin, viewer
@@ -76,4 +79,5 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer'])->group(func
     Route::get('/clients/{client}/projects', [ClientsProjectController::class, 'index']);
     Route::get('/payment-schedules', [PaymentScheduleController::class, 'index']);
     Route::get('/projects/{project}/clients-projects', [ProjectController::class, 'payments']);
+    Route::get('/official-receipts/{id}', [OfficialReceiptController::class, 'show']);
 });
