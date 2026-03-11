@@ -37,6 +37,17 @@ export default function DefaultLayout() {
         }
     }, [token]);
 
+    useEffect(() => {
+        if (token) {
+            axiosClient
+                .get("/transactions")
+                .then(({ data }) => {
+                    setTransactions(data.data);
+                })
+                .catch(() => {});
+        }
+    }, [token]);
+
     if (!token) {
         return <Navigate to="/login" />;
     }
@@ -51,17 +62,6 @@ export default function DefaultLayout() {
     };
 
     const todayKey = new Date().toISOString().split("T")[0];
-
-    useEffect(() => {
-        if (token) {
-            axiosClient
-                .get("/transactions")
-                .then(({ data }) => {
-                    setTransactions(data.data);
-                })
-                .catch(() => {});
-        }
-    }, [token]);
 
     const pending2307Notifications = transactions.filter((t) => {
         if (!t.paid_at) return false;
