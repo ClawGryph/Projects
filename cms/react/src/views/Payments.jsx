@@ -244,28 +244,19 @@ export default function Payments() {
                                     Project Name
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Cost
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Payment Type
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Due Date
+                                    Payment Details
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     Status
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
-                                    O.R
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Invoice
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Issue O.R
+                                    OR No.
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     2307 Status
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium">
+                                    Action
                                 </th>
                             </tr>
                         </thead>
@@ -314,27 +305,35 @@ export default function Payments() {
                                                     }
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
-                                                    ₱
-                                                    {new Intl.NumberFormat(
-                                                        "en-PH",
-                                                    ).format(p.expected_amount)}
-                                                </td>
-                                                <td className="border-b border-gray-200 px-4 py-2">
-                                                    {formatPaymentType(
-                                                        p.clientsProject
-                                                            ?.payment
-                                                            ?.payment_type ===
-                                                            "recurring"
-                                                            ? p.clientsProject
-                                                                  ?.payment
-                                                                  ?.recurring_type
-                                                            : p.clientsProject
-                                                                  ?.payment
-                                                                  ?.payment_type,
-                                                    )}
-                                                </td>
-                                                <td className="border-b border-gray-200 px-4 py-2">
-                                                    {p.due_date || " - "}
+                                                    <div className="font-semibold">
+                                                        ₱
+                                                        {new Intl.NumberFormat(
+                                                            "en-PH",
+                                                        ).format(
+                                                            p.expected_amount,
+                                                        )}
+                                                    </div>
+
+                                                    <div className="text-xs text-gray-500">
+                                                        {formatPaymentType(
+                                                            p.clientsProject
+                                                                ?.payment
+                                                                ?.payment_type ===
+                                                                "recurring"
+                                                                ? p
+                                                                      .clientsProject
+                                                                      ?.payment
+                                                                      ?.recurring_type
+                                                                : p
+                                                                      .clientsProject
+                                                                      ?.payment
+                                                                      ?.payment_type,
+                                                        )}
+                                                    </div>
+
+                                                    <div className="text-xs text-gray-400">
+                                                        Due: {p.due_date || "-"}
+                                                    </div>
                                                 </td>
 
                                                 {/* Status */}
@@ -427,7 +426,7 @@ export default function Payments() {
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     {isPaid ? (
                                                         orNumber ? (
-                                                            <span className="text-xs font-mono text-gray-700">
+                                                            <span className="text-s font-mono text-gray-700">
                                                                 {orNumber}
                                                             </span>
                                                         ) : (
@@ -435,44 +434,6 @@ export default function Payments() {
                                                                 No O.R. issued
                                                             </span>
                                                         )
-                                                    ) : (
-                                                        <span className="text-gray-400">
-                                                            —
-                                                        </span>
-                                                    )}
-                                                </td>
-
-                                                {/* Invoice */}
-                                                <td className="border-b border-gray-200 px-4 py-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            setInvoicePayment(p)
-                                                        }
-                                                        className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faFileInvoice}
-                                                            className="pr-1"
-                                                        />
-                                                        Invoice
-                                                    </button>
-                                                </td>
-
-                                                {/* Issue O.R Column */}
-                                                <td className="border-b border-gray-200 px-4 py-2">
-                                                    {isPaid ? (
-                                                        <button
-                                                            onClick={() =>
-                                                                setOrPayment(p)
-                                                            }
-                                                            className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
-                                                        >
-                                                            <FontAwesomeIcon
-                                                                icon={faReceipt}
-                                                                className="pr-1"
-                                                            />
-                                                            Issue O.R
-                                                        </button>
                                                     ) : (
                                                         <span className="text-gray-400">
                                                             —
@@ -598,6 +559,48 @@ export default function Payments() {
                                                             —
                                                         </span>
                                                     )}
+                                                </td>
+
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    <div className="flex gap-1">
+                                                        <button
+                                                            onClick={() =>
+                                                                setInvoicePayment(
+                                                                    p,
+                                                                )
+                                                            }
+                                                            className="group relative inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition-all duration-150 hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700 hover:shadow-md active:scale-95 cursor-pointer"
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={
+                                                                    faFileInvoice
+                                                                }
+                                                                className="h-3 w-3"
+                                                            />
+                                                            <span>Invoice</span>
+                                                        </button>
+
+                                                        {isPaid && (
+                                                            <button
+                                                                onClick={() =>
+                                                                    setOrPayment(
+                                                                        p,
+                                                                    )
+                                                                }
+                                                                className="group relative inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition-all duration-150 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md active:scale-95 cursor-pointer"
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={
+                                                                        faReceipt
+                                                                    }
+                                                                    className="h-3 w-3"
+                                                                />
+                                                                <span>
+                                                                    Issue OR
+                                                                </span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
