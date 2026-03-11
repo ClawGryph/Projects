@@ -71,10 +71,9 @@ export default function Projects() {
         setPaymentsLoading(true);
 
         axiosClient
-            .get(`/projects/${p.id}/clients-projects`)
+            .get(`/payment-schedules`, { params: { project_id: p.id } })
             .then(({ data }) => {
                 setPayments(data.data ?? data);
-                console.log(data);
                 setPaymentsLoading(false);
             })
             .catch(() => {
@@ -352,7 +351,7 @@ export default function Projects() {
                     onClick={closeModal}
                 >
                     <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6"
+                        className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
@@ -395,57 +394,94 @@ export default function Projects() {
                                             <th className="px-4 py-2">
                                                 Due Date
                                             </th>
-                                            <th className="px-4 py-2 rounded-tr-lg">
+                                            <th className="px-4 py-2">
                                                 Status
+                                            </th>
+                                            <th className="px-4 py-2">O.R #</th>
+                                            <th className="px-4 py-2 rounded-tr-lg">
+                                                2307 Status
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {payments
-                                            .flatMap((cp) =>
-                                                cp.payment_schedules.map(
-                                                    (schedule, index) => ({
-                                                        ...schedule,
-                                                        clientName:
-                                                            cp.client?.name ??
-                                                            "—",
-                                                        key: `${cp.id}-${schedule.id}-${index}`,
-                                                    }),
-                                                ),
-                                            )
-                                            .map((sched, idx) => (
+                                        {payments.map((p, idx) => {
+                                            const isPaid = p.status === "paid";
+                                            const officialReceipt =
+                                                p.transaction?.officialReceipt;
+                                            const orNumber =
+                                                officialReceipt?.or_number;
+                                            const form2307Status =
+                                                officialReceipt?.form_2307_status;
+
+                                            return (
                                                 <tr
-                                                    key={sched.key}
+                                                    key={p.id}
                                                     className="text-center hover:bg-cyan-50"
                                                 >
                                                     <td className="border-b border-gray-200 px-4 py-2">
                                                         {idx + 1}
                                                     </td>
                                                     <td className="border-b border-gray-200 px-4 py-2">
-                                                        {sched.clientName}
+                                                        {p.clientsProject
+                                                            ?.client?.name ??
+                                                            "—"}
                                                     </td>
                                                     <td className="border-b border-gray-200 px-4 py-2">
                                                         ₱{" "}
                                                         {new Intl.NumberFormat(
                                                             "en-PH",
                                                         ).format(
-                                                            sched.expected_amount ??
+                                                            p.expected_amount ??
                                                                 0,
                                                         )}
                                                     </td>
                                                     <td className="border-b border-gray-200 px-4 py-2">
-                                                        {sched.due_date ?? "—"}
+                                                        {p.due_date ?? "—"}
                                                     </td>
                                                     <td className="border-b border-gray-200 px-4 py-2 capitalize">
                                                         <StatusBadge
                                                             status={
-                                                                sched.status ??
-                                                                "—"
+                                                                p.status ?? "—"
                                                             }
                                                         />
                                                     </td>
+                                                    {/* O.R # Column */}
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {isPaid ? (
+                                                            orNumber ? (
+                                                                <span className="text-xs font-mono text-gray-700">
+                                                                    {orNumber}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-400 italic">
+                                                                    No O.R.
+                                                                    issued
+                                                                </span>
+                                                            )
+                                                        ) : (
+                                                            <span className="text-gray-400">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    {/* 2307 Status Column */}
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {isPaid ? (
+                                                            <StatusBadge
+                                                                status={
+                                                                    form2307Status ??
+                                                                    "pending"
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <span className="text-gray-400">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </td>
                                                 </tr>
-                                            ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
