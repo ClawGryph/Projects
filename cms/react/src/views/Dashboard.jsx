@@ -918,7 +918,7 @@ export default function Dashboard() {
             {/* RECENT PROJECTS */}
             <div className="min-w-full bg-white rounded-xl overflow-x-auto shadow-sm p-6 mt-6">
                 <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
-                    Recent Projects
+                    Projects
                 </h2>
                 <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse mt-5">
                     <thead>
@@ -1388,7 +1388,7 @@ export default function Dashboard() {
                                         <th className="px-4 py-2">Project</th>
                                         <th className="px-4 py-2">Amount</th>
                                         <th className="px-4 py-2">Paid At</th>
-                                        <th className="px-4 py-2">O.R #</th>
+                                        <th className="px-4 py-2">OR No.</th>
                                         <th className="px-4 py-2">
                                             2307 Status
                                         </th>
