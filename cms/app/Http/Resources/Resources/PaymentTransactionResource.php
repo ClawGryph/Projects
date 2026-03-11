@@ -25,6 +25,10 @@ class PaymentTransactionResource extends JsonResource
             'project'    => [
                 'title' => $this->paymentSchedule?->payment?->clientsProject?->project?->title,
             ],
+            'official_receipt' => $this->officialReceipt ? [
+                'or_number'        => $this->officialReceipt->or_number,
+                'form_2307_status' => $this->officialReceipt->form_2307_status,
+            ] : null,
         ];
     }
 }

@@ -15,6 +15,7 @@ class PaymentTransactionController extends Controller
             PaymentTransaction::with([
                 'paymentSchedule.payment.clientsProject.client',
                 'paymentSchedule.payment.clientsProject.project',
+                'officialReceipt',
             ])->latest()->get()
         );
     }

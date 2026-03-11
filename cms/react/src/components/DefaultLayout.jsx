@@ -17,6 +17,17 @@ import {
 export default function DefaultLayout() {
     const { user, token, notification, setUser, setToken } = useStateContext();
     const [openSidebar, setOpenSidebar] = useState(false);
+    const [transactions, setTransactions] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [dismissedNotifications, setDismissedNotifications] = useState(() => {
+        try {
+            return JSON.parse(
+                localStorage.getItem("dismissed_2307_notifications") || "{}",
+            );
+        } catch {
+            return {};
+        }
+    });
 
     useEffect(() => {
         if (token) {
@@ -37,6 +48,36 @@ export default function DefaultLayout() {
             setUser({});
             setToken(null);
         });
+    };
+
+    const todayKey = new Date().toISOString().split("T")[0];
+
+    useEffect(() => {
+        if (token) {
+            axiosClient
+                .get("/transactions")
+                .then(({ data }) => {
+                    setTransactions(data.data);
+                })
+                .catch(() => {});
+        }
+    }, [token]);
+
+    const pending2307Notifications = transactions.filter((t) => {
+        if (!t.paid_at) return false;
+        if ((t.official_receipt?.form_2307_status ?? "pending") !== "pending")
+            return false;
+        return !dismissedNotifications[`${t.id}_${todayKey}`];
+    });
+
+    const dismiss2307Notification = (id) => {
+        const key = `${id}_${todayKey}`;
+        const updated = { ...dismissedNotifications, [key]: true };
+        setDismissedNotifications(updated);
+        localStorage.setItem(
+            "dismissed_2307_notifications",
+            JSON.stringify(updated),
+        );
     };
 
     return (
@@ -147,6 +188,7 @@ export default function DefaultLayout() {
                     >
                         <FontAwesomeIcon icon={faBars} size="lg" />
                     </button>
+
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
                             <FontAwesomeIcon
@@ -163,7 +205,152 @@ export default function DefaultLayout() {
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 min-w-0">
+
+                    <div className="flex items-center gap-3">
+                        {/* 🔔 2307 Notification Bell */}
+                        <div className="relative">
+                            <button
+                                onClick={() =>
+                                    setShowNotifications((prev) => !prev)
+                                }
+                                className="relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 transition cursor-pointer"
+                            >
+                                <svg
+                                    className="w-5 h-5 text-gray-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                                    />
+                                </svg>
+                                {pending2307Notifications.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                        {pending2307Notifications.length}
+                                    </span>
+                                )}
+                            </button>
+
+                            {showNotifications && (
+                                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                                        <h3 className="font-semibold text-gray-800 text-sm">
+                                            Pending 2307 Forms
+                                        </h3>
+                                        <button
+                                            onClick={() =>
+                                                setShowNotifications(false)
+                                            }
+                                            className="text-gray-400 hover:text-gray-600 cursor-pointer text-xs"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                    <div className="max-h-72 overflow-y-auto">
+                                        {pending2307Notifications.length ===
+                                        0 ? (
+                                            <p className="text-center text-gray-500 text-sm py-6">
+                                                All 2307 forms are up to date ✓
+                                            </p>
+                                        ) : (
+                                            pending2307Notifications.map(
+                                                (t) => (
+                                                    <div
+                                                        key={t.id}
+                                                        className="flex items-start justify-between gap-3 px-4 py-3 border-b border-gray-50 hover:bg-yellow-50 transition-colors"
+                                                    >
+                                                        <div className="flex items-start gap-2">
+                                                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                                <svg
+                                                                    className="w-4 h-4 text-yellow-600"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth={
+                                                                            2
+                                                                        }
+                                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                                    />
+                                                                </svg>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-semibold text-gray-800">
+                                                                    {t.client
+                                                                        ?.name ||
+                                                                        "Client"}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500">
+                                                                    {t.project
+                                                                        ?.title ||
+                                                                        "Project"}
+                                                                </p>
+                                                                <p className="text-xs text-gray-400">
+                                                                    Paid:{" "}
+                                                                    {new Date(
+                                                                        t.paid_at,
+                                                                    ).toLocaleDateString(
+                                                                        "en-CA",
+                                                                    )}{" "}
+                                                                    · O.R.{" "}
+                                                                    {t
+                                                                        .official_receipt
+                                                                        ?.or_number ||
+                                                                        "N/A"}
+                                                                </p>
+                                                                <span className="inline-block mt-1 text-[10px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+                                                                    2307 Pending
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() =>
+                                                                dismiss2307Notification(
+                                                                    t.id,
+                                                                )
+                                                            }
+                                                            title="Dismiss for today"
+                                                            className="text-gray-300 hover:text-gray-500 text-xs flex-shrink-0 cursor-pointer mt-1"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                ),
+                                            )
+                                        )}
+                                    </div>
+
+                                    {pending2307Notifications.length > 0 && (
+                                        <div className="px-4 py-2 bg-gray-50 text-center">
+                                            <button
+                                                onClick={() => {
+                                                    pending2307Notifications.forEach(
+                                                        (t) =>
+                                                            dismiss2307Notification(
+                                                                t.id,
+                                                            ),
+                                                    );
+                                                    setShowNotifications(false);
+                                                }}
+                                                className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+                                            >
+                                                Dismiss all for today
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Logout */}
                         <button
                             onClick={onLogout}
                             className="bg-cyan-800 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg shadow-lg hover:shadow-xl hover:bg-cyan-900 flex items-center justify-center cursor-pointer"

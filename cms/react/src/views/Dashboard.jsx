@@ -33,6 +33,7 @@ export default function Dashboard() {
             .get("/transactions")
             .then(({ data }) => {
                 setTransactions(data.data);
+                console.log(data);
             })
             .catch(() => console.error("Failed to load payment transactions"));
     }, []);
@@ -1387,6 +1388,10 @@ export default function Dashboard() {
                                         <th className="px-4 py-2">Project</th>
                                         <th className="px-4 py-2">Amount</th>
                                         <th className="px-4 py-2">Paid At</th>
+                                        <th className="px-4 py-2">O.R #</th>
+                                        <th className="px-4 py-2">
+                                            2307 Status
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-center">
@@ -1424,6 +1429,31 @@ export default function Dashboard() {
                                                     ).toLocaleDateString(
                                                         "en-CA",
                                                     )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.official_receipt
+                                                        ?.or_number ? (
+                                                        <span className="text-xs font-mono text-gray-700">
+                                                            {
+                                                                t
+                                                                    .official_receipt
+                                                                    .or_number
+                                                            }
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">
+                                                            No O.R. issued
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <StatusBadge
+                                                        status={
+                                                            t.official_receipt
+                                                                ?.form_2307_status ??
+                                                            "pending"
+                                                        }
+                                                    />
                                                 </td>
                                             </tr>
                                         ))
