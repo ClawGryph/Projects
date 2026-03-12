@@ -19,10 +19,14 @@ export default function Payments() {
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
-    const [editing2307Id, setEditing2307Id] = useState(null); // tracks by O.R. id
+    const [editing2307Id, setEditing2307Id] = useState(null);
     const [selectedMonth, setSelectedMonth] = useState("");
     const [selectedProject, setSelectedProject] = useState("");
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 }); // shared
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [statusDropdownPos, setStatusDropdownPos] = useState({
+        top: 0,
+        left: 0,
+    });
 
     const getPaymentSchedules = () => {
         setLoading(true);
@@ -53,18 +57,34 @@ export default function Payments() {
         });
     }, []);
 
-    const updateStatus = (scheduleId, newStatus) => {
-        axiosClient
-            .put(`/payment-schedules/${scheduleId}/status`, {
-                status: newStatus,
-            })
-            .then(() => {
-                getPaymentSchedules();
-                setNotification("Payment status updated");
-            })
-            .catch(() => {
-                setNotification("Failed to update payment status");
-            });
+    const updateStatus = (scheduleId, newStatus, currentPayment) => {
+        const wasPaid = currentPayment.status === "paid";
+        const changingToPending = newStatus === "pending";
+
+        const doUpdate = () => {
+            axiosClient
+                .put(`/payment-schedules/${scheduleId}/status`, {
+                    status: newStatus,
+                })
+                .then(() => {
+                    getPaymentSchedules();
+                    setNotification("Payment status updated");
+                })
+                .catch(() => {
+                    setNotification("Failed to update payment status");
+                });
+        };
+
+        if (wasPaid && changingToPending && currentPayment.transaction?.id) {
+            axiosClient
+                .delete(`/transactions/${currentPayment.transaction.id}`)
+                .then(() => doUpdate())
+                .catch(() =>
+                    setNotification("Failed to remove paid transaction"),
+                );
+        } else {
+            doUpdate();
+        }
     };
 
     // Close both dropdowns on outside click
@@ -255,7 +275,7 @@ export default function Payments() {
                                 <th className="px-4 py-2 text-white text-sm font-medium">
                                     2307 Status
                                 </th>
-                                {user?.role_name !== "viewer" ?? (
+                                {user?.role_name !== "viewer" && (
                                     <th className="px-4 py-2 text-white text-sm font-medium">
                                         Action
                                     </th>
@@ -364,6 +384,7 @@ export default function Payments() {
                                                                         updateStatus(
                                                                             p.id,
                                                                             status,
+                                                                            p,
                                                                         );
                                                                         setEditingId(
                                                                             null,
@@ -452,8 +473,8 @@ export default function Payments() {
                                                                 style={{
                                                                     position:
                                                                         "fixed",
-                                                                    top: dropdownPos.top,
-                                                                    left: dropdownPos.left,
+                                                                    top: statusDropdownPos.top,
+                                                                    left: statusDropdownPos.left,
                                                                     transform:
                                                                         "translateX(-50%)",
                                                                 }}
@@ -523,7 +544,7 @@ export default function Payments() {
                                                                     e.stopPropagation();
                                                                     const rect =
                                                                         e.currentTarget.getBoundingClientRect();
-                                                                    setDropdownPos(
+                                                                    setStatusDropdownPos(
                                                                         {
                                                                             top:
                                                                                 rect.bottom +
@@ -563,7 +584,7 @@ export default function Payments() {
                                                     )}
                                                 </td>
                                                 {user?.role_name !==
-                                                    "viewer" ?? (
+                                                    "viewer" && (
                                                     <>
                                                         <td className="border-b border-gray-200 px-4 py-2">
                                                             <div className="flex gap-1">

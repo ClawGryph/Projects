@@ -146,7 +146,10 @@ export default function Dashboard() {
         axiosClient
             .get("/projects")
             .then(({ data }) => {
-                setProjects(data.data);
+                const activeOnly = data.data.filter(
+                    (p) => p.status !== "complete",
+                );
+                setProjects(activeOnly);
             })
             .catch(() => console.error("Failed to load projects"));
     }, []);
@@ -530,16 +533,7 @@ export default function Dashboard() {
     const indexOfFirstRow = indexOfLastRow - rowsPerPage;
 
     const ongoingProjects = clientsProject.filter((project) => {
-        const paymentStatus = getPaymentSummary(project).overallStatus;
-
-        const paymentsOngoing =
-            paymentStatus !== "paid" || paymentStatus !== "ended";
-
-        const projectOngoing =
-            project.project?.status !== "completed" ||
-            project.project?.status !== "pending";
-
-        return paymentsOngoing && projectOngoing;
+        return project.project?.status !== "complete";
     });
 
     const currentProjects = ongoingProjects.slice(

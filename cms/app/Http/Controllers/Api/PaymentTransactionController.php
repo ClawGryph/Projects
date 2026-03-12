@@ -19,4 +19,12 @@ class PaymentTransactionController extends Controller
             ])->latest()->get()
         );
     }
+
+    public function destroy(PaymentTransaction $transaction)
+    {
+        $transaction->officialReceipt()->delete();
+        $transaction->delete();
+
+        return response()->noContent();
+    }
 }
