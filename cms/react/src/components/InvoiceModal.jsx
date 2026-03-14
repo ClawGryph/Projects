@@ -390,19 +390,6 @@ export default function InvoiceModal({ payment, onClose }) {
                                                 {project.description}
                                             </div>
                                         )}
-                                        {(project.start_date ||
-                                            project.end_date) && (
-                                            <div
-                                                style={{
-                                                    color: "#888",
-                                                    fontSize: 11,
-                                                    marginTop: 2,
-                                                }}
-                                            >
-                                                {formatDate(project.start_date)}{" "}
-                                                – {formatDate(project.end_date)}
-                                            </div>
-                                        )}
                                     </td>
                                     <td
                                         style={{
@@ -599,15 +586,9 @@ export default function InvoiceModal({ payment, onClose }) {
                                     color: "#333",
                                 }}
                             >
-                                <strong>
-                                    Bank of the Philippine Island - (BPI)Savings
-                                    Account
-                                </strong>
+                                <strong>Chimes Consulting OPC</strong>
                                 <br />
-                                <strong>Account Name:</strong> Chimes Consulting
-                                OPC
-                                <br />
-                                <strong>Account Number:</strong> 2771 0027 92
+                                <strong>TIN No:</strong> 744 328 715 000
                                 <br />
                                 <br />
                                 <strong>Union Bank of the Philippines</strong>
