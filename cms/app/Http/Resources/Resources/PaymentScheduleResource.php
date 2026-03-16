@@ -13,6 +13,9 @@ class PaymentScheduleResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'payment_id'     => $this->payment_id,
+            'schedule_index'   => $this->schedule_index,
+            'total_schedules'  => $this->total_schedules,
             'due_date' => $this->due_date ? $this->due_date->format('Y-m-d') : null,
             'payment_rate' => $this->payment_rate,
             'expected_amount' => $this->expected_amount,
@@ -42,6 +45,7 @@ class PaymentScheduleResource extends JsonResource
                         'id' => $this->clientsProject->payments->first()->id,
                         'payment_type' => $this->clientsProject->payments->first()->payment_type,
                         'recurring_type' => $this->clientsProject->payments->first()->recurring_type,
+                        'number_of_cycles' => $this->clientsProject->payments->first()->number_of_cycles,
                     ]
                     : null,
             ] : null,

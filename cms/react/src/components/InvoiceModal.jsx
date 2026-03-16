@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 import chimes_logo from "../assets/chimes-logo.png";
 
-export default function InvoiceModal({ payment, onClose }) {
+export default function InvoiceModal({
+    payment,
+    onClose,
+    scheduleIndex,
+    totalSchedules,
+}) {
     const invoiceRef = useRef();
     const [downloading, setDownloading] = useState(false);
 
@@ -28,12 +33,20 @@ export default function InvoiceModal({ payment, onClose }) {
     // Payment term label
     const getTerms = () => {
         const type = paymentInfo.payment_type;
+        const total = totalSchedules ?? paymentInfo.number_of_cycles;
+        const index = scheduleIndex ?? "?";
+
         if (type === "one_time") return "One Time";
         if (type === "recurring") {
             const r = paymentInfo.recurring_type;
-            return r ? r.charAt(0).toUpperCase() + r.slice(1) : "Recurring";
+            const label = r
+                ? r.charAt(0).toUpperCase() + r.slice(1)
+                : "Recurring";
+            return total > 1 ? `${label} ${index}/${total}` : label;
         }
-        if (type === "installment") return "Installment";
+        if (type === "installment") {
+            return total ? `Installment ${index}/${total}` : "Installment";
+        }
         return "-";
     };
 

@@ -656,6 +656,8 @@ export default function Payments() {
             {invoicePayment && (
                 <InvoiceModal
                     payment={invoicePayment}
+                    scheduleIndex={invoicePayment.schedule_index}
+                    totalSchedules={invoicePayment.total_schedules}
                     onClose={() => setInvoicePayment(null)}
                 />
             )}
