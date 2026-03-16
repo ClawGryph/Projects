@@ -718,39 +718,84 @@ export default function ClientsProject() {
                                                     </span>
                                                 </div>
                                                 {showVatLine && (
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-600 font-medium">
-                                                            Total VAT{" "}
-                                                            {isVatIncluded
-                                                                ? "(Included)"
-                                                                : "(12%)"}
-                                                            :
-                                                        </span>
-                                                        <span className="font-semibold text-cyan-700">
-                                                            ₱
-                                                            {new Intl.NumberFormat(
-                                                                "en-PH",
-                                                                {
-                                                                    minimumFractionDigits: 2,
-                                                                },
-                                                            ).format(
-                                                                isVatIncluded
-                                                                    ? ((recurringRate /
-                                                                          100) *
-                                                                          displayPrice -
-                                                                          ((recurringRate /
+                                                    <>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600 font-medium">
+                                                                Total VAT{" "}
+                                                                {isVatIncluded
+                                                                    ? "(Included)"
+                                                                    : "(12%)"}
+                                                                :
+                                                            </span>
+                                                            <span className="font-semibold text-cyan-700">
+                                                                ₱
+                                                                {new Intl.NumberFormat(
+                                                                    "en-PH",
+                                                                    {
+                                                                        minimumFractionDigits: 2,
+                                                                    },
+                                                                ).format(
+                                                                    isVatIncluded
+                                                                        ? ((recurringRate /
                                                                               100) *
-                                                                              displayPrice) /
-                                                                              1.12) *
-                                                                          recurringCycles
-                                                                    : (recurringRate /
-                                                                          100) *
-                                                                          basePrice *
-                                                                          0.12 *
-                                                                          recurringCycles,
-                                                            )}
-                                                        </span>
-                                                    </div>
+                                                                              displayPrice -
+                                                                              ((recurringRate /
+                                                                                  100) *
+                                                                                  displayPrice) /
+                                                                                  1.12) *
+                                                                              recurringCycles
+                                                                        : (recurringRate /
+                                                                              100) *
+                                                                              basePrice *
+                                                                              0.12 *
+                                                                              recurringCycles,
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600 font-medium">
+                                                                Total (Amount +
+                                                                VAT):
+                                                            </span>
+                                                            <span className="font-semibold text-cyan-900">
+                                                                ₱
+                                                                {new Intl.NumberFormat(
+                                                                    "en-PH",
+                                                                    {
+                                                                        minimumFractionDigits: 2,
+                                                                    },
+                                                                ).format(
+                                                                    (() => {
+                                                                        const totalAmt =
+                                                                            (recurringRate /
+                                                                                100) *
+                                                                            displayPrice *
+                                                                            recurringCycles;
+                                                                        const totalVat =
+                                                                            isVatIncluded
+                                                                                ? ((recurringRate /
+                                                                                      100) *
+                                                                                      displayPrice -
+                                                                                      ((recurringRate /
+                                                                                          100) *
+                                                                                          displayPrice) /
+                                                                                          1.12) *
+                                                                                  recurringCycles
+                                                                                : (recurringRate /
+                                                                                      100) *
+                                                                                  basePrice *
+                                                                                  0.12 *
+                                                                                  recurringCycles;
+                                                                        // If VAT is included, totalAmt already contains VAT, so no need to add again
+                                                                        return isVatIncluded
+                                                                            ? totalAmt
+                                                                            : totalAmt +
+                                                                                  totalVat;
+                                                                    })(),
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </>
                                                 )}
                                                 {(() => {
                                                     const totalRecurringAmount =
@@ -1022,48 +1067,119 @@ export default function ClientsProject() {
                                         </span>
                                     </div>
                                     {showVatLine && (
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600 font-medium">
-                                                Total VAT{" "}
-                                                {isVatIncluded
-                                                    ? "(Included)"
-                                                    : "(12%)"}
-                                                :
-                                            </span>
-                                            <span className="font-semibold text-cyan-700">
-                                                ₱
-                                                {new Intl.NumberFormat(
-                                                    "en-PH",
-                                                    {
-                                                        minimumFractionDigits: 2,
-                                                    },
-                                                ).format(
-                                                    installmentSchedule.reduce(
-                                                        (sum, item) => {
-                                                            const rate =
-                                                                parseFloat(
-                                                                    item.payment_rate,
-                                                                ) || 0;
-                                                            const itemAmount =
-                                                                (rate / 100) *
-                                                                displayPrice;
-                                                            return (
-                                                                sum +
-                                                                (isVatIncluded
-                                                                    ? itemAmount -
-                                                                      itemAmount /
-                                                                          1.12
-                                                                    : (rate /
-                                                                          100) *
-                                                                      basePrice *
-                                                                      0.12)
-                                                            );
+                                        <>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600 font-medium">
+                                                    Total VAT{" "}
+                                                    {isVatIncluded
+                                                        ? "(Included)"
+                                                        : "(12%)"}
+                                                    :
+                                                </span>
+                                                <span className="font-semibold text-cyan-700">
+                                                    ₱
+                                                    {new Intl.NumberFormat(
+                                                        "en-PH",
+                                                        {
+                                                            minimumFractionDigits: 2,
                                                         },
-                                                        0,
-                                                    ),
-                                                )}
-                                            </span>
-                                        </div>
+                                                    ).format(
+                                                        installmentSchedule.reduce(
+                                                            (sum, item) => {
+                                                                const rate =
+                                                                    parseFloat(
+                                                                        item.payment_rate,
+                                                                    ) || 0;
+                                                                const itemAmount =
+                                                                    (rate /
+                                                                        100) *
+                                                                    displayPrice;
+                                                                return (
+                                                                    sum +
+                                                                    (isVatIncluded
+                                                                        ? itemAmount -
+                                                                          itemAmount /
+                                                                              1.12
+                                                                        : (rate /
+                                                                              100) *
+                                                                          basePrice *
+                                                                          0.12)
+                                                                );
+                                                            },
+                                                            0,
+                                                        ),
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600 font-medium">
+                                                    Total (Amount + VAT):
+                                                </span>
+                                                <span className="font-semibold text-cyan-900">
+                                                    ₱
+                                                    {new Intl.NumberFormat(
+                                                        "en-PH",
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    ).format(
+                                                        (() => {
+                                                            const totalAmt =
+                                                                installmentSchedule.reduce(
+                                                                    (
+                                                                        sum,
+                                                                        item,
+                                                                    ) =>
+                                                                        sum +
+                                                                        ((parseFloat(
+                                                                            item.payment_rate,
+                                                                        ) ||
+                                                                            0) /
+                                                                            100) *
+                                                                            basePrice,
+                                                                    0,
+                                                                );
+                                                            const totalVat =
+                                                                installmentSchedule.reduce(
+                                                                    (
+                                                                        sum,
+                                                                        item,
+                                                                    ) => {
+                                                                        const rate =
+                                                                            parseFloat(
+                                                                                item.payment_rate,
+                                                                            ) ||
+                                                                            0;
+                                                                        const itemAmount =
+                                                                            (rate /
+                                                                                100) *
+                                                                            displayPrice;
+                                                                        return (
+                                                                            sum +
+                                                                            (isVatIncluded
+                                                                                ? itemAmount -
+                                                                                  itemAmount /
+                                                                                      1.12
+                                                                                : (rate /
+                                                                                      100) *
+                                                                                  basePrice *
+                                                                                  0.12)
+                                                                        );
+                                                                    },
+                                                                    0,
+                                                                );
+                                                            // If VAT is already included in the original price, totalAmt
+                                                            // (based on basePrice) already contains VAT — don't add again.
+                                                            // If VAT is added on top, sum amount + vat.
+                                                            return isVatIncluded
+                                                                ? totalAmt
+                                                                : totalAmt +
+                                                                      totalVat;
+                                                        })(),
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </>
                                     )}
                                     {(() => {
                                         const totalRate =
