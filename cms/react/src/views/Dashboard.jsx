@@ -18,6 +18,8 @@ export default function Dashboard() {
     const [currentPage, setCurrentPage] = useState(1);
     const [paymentsPage, setPaymentsPage] = useState(1);
     const [overdueModalPage, setOverdueModalPage] = useState(1);
+    const [showPending2307Modal, setShowPending2307Modal] = useState(false);
+    const [pending2307Page, setPending2307Page] = useState(1);
     const [metrics, setMetrics] = useState({
         clientChange: 0,
         projectsChange: 0,
@@ -262,6 +264,22 @@ export default function Dashboard() {
 
         return { overallStatus, cycleLabel, totalCostPaid };
     };
+
+    // 2307
+    const pending2307Payments = transactions.filter(
+        (t) =>
+            t.paid_at &&
+            (!t.official_receipt ||
+                t.official_receipt.form_2307_status === "pending"),
+    );
+
+    const totalPending2307Pages = Math.ceil(
+        pending2307Payments.length / rowsPerPage,
+    );
+    const paginatedPending2307 = pending2307Payments.slice(
+        (pending2307Page - 1) * rowsPerPage,
+        pending2307Page * rowsPerPage,
+    );
 
     // Function to export CSV
     const exportDashboardCSV = () => {
@@ -904,6 +922,123 @@ export default function Dashboard() {
                             {metrics.overdueCount > 0
                                 ? "need attention"
                                 : "all clear"}
+                        </span>
+                    </div>
+                </div>
+
+                {/* 2307 Status */}
+                {/* Pending 2307 */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                                <svg
+                                    className="w-6 h-6 text-amber-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
+                                </svg>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 font-medium">
+                                    Pending BIR 2307
+                                </p>
+                                <h3 className="text-2xl font-bold text-gray-900">
+                                    {
+                                        transactions.filter(
+                                            (t) =>
+                                                t.paid_at &&
+                                                (!t.official_receipt ||
+                                                    t.official_receipt
+                                                        .form_2307_status ===
+                                                        "pending"),
+                                        ).length
+                                    }
+                                </h3>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setShowPending2307Modal(true)}
+                            className="bg-sky-400 text-white text-sm font-semibold hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                        >
+                            <FontAwesomeIcon icon={faEye} className="pr-1" />
+                            <span className="hidden sm:inline ml-1">View</span>
+                        </button>
+                    </div>
+
+                    <div className="space-y-2 border-t border-gray-100 pt-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                                No O.R. issued yet
+                            </span>
+                            {(() => {
+                                const count = transactions.filter(
+                                    (t) => t.paid_at && !t.official_receipt,
+                                ).length;
+                                return (
+                                    <span className="text-xs font-semibold text-amber-600">
+                                        {count}{" "}
+                                        {count === 1 ? "payment" : "payments"}
+                                    </span>
+                                );
+                            })()}
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-orange-400 inline-block"></span>
+                                O.R. issued, 2307 pending
+                            </span>
+                            {(() => {
+                                const count = transactions.filter(
+                                    (t) =>
+                                        t.paid_at &&
+                                        t.official_receipt &&
+                                        t.official_receipt.form_2307_status ===
+                                            "pending",
+                                ).length;
+                                return (
+                                    <span className="text-xs font-semibold text-orange-600">
+                                        {count}{" "}
+                                        {count === 1 ? "payment" : "payments"}
+                                    </span>
+                                );
+                            })()}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-3">
+                        <span className="text-sm font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                            {
+                                transactions.filter(
+                                    (t) =>
+                                        t.paid_at &&
+                                        (!t.official_receipt ||
+                                            t.official_receipt
+                                                .form_2307_status ===
+                                                "pending"),
+                                ).length
+                            }{" "}
+                            {transactions.filter(
+                                (t) =>
+                                    t.paid_at &&
+                                    (!t.official_receipt ||
+                                        t.official_receipt.form_2307_status ===
+                                            "pending"),
+                            ).length === 1
+                                ? "payment"
+                                : "payments"}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                            awaiting 2307
                         </span>
                     </div>
                 </div>
@@ -1634,6 +1769,144 @@ export default function Dashboard() {
                                     disabled={
                                         overdueModalPage ===
                                         totalOverdueModalPages
+                                    }
+                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* 2307 M0DAL */}
+            {showPending2307Modal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">
+                                Pending BIR 2307
+                            </h2>
+                            <button
+                                onClick={() => setShowPending2307Modal(false)}
+                                className="text-gray-500 hover:text-gray-800 cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="max-h-96 overflow-y-auto">
+                            <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
+                                <thead className="bg-cyan-800 text-white text-center">
+                                    <tr>
+                                        <th className="px-4 py-2">Client</th>
+                                        <th className="px-4 py-2">Project</th>
+                                        <th className="px-4 py-2">Amount</th>
+                                        <th className="px-4 py-2">Paid At</th>
+                                        <th className="px-4 py-2">OR No.</th>
+                                        <th className="px-4 py-2">
+                                            2307 Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-center">
+                                    {paginatedPending2307.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="6"
+                                                className="text-center py-4 text-gray-500"
+                                            >
+                                                All 2307s are accounted for 🎉
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        paginatedPending2307.map((t) => (
+                                            <tr
+                                                key={t.id}
+                                                className="border-b border-gray-200 bg-amber-50"
+                                            >
+                                                <td className="px-4 py-2">
+                                                    {t.client?.name || "Client"}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.project?.title ||
+                                                        "Project"}
+                                                </td>
+                                                <td className="px-4 py-2 font-semibold">
+                                                    ₱
+                                                    {Number(
+                                                        t.amount_paid,
+                                                    ).toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {new Date(
+                                                        t.paid_at,
+                                                    ).toLocaleDateString(
+                                                        "en-CA",
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.official_receipt
+                                                        ?.or_number ? (
+                                                        <span className="text-xs font-mono text-gray-700">
+                                                            {
+                                                                t
+                                                                    .official_receipt
+                                                                    .or_number
+                                                            }
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">
+                                                            No O.R. issued
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <StatusBadge
+                                                        status={
+                                                            t.official_receipt
+                                                                ?.form_2307_status ??
+                                                            "pending"
+                                                        }
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {totalPending2307Pages > 1 && (
+                            <div className="flex justify-between items-center mt-4">
+                                <button
+                                    onClick={() =>
+                                        setPending2307Page((prev) =>
+                                            Math.max(prev - 1, 1),
+                                        )
+                                    }
+                                    disabled={pending2307Page === 1}
+                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-gray-600">
+                                    Page {pending2307Page} of{" "}
+                                    {totalPending2307Pages}
+                                </span>
+                                <button
+                                    onClick={() =>
+                                        setPending2307Page((prev) =>
+                                            Math.min(
+                                                prev + 1,
+                                                totalPending2307Pages,
+                                            ),
+                                        )
+                                    }
+                                    disabled={
+                                        pending2307Page ===
+                                        totalPending2307Pages
                                     }
                                     className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
                                 >
