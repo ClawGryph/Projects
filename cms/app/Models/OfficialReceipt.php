@@ -17,4 +17,9 @@ class OfficialReceipt extends Model
         'total_amount',
         'form_2307_status',
     ];
+
+    public function form2307()
+    {
+        return $this->hasOne(Form2307::class);
+    }
 }

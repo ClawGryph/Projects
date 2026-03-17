@@ -28,6 +28,7 @@ class OfficialReceiptResource extends JsonResource
             'form_2307_status'       => $this->form_2307_status,
             'created_at'             => $this->created_at,
             'updated_at'             => $this->updated_at,
+            'form2307'               => new Form2307Resource($this->whenLoaded('form2307')),
         ];
     }
 }

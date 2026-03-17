@@ -64,6 +64,19 @@ class PaymentScheduleResource extends JsonResource
                     'other'                  => $this->transaction->officialReceipt->other,
                     'total_amount'           => $this->transaction->officialReceipt->total_amount,
                     'form_2307_status'       => $this->transaction->officialReceipt->form_2307_status,
+
+                    'form2307' => $this->transaction->officialReceipt->form2307 ? [
+                        'id'            => $this->transaction->officialReceipt->form2307->id,
+                        'period_from'   => $this->transaction->officialReceipt->form2307->period_from?->format('Y-m-d'),
+                        'period_to'     => $this->transaction->officialReceipt->form2307->period_to?->format('Y-m-d'),
+                        'payee_tin'     => $this->transaction->officialReceipt->form2307->payee_tin,
+                        'atc_code'      => $this->transaction->officialReceipt->form2307->atc_code,
+                        'month1_amount' => $this->transaction->officialReceipt->form2307->month1_amount,
+                        'month2_amount' => $this->transaction->officialReceipt->form2307->month2_amount,
+                        'month3_amount' => $this->transaction->officialReceipt->form2307->month3_amount,
+                        'total_income'  => $this->transaction->officialReceipt->form2307->total_income,
+                        'tax_withheld'  => $this->transaction->officialReceipt->form2307->tax_withheld,
+                    ] : null,
                 ] : null,
             ] : null,
         ];

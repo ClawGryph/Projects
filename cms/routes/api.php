@@ -65,6 +65,8 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function ()
     Route::put('/payment-schedules/{schedule}/status', [PaymentScheduleController::class, 'updateStatus']);
     Route::put('/official-receipts/{id}', [OfficialReceiptController::class, 'update']);
     Route::delete('/transactions/{transaction}', [PaymentTransactionController::class, 'destroy']);
+    Route::get('/official-receipts/check-si', [OfficialReceiptController::class, 'checkServiceInvoiceNumber']);
+    Route::apiResource('official-receipts', OfficialReceiptController::class);
 });
 
 // All roles can view - super_admin, admin, viewer

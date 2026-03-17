@@ -16,7 +16,7 @@ class PaymentScheduleController extends Controller
             'clientsProject.client',
             'clientsProject.project',
             'clientsProject.payments',
-            'officialReceipt'
+            'transaction.officialReceipt.form2307',
         ]);
 
         if ($request->filled('month')) {
