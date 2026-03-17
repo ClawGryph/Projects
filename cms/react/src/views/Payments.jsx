@@ -19,14 +19,9 @@ export default function Payments() {
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
-    const [editing2307Id, setEditing2307Id] = useState(null);
     const [selectedMonth, setSelectedMonth] = useState("");
     const [selectedProject, setSelectedProject] = useState("");
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-    const [statusDropdownPos, setStatusDropdownPos] = useState({
-        top: 0,
-        left: 0,
-    });
 
     const getPaymentSchedules = () => {
         setLoading(true);
@@ -87,11 +82,10 @@ export default function Payments() {
         }
     };
 
-    // Close both dropdowns on outside click
+    // Close dropdown on outside click
     useEffect(() => {
         const close = () => {
             setEditingId(null);
-            setEditing2307Id(null);
         };
         window.addEventListener("click", close);
         return () => window.removeEventListener("click", close);
@@ -426,7 +420,7 @@ export default function Payments() {
                                                                         p.id,
                                                                     );
                                                             }}
-                                                            className={`flex justify-center ${
+                                                            className={`inline-flex items-center gap-1 justify-center ${
                                                                 user?.role_name !==
                                                                 "viewer"
                                                                     ? "cursor-pointer"
@@ -441,6 +435,21 @@ export default function Payments() {
                                                                     p.isEnded
                                                                 }
                                                             />
+                                                            {user?.role_name !==
+                                                                "viewer" && (
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    className="h-3 w-3 text-gray-400 shrink-0"
+                                                                    viewBox="0 0 20 20"
+                                                                    fill="currentColor"
+                                                                >
+                                                                    <path
+                                                                        fillRule="evenodd"
+                                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                                        clipRule="evenodd"
+                                                                    />
+                                                                </svg>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </td>
@@ -464,125 +473,24 @@ export default function Payments() {
                                                     )}
                                                 </td>
 
-                                                {/* 2307 Status Column */}
-                                                <td className="border-b border-gray-200 px-4 py-2 relative">
+                                                {/* 2307 Status Column - read only */}
+                                                <td className="border-b border-gray-200 px-4 py-2">
                                                     {isPaid ? (
-                                                        editing2307Id ===
-                                                        officialReceipt?.id ? (
-                                                            <div
-                                                                style={{
-                                                                    position:
-                                                                        "fixed",
-                                                                    top: statusDropdownPos.top,
-                                                                    left: statusDropdownPos.left,
-                                                                    transform:
-                                                                        "translateX(-50%)",
-                                                                }}
-                                                                className="bg-white border rounded shadow-md z-50"
-                                                            >
-                                                                {[
-                                                                    "pending",
-                                                                    "issued",
-                                                                ].map(
-                                                                    (
-                                                                        status,
-                                                                    ) => (
-                                                                        <div
-                                                                            key={
-                                                                                status
-                                                                            }
-                                                                            onClick={() => {
-                                                                                axiosClient
-                                                                                    .put(
-                                                                                        `/official-receipts/${officialReceipt.id}`,
-                                                                                        {
-                                                                                            ...officialReceipt,
-                                                                                            form_2307_status:
-                                                                                                status,
-                                                                                        },
-                                                                                    )
-                                                                                    .then(
-                                                                                        () => {
-                                                                                            getPaymentSchedules();
-                                                                                            setNotification(
-                                                                                                "2307 status updated",
-                                                                                            );
-                                                                                        },
-                                                                                    )
-                                                                                    .catch(
-                                                                                        () =>
-                                                                                            setNotification(
-                                                                                                "Failed to update 2307 status",
-                                                                                            ),
-                                                                                    );
-                                                                                setEditing2307Id(
-                                                                                    null,
-                                                                                );
-                                                                            }}
-                                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                                        >
-                                                                            <StatusBadge
-                                                                                status={
-                                                                                    status
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                    ),
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <div
-                                                                onClick={(
-                                                                    e,
-                                                                ) => {
-                                                                    if (
-                                                                        user?.role_name ===
-                                                                            "viewer" ||
-                                                                        !officialReceipt
-                                                                    )
-                                                                        return;
-                                                                    e.stopPropagation();
-                                                                    const rect =
-                                                                        e.currentTarget.getBoundingClientRect();
-                                                                    setStatusDropdownPos(
-                                                                        {
-                                                                            top:
-                                                                                rect.bottom +
-                                                                                window.scrollY -
-                                                                                30,
-                                                                            left:
-                                                                                rect.left +
-                                                                                rect.width /
-                                                                                    2 +
-                                                                                window.scrollX,
-                                                                        },
-                                                                    );
-                                                                    setEditing2307Id(
-                                                                        officialReceipt.id,
-                                                                    );
-                                                                }}
-                                                                className={`flex justify-center ${
-                                                                    user?.role_name !==
-                                                                        "viewer" &&
-                                                                    officialReceipt
-                                                                        ? "cursor-pointer"
-                                                                        : "cursor-default"
-                                                                }`}
-                                                            >
-                                                                <StatusBadge
-                                                                    status={
-                                                                        form2307Status ??
-                                                                        "pending"
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        )
+                                                        <div className="flex justify-center">
+                                                            <StatusBadge
+                                                                status={
+                                                                    form2307Status ??
+                                                                    "pending"
+                                                                }
+                                                            />
+                                                        </div>
                                                     ) : (
                                                         <span className="text-gray-400">
                                                             —
                                                         </span>
                                                     )}
                                                 </td>
+
                                                 {user?.role_name !==
                                                     "viewer" && (
                                                     <>
