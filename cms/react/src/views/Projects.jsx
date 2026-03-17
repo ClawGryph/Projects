@@ -243,7 +243,7 @@ export default function Projects() {
                                                                     p.id,
                                                                 );
                                                         }}
-                                                        className={`flex justify-center ${
+                                                        className={`inline-flex items-center gap-1 justify-center ${
                                                             user?.role_name !==
                                                             "viewer"
                                                                 ? "cursor-pointer"
@@ -254,6 +254,21 @@ export default function Projects() {
                                                             status={p.status}
                                                             isEnded={p.isEnded}
                                                         />
+                                                        {user?.role_name !==
+                                                            "viewer" && (
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className="h-3 w-3 text-gray-400 shrink-0"
+                                                                viewBox="0 0 20 20"
+                                                                fill="currentColor"
+                                                            >
+                                                                <path
+                                                                    fillRule="evenodd"
+                                                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                                    clipRule="evenodd"
+                                                                />
+                                                            </svg>
+                                                        )}
                                                     </div>
                                                 )}
                                             </td>
