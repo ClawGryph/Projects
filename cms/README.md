@@ -46,3 +46,23 @@ Users are assigned roles such as Super Admin, Admin, or Viewer to control access
 - Uses Laravel Sail (Docker-based dev environment)
 - Default DB: MySQL (configured in .env)
 - If ports conflict, update compose.yaml
+
+## TECHNICAL SPECIFICATIONS
+### Backend
+- Laravel 12.0
+- Laravel Sanctum (API Authentication)
+- PHP 8.2+
+- MySQL 8.4
+### Frontend
+- React 19.2.0
+- React DOM 19.2.0
+- Vite 7.2.4
+- React Router 7.13.0
+- Tailwind CSS 4.1.18
+- Fontawesome 7
+- Html2Canvas 1.4.1
+- Jspdf 4.2.0
+
+## ARCHITECTURE
+- SPA (React + Vite)
+- Token-based authentication via Sanctum
