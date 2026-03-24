@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Resources\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class UserResource extends JsonResource
+{
+    public static $wrap = false;
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        $role = $this->roles->first();
+
+        return [
+            'id'=> $this->id,
+            'name'=> $this->name,
+            'email'=> $this->email,
+            'created_at'=> $this->created_at->format('Y-m-d'),
+            'role_label' => $role?->label,
+            'role_name'  => $role?->name,
+        ];
+    }
+}

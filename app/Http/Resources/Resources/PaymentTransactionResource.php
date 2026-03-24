@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Http\Resources\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class PaymentTransactionResource extends JsonResource
+{
+    public static $wrap = false;
+
+    public function toArray(Request $request): array
+    {
+        return [
+            'id'          => $this->id,
+            'amount_paid' => $this->amount_paid,
+            'paid_at'     => $this->paid_at->format('Y-m-d'),
+            'client' => [
+                'name' => $this->paymentSchedule?->payment?->clientsProject?->client?->name,
+            ],
+            'project' => [
+                'id'    => $this->paymentSchedule?->payment?->clientsProject?->project?->id,
+                'title' => $this->paymentSchedule?->payment?->clientsProject?->project?->title,
+            ],
+            'payment' => [
+                'payment_type'   => $this->paymentSchedule?->payment?->payment_type,
+                'recurring_type' => $this->paymentSchedule?->payment?->recurring_type,
+                'expected_amount'=> $this->paymentSchedule?->expected_amount,
+            ],
+            'official_receipt' => $this->officialReceipt ? [
+                'id'                             => $this->officialReceipt->id,
+                'service_invoice_number'         => $this->officialReceipt->service_invoice_number,
+                'payment_acknowledgement_number' => $this->officialReceipt->payment_acknowledgement_number,
+                'billing_statement_number'       => $this->officialReceipt->billing_statement_number,
+                'or_file_url'                    => $this->officialReceipt->or_file_path
+                                            ? asset('storage/' . $this->officialReceipt->or_file_path)
+                                            : null,
+                'form2307_id'                    => $this->officialReceipt->form2307?->id,
+                'form2307_file_url'              => $this->officialReceipt->form2307?->form_file_path
+                                            ? asset('storage/' . $this->officialReceipt->form2307->form_file_path)
+                                            : null,
+            ] : null,
+        ];
+    }
+}
