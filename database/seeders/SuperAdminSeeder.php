@@ -15,10 +15,7 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-       $role = Role::firstOrCreate(
-            ['name' => 'super_admin'],
-            ['label' => 'Super Admin']
-        );
+       $role = Role::where('name', 'super_admin')->firstOrFail();
 
         $user = User::firstOrCreate(
             ['email' => 'sadmin@sadmin.com'],
