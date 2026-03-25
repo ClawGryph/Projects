@@ -7,10 +7,11 @@
 - Centralizes client, project, and financial data while enforcing relationships between payments, receipts, and tax records.
 
 ## SETUP
+cp .env.example .env
 ./vendor/bin/sail up -d
 ./vendor/bin/sail composer install
 ./vendor/bin/sail artisan key:generate
-./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan migrate:fresh --seed
 
 ## DATABASE
 Core flow:
@@ -64,5 +65,5 @@ Users are assigned roles such as Super Admin, Admin, or Viewer to control access
 - Jspdf 4.2.0
 
 ## ARCHITECTURE
-- SPA (React + Vite)
+- React + Vite separated from laravel
 - Token-based authentication via Sanctum
