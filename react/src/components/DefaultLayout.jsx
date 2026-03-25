@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet, NavLink } from "react-router-dom";
+import { Navigate, Outlet, NavLink, useMatches } from "react-router-dom";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -20,6 +20,7 @@ export default function DefaultLayout() {
     const { user, token, notification, setUser, setToken } = useStateContext();
     const [openSidebar, setOpenSidebar] = useState(false);
     const [loadingLogout, setLoadingLogout] = useState(false);
+    const matches = useMatches();
 
     useEffect(() => {
         if (token) {
@@ -28,6 +29,17 @@ export default function DefaultLayout() {
             });
         }
     }, [token]);
+
+    useEffect(() => {
+        const current = matches[matches.length - 1];
+        const title = current?.handle?.title;
+
+        if (title) {
+            document.title = `${title} | Client Management System`;
+        } else {
+            document.title = "Client Management System";
+        }
+    }, [matches]);
 
     useEffect(() => {
         if (token) {

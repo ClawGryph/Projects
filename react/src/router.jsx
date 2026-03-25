@@ -28,22 +28,27 @@ const router = createBrowserRouter([
             {
                 path: "/dashboard",
                 element: <Dashboard />,
+                handle: { title: "Dashboard" },
             },
             {
                 path: "/users",
                 element: <Users />,
+                handle: { title: "Users" },
             },
             {
                 path: "/users/new",
                 element: <UserForm key="userCreate" />,
+                handle: { title: "Create User" },
             },
             {
                 path: "/users/:id",
                 element: <UserForm key="userUpdate" />,
+                handle: { title: "Edit User" },
             },
             {
                 path: "/clients",
                 element: <Clients />,
+                handle: { title: "Client" },
             },
             {
                 path: "/clients/project/:id",
@@ -52,34 +57,42 @@ const router = createBrowserRouter([
             {
                 path: "/clients/new",
                 element: <ClientForm key="clientCreate" />,
+                handle: { title: "Create Client" },
             },
             {
                 path: "/clients/:id",
                 element: <ClientForm key="clientUpdate" />,
+                handle: { title: "Edit Client" },
             },
             {
                 path: "/projects",
                 element: <Projects />,
+                handle: { title: "Projects" },
             },
             {
                 path: "/projects/new",
                 element: <ProjectsForm key="projectCreate" />,
+                handle: { title: "Create Project" },
             },
             {
                 path: "/projects/:id",
                 element: <ProjectsForm key="projectUpdate" />,
+                handle: { title: "Edit Project" },
             },
             {
                 path: "/payments",
                 element: <Payments />,
+                handle: { title: "Payments" },
             },
             {
                 path: "/upload",
                 element: <UploadFiles />,
+                handle: { title: "Upload Files" },
             },
             {
                 path: "/report",
                 element: <ReportModule />,
+                handle: { title: "Report" },
             },
         ],
     },
@@ -90,12 +103,14 @@ const router = createBrowserRouter([
             {
                 path: "/login",
                 element: <Login />,
+                handle: { title: "Login" },
             },
         ],
     },
     {
         path: "*",
         element: <NotFound />,
+        handle: { title: "Not Found" },
     },
 ]);
 
