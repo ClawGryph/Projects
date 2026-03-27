@@ -41,12 +41,22 @@ One form 2307 can only have one official receipt.
 User ──< RoleUser >── Role
 - Users → System access
 Users are assigned roles such as Super Admin, Admin, or Viewer to control access levels.
+
+## FILE STORAGE
+
+- Uses Cloudinary for storing uploaded files
+- Files stored:
+  - Official Receipts (OR)
+  - BIR Form 2307
+- Files are accessed via secure URLs
+- Reduces server storage usage
                           
 ## NOTES
 
 - Uses Laravel Sail (Docker-based dev environment)
 - Default DB: MySQL (configured in .env)
 - If ports conflict, update compose.yaml
+- If Storage needs to be change it's in UploadFileController
 
 ## TECHNICAL SPECIFICATIONS
 ### Backend
@@ -54,6 +64,7 @@ Users are assigned roles such as Super Admin, Admin, or Viewer to control access
 - Laravel Sanctum (API Authentication)
 - PHP 8.2+
 - MySQL 8.4
+- Cloudinary Laravel SDK (cloudinary-labs/cloudinary-laravel)
 ### Frontend
 - React 19.2.0
 - React DOM 19.2.0
