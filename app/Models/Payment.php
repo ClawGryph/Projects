@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Payment extends Model
 {
     protected $fillable = [
+        'company_id',
         'clients_project_id',
         'payment_type',
         'recurring_type',

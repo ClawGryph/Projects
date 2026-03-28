@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class PaymentTransaction extends Model
 {
     protected $fillable = [
+        'company_id',
         'payment_schedule_id',
         'amount_paid',
         'paid_at'
