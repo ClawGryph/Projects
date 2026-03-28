@@ -49,7 +49,7 @@ export default function Company() {
     useEffect(() => {
         axiosClient
             .get("/companies")
-            .then(({ data }) => setCompanies(data))
+            .then(({ data }) => setCompanies(data.data))
             .finally(() => setLoading(false));
     }, []);
 

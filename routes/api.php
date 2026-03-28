@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientsProjectController;
+use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\Form2307Controller;
 use App\Http\Controllers\Api\ManualInvoiceController;
 use App\Http\Controllers\Api\OfficialReceiptController;
@@ -78,6 +79,9 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function ()
     Route::post('/manual-invoices', [ManualInvoiceController::class, 'save']);
     Route::post('/form-2307s', [Form2307Controller::class, 'store']);
     Route::put('/form-2307s/{form2307}', [Form2307Controller::class, 'update']);
+    Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function () {
+        Route::apiResource('/companies', CompanyController::class)->only(['store']);
+    });
 });
 
 // All roles can view - super_admin, admin, viewer
@@ -94,4 +98,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer'])->group(func
     Route::get('/payment-schedules', [PaymentScheduleController::class, 'index']);
     Route::get('/projects/{project}/clients-projects', [ProjectController::class, 'payments']);
     Route::get('/official-receipts/{id}', [OfficialReceiptController::class, 'show']);
+    Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer'])->group(function () {
+        Route::apiResource('/companies', CompanyController::class)->only(['index', 'show']);
+    });
 });
