@@ -27,24 +27,25 @@ function colorFor(id) {
 }
 
 export default function Company() {
-    const { token, selectedCompany, setSelectedCompany } = useStateContext(); // ← add
+    const { token, selectedCompany, setSelectedCompany } = useStateContext();
     const [companies, setCompanies] = useState([]);
     const [selected, setSelected] = useState(null);
     const [open, setOpen] = useState(false);
     const [showModal, setShowModal] = useState(false);
-    const [loading, setLoading] = useState(true); // ← add
+    const [loading, setLoading] = useState(true);
+    const [isOther, setIsOther] = useState(false);
     const [form, setForm] = useState({
         name: "",
-        type: "",
+        business_type: "",
         vat_type: "",
-        wtax_rate: "",
+        annual_gross: "",
     });
 
-    // ← add guards
+    // add guards
     if (!token) return <Navigate to="/login" />;
     if (selectedCompany) return <Navigate to="/dashboard" />;
 
-    // ← fetch from API instead of local state
+    // fetch from API instead of local state
     useEffect(() => {
         axiosClient
             .get("/companies")
@@ -52,19 +53,29 @@ export default function Company() {
             .finally(() => setLoading(false));
     }, []);
 
-    // ← save to API instead of local state
+    // save to API instead of local state
     function saveCompany() {
-        if (!form.name || !form.type || !form.vat_type || form.wtax_rate === "")
+        if (
+            !form.name ||
+            !form.business_type ||
+            !form.vat_type ||
+            form.annual_gross === ""
+        )
             return;
         axiosClient.post("/companies", form).then(({ data }) => {
             setCompanies((prev) => [...prev, data]);
             setSelected(data);
-            setForm({ name: "", type: "", vat_type: "", wtax_rate: "" });
+            setForm({
+                name: "",
+                business_type: "",
+                vat_type: "",
+                annual_gross: "",
+            });
             setShowModal(false);
         });
     }
 
-    // ← add proceed
+    // add proceed
     function proceed() {
         if (selected) setSelectedCompany(selected);
     }
@@ -132,8 +143,7 @@ export default function Company() {
                                                 {c.name}
                                             </p>
                                             <p className="text-xs text-gray-400">
-                                                {c.type} · {c.vat_type} ·{" "}
-                                                {c.wtax_rate}% WHT
+                                                {c.business_type} · {c.vat_type}
                                             </p>
                                         </div>
                                         {selected?.id === c.id && (
@@ -155,7 +165,7 @@ export default function Company() {
                         + Add Company
                     </button>
 
-                    {/* Continue button ← add */}
+                    {/* Continue button */}
                     <button
                         onClick={proceed}
                         disabled={!selected}
@@ -165,84 +175,146 @@ export default function Company() {
                     </button>
                 </div>
 
-                {/* Modal — unchanged */}
+                {/* Modal */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
                             <h2 className="text-base font-semibold mb-4">
                                 New Company
                             </h2>
-                            {[
-                                {
-                                    label: "Company Name",
-                                    key: "name",
-                                    type: "text",
-                                    placeholder: "e.g. Acme Corp",
-                                },
-                                {
-                                    label: "WHT Rate (%)",
-                                    key: "wtax_rate",
-                                    type: "number",
-                                    placeholder: "e.g. 5",
-                                },
-                            ].map(({ label, key, type, placeholder }) => (
-                                <div key={key} className="mb-3">
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                        {label}
-                                    </label>
+
+                            {/* Company Name */}
+                            <div className="mb-3">
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                    Company Name
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Acme Corp"
+                                    value={form.name}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            name: e.target.value,
+                                        }))
+                                    }
+                                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+                                />
+                            </div>
+
+                            {/* Business Type */}
+                            <div className="mb-3">
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                    Business Type
+                                </label>
+                                <select
+                                    value={
+                                        isOther ? "Other" : form.business_type
+                                    }
+                                    onChange={(e) => {
+                                        if (e.target.value === "Other") {
+                                            setIsOther(true);
+                                            setForm((f) => ({
+                                                ...f,
+                                                business_type: "",
+                                            }));
+                                        } else {
+                                            setIsOther(false);
+                                            setForm((f) => ({
+                                                ...f,
+                                                business_type: e.target.value,
+                                            }));
+                                        }
+                                    }}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+                                >
+                                    <option value="">Select…</option>
+                                    <option>Sole Proprietorship</option>
+                                    <option>Partnership</option>
+                                    <option>Corporation</option>
+                                    <option>One Person Corporation</option>
+                                    <option value="Other">Other</option>
+                                </select>
+
+                                {isOther && (
                                     <input
-                                        type={type}
-                                        placeholder={placeholder}
-                                        value={form[key]}
+                                        type="text"
+                                        placeholder="Please specify your business type"
+                                        value={form.business_type}
                                         onChange={(e) =>
                                             setForm((f) => ({
                                                 ...f,
-                                                [key]: e.target.value,
+                                                business_type: e.target.value,
                                             }))
                                         }
-                                        className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+                                        className="mt-2 w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+                                        autoFocus
+                                    />
+                                )}
+                            </div>
+
+                            {/* Annual Gross Income */}
+                            <div className="mb-3">
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                    Annual Gross Income
+                                </label>
+                                <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-300">
+                                    <span className="px-3 py-2 bg-gray-100 text-gray-500 text-sm border-r">
+                                        ₱
+                                    </span>
+                                    <input
+                                        type="number"
+                                        placeholder="e.g. 5000000"
+                                        value={form.annual_gross}
+                                        onChange={(e) => {
+                                            const gross = e.target.value;
+                                            const autoVat =
+                                                parseFloat(gross) >= 3000000
+                                                    ? "vat_registered"
+                                                    : "non_vat";
+                                            setForm((f) => ({
+                                                ...f,
+                                                annual_gross: gross,
+                                                vat_type:
+                                                    gross === ""
+                                                        ? f.vat_type
+                                                        : autoVat,
+                                            }));
+                                        }}
+                                        className="w-full px-3 py-2 text-sm outline-none"
                                     />
                                 </div>
-                            ))}
-                            {[
-                                {
-                                    label: "Type",
-                                    key: "type",
-                                    options: [
-                                        "Corporation",
-                                        "Partnership",
-                                        "Sole Proprietorship",
-                                        "LLC",
-                                        "Cooperative",
-                                    ],
-                                },
-                                {
-                                    label: "VAT Type",
-                                    key: "vat_type",
-                                    options: ["VAT", "Non-VAT", "Exempt"],
-                                },
-                            ].map(({ label, key, options }) => (
-                                <div key={key} className="mb-3">
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                        {label}
-                                    </label>
-                                    <select
-                                        value={form[key]}
-                                        onChange={(e) =>
-                                            setForm((f) => ({
-                                                ...f,
-                                                [key]: e.target.value,
-                                            }))
-                                        }
-                                        className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
-                                    >
-                                        <option value="">Select…</option>
-                                        {options.map((o) => (
-                                            <option key={o}>{o}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            ))}
+                            </div>
+
+                            {/* VAT Type — editable but auto-set by annual gross */}
+                            <div className="mb-3">
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                    VAT Type
+                                    {form.annual_gross !== "" && (
+                                        <span className="ml-2 normal-case text-indigo-400 font-normal">
+                                            (auto-selected based on gross
+                                            income)
+                                        </span>
+                                    )}
+                                </label>
+                                <select
+                                    value={form.vat_type}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            vat_type: e.target.value,
+                                        }))
+                                    }
+                                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+                                >
+                                    <option value="">Select…</option>
+                                    <option value="vat_registered">
+                                        VAT Registered
+                                    </option>
+                                    <option value="non_vat">Non-VAT</option>
+                                </select>
+                            </div>
+
                             <div className="flex gap-2 mt-4">
                                 <button
                                     onClick={() => setShowModal(false)}
