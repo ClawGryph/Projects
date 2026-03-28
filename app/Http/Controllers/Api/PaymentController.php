@@ -11,10 +11,15 @@ use Illuminate\Support\Carbon;
 
 class PaymentController extends Controller
 {
+    private function company(): \App\Models\Company
+    {
+        return app('company');
+    }
+
     public function index()
     {
         return PaymentResource::collection(
-            Payment::latest()->get()
+            Payment::latest()->where('company_id', $this->company()->id)->get()
         );
     }
 
@@ -23,25 +28,31 @@ class PaymentController extends Controller
      */
     public function show(Payment $payment)
     {
+        abort_if($payment->company_id !== $this->company()->id, 403);
+
         return new PaymentResource($payment);
     }
 
-    public function store(Request $request)
+    public function update(Request $request, Payment $payment)
     {
+        abort_if($payment->company_id !== $this->company()->id, 403);
+
         $data = $request->validate([
-            'payment_type' => 'required|string',
+            'payment_type'  => 'required|string',
             'recurring_type' => 'required|string',
-            'installments' => 'required|integer',
-            'start_date' => 'required'
+            'installments'  => 'required|integer',
+            'start_date'    => 'required',
         ]);
 
-        $payment = Payment::create($data);
+        $payment->update($data);
 
         return new PaymentResource($payment);
     }
 
     public function updateStatus(Payment $payment, Request $request)
     {
+        abort_if($payment->company_id !== $this->company()->id, 403);
+
         $request->validate([
             'status' => 'required|string',
         ]);

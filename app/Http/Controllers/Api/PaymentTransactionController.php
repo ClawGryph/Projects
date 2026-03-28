@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 
 class PaymentTransactionController extends Controller
 {
+    private function company(): \App\Models\Company
+    {
+        return app('company');
+    }
+
     public function index()
     {
         return PaymentTransactionResource::collection(
@@ -16,12 +21,14 @@ class PaymentTransactionController extends Controller
                 'paymentSchedule.payment.clientsProject.client',
                 'paymentSchedule.payment.clientsProject.project',
                 'officialReceipt.form2307',
-            ])->latest()->get()
+            ])->latest()->where('company_id', $this->company()->id)->get()
         );
     }
 
     public function destroy(PaymentTransaction $transaction)
     {
+        abort_if($transaction->company_id !== $this->company()->id, 403);
+
         $transaction->officialReceipt()->delete();
         $transaction->delete();
 
