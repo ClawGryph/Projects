@@ -41,10 +41,6 @@ export default function Company() {
         annual_gross: "",
     });
 
-    // add guards
-    if (!token) return <Navigate to="/login" />;
-    if (selectedCompany) return <Navigate to="/dashboard" />;
-
     // fetch from API instead of local state
     useEffect(() => {
         axiosClient
@@ -52,6 +48,10 @@ export default function Company() {
             .then(({ data }) => setCompanies(data.data))
             .finally(() => setLoading(false));
     }, []);
+
+    // add guards
+    if (!token) return <Navigate to="/login" />;
+    if (selectedCompany) return <Navigate to="/dashboard" />;
 
     // save to API instead of local state
     function saveCompany() {
