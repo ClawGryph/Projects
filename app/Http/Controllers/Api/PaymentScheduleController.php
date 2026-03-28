@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 
 class PaymentScheduleController extends Controller
 {
+    private function company(): \App\Models\Company
+    {
+        return app('company');
+    }
+
     public function index(Request $request)
     {
         $query = PaymentSchedule::with([
@@ -17,7 +22,11 @@ class PaymentScheduleController extends Controller
             'clientsProject.project',
             'clientsProject.payments',
             'transaction.officialReceipt.form2307',
-        ]);
+        ])
+        // Scope through payment → company_id
+        ->whereHas('payment', function ($q) {
+            $q->where('company_id', $this->company()->id);
+        });
 
         if ($request->filled('month')) {
             $query->where('due_date', 'like', $request->month . '%');
@@ -34,17 +43,17 @@ class PaymentScheduleController extends Controller
 
         $schedules = $query->get();
 
-        // Fetch ALL schedules for the involved clients_project_ids (ignoring filters)
+        // Fetch ALL schedules for the involved payment_ids (ignoring filters)
         $paymentIds = $schedules->pluck('payment_id')->unique();
 
         $allSchedules = PaymentSchedule::whereIn('payment_id', $paymentIds)
-                        ->orderBy('due_date', 'asc')
-                        ->get()
-                        ->groupBy('payment_id');
+            ->orderBy('due_date', 'asc')
+            ->get()
+            ->groupBy('payment_id');
 
         // Attach schedule_index and total_schedules to each result
         $schedules->each(function ($schedule) use ($allSchedules) {
-             $group = $allSchedules->get($schedule->payment_id, collect());
+            $group = $allSchedules->get($schedule->payment_id, collect());
             $schedule->schedule_index = $group->search(fn($s) => $s->id === $schedule->id) + 1;
             $schedule->total_schedules = $group->count();
         });
@@ -54,24 +63,25 @@ class PaymentScheduleController extends Controller
 
     public function updateStatus(Request $request, PaymentSchedule $schedule)
     {
+        // Scope check through payment relationship
+        abort_if($schedule->payment->company_id !== $this->company()->id, 403);
+
         $request->validate([
             'status' => 'required|in:pending,paid,overdue,ended',
         ]);
 
-        // Update schedule status
         $schedule->status = $request->status;
         $schedule->save();
 
-        // Optionally, create a transaction if marked as paid
         if ($request->status === 'paid' && !$schedule->transaction()->exists()) {
             $schedule->paymentTransactions()->create([
                 'amount_paid' => $schedule->expected_amount,
-                'paid_at' => now(),
+                'paid_at'     => now(),
             ]);
         }
 
         return response()->json([
-            'message' => 'Payment schedule status updated successfully',
+            'message'  => 'Payment schedule status updated successfully',
             'schedule' => $schedule,
         ]);
     }
