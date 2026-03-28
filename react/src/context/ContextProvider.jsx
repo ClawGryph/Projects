@@ -22,9 +22,14 @@ export const ContextProvider = ({ children }) => {
     const [client, setClient] = useState({});
     const [project, setProject] = useState({});
     const [payment, setPayment] = useState({});
-    const [selectedCompany, setSelectedCompany] = useState(null);
     const [notification, _setNotification] = useState("");
     const [token, _setToken] = useState(localStorage.getItem("ACCESS_TOKEN"));
+
+    // Initialize from localStorage so it survives page refresh
+    const [selectedCompany, _setSelectedCompany] = useState(() => {
+        const saved = localStorage.getItem("SELECTED_COMPANY");
+        return saved ? JSON.parse(saved) : null;
+    });
 
     const setNotification = (message) => {
         _setNotification(message);
@@ -35,13 +40,22 @@ export const ContextProvider = ({ children }) => {
 
     const setToken = (token) => {
         _setToken(token);
-
         if (token) {
             localStorage.setItem("ACCESS_TOKEN", token);
         } else {
             localStorage.removeItem("ACCESS_TOKEN");
         }
     };
+
+    const setSelectedCompany = (company) => {
+        _setSelectedCompany(company);
+        if (company) {
+            localStorage.setItem("SELECTED_COMPANY", JSON.stringify(company));
+        } else {
+            localStorage.removeItem("SELECTED_COMPANY");
+        }
+    };
+
     return (
         <StateContext.Provider
             value={{

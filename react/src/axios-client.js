@@ -9,6 +9,13 @@ axiosClient.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const selectedCompany = localStorage.getItem("SELECTED_COMPANY");
+    if (selectedCompany) {
+        const company = JSON.parse(selectedCompany);
+        config.headers["X-Company-Id"] = company.id;
+    }
+
     return config;
 });
 
