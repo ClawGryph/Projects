@@ -15,16 +15,17 @@ import Users from "./views/Users.jsx";
 import UserForm from "./views/UserForm.jsx";
 import UploadFiles from "./views/UploadFiles.jsx";
 import ReportModule from "./views/ReportModule.jsx";
+import Company from "./views/Company.jsx";
 
 const router = createBrowserRouter([
+    {
+        path: "/company",
+        element: <Company />,
+    },
     {
         path: "/",
         element: <DefaultLayout />,
         children: [
-            {
-                path: "/",
-                element: <Navigate to="/dashboard" />,
-            },
             {
                 path: "/dashboard",
                 element: <Dashboard />,
