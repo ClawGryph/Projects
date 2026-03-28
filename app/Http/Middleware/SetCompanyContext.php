@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use App\Models\Company;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class SetCompanyContext
 {
@@ -17,12 +16,10 @@ class SetCompanyContext
             return response()->json(['message' => 'No company selected.'], 422);
         }
 
-        $company = Company::findOrFail($companyId);
+        $company = Company::find($companyId);
 
-        // Security check: ensure this company belongs to the authed user
-        // (adjust this to match however your users <-> companies relationship works)
-        if (!$request->user()->companies->contains($company->id)) {
-            return response()->json(['message' => 'Forbidden.'], 403);
+        if (!$company) {
+            return response()->json(['message' => 'Company not found.'], 404);
         }
 
         app()->instance('company', $company);
