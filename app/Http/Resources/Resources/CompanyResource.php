@@ -18,9 +18,9 @@ class CompanyResource extends JsonResource
         return [
             'id'=> $this->id,
             'name'=> $this->name,
-            'type'=> $this->type,
+            'business_type'=> $this->business_type,
             'vat_type' => $this->vat_type,
-            'wtax_rate' => $this->wtax_rate
+            'annual_gross' => $this->annual_gross
         ];
     }
 }

@@ -8,8 +8,8 @@ class Company extends Model
 {
     protected $fillable = [
         'name',
-        'type',
+        'business_type',
         'vat_type',
-        'wtax_rate',
+        'annual_gross',
     ];
 }
