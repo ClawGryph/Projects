@@ -12,6 +12,7 @@ class PaymentTransactionResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'company_id' => $this->company_id,
             'id'          => $this->id,
             'amount_paid' => $this->amount_paid,
             'paid_at'     => $this->paid_at->format('Y-m-d'),
