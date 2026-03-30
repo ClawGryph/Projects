@@ -11,6 +11,7 @@ class PaymentTransaction extends Model
         'company_id',
         'payment_schedule_id',
         'amount_paid',
+        'wh_tax',
         'paid_at'
     ];
 

@@ -15,6 +15,7 @@ class PaymentTransactionResource extends JsonResource
             'company_id' => $this->company_id,
             'id'          => $this->id,
             'amount_paid' => $this->amount_paid,
+            'wh_tax'      => $this->wh_tax,
             'paid_at'     => $this->paid_at->format('Y-m-d'),
             'client' => [
                 'name' => $this->paymentSchedule?->payment?->clientsProject?->client?->name,
