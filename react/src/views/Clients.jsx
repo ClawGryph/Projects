@@ -86,6 +86,9 @@ export default function Clients() {
                                     Address
                                 </th>
                                 <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
+                                    Company Type
+                                </th>
+                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                     Projects
                                 </th>
                                 {user?.role_name !== "viewer" && (
@@ -129,6 +132,9 @@ export default function Clients() {
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {u.company_address}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {u.company_type}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 <Link

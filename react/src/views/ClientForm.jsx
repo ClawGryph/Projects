@@ -17,6 +17,7 @@ export default function ClientForm() {
         phone_number: "",
         company_name: "",
         company_address: "",
+        company_type: "",
     });
     const [formData, setFormData] = useState(null);
 
@@ -126,21 +127,26 @@ export default function ClientForm() {
                         </div>
 
                         {/* PHONE NUMBER INPUT */}
-                        <div className="relative w-full">
-                            <input
-                                value={client.phone_number}
-                                onChange={(e) =>
-                                    setClient({
-                                        ...client,
-                                        phone_number: e.target.value,
-                                    })
-                                }
-                                placeholder="+639xxxxxxxxx"
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                            />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                        <div className="relative w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-cyan-500">
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none z-10">
                                 Phone Number
                             </label>
+                            <div className="flex items-center pt-6">
+                                <span className="px-3 pb-2 text-gray-500 text-sm border-r self-stretch flex items-center rounded-l-md">
+                                    +63
+                                </span>
+                                <input
+                                    value={client.phone_number}
+                                    onChange={(e) =>
+                                        setClient({
+                                            ...client,
+                                            phone_number: e.target.value,
+                                        })
+                                    }
+                                    placeholder="9xxxxxxxxx"
+                                    className="block w-full pl-3 pr-3 pb-2 rounded-r-md focus:outline-none"
+                                />
+                            </div>
                         </div>
 
                         {/* COMPANY NAME INPUT */}
@@ -176,6 +182,34 @@ export default function ClientForm() {
                             />
                             <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
                                 Company Address
+                            </label>
+                        </div>
+
+                        {/* COMPANY TYPE */}
+                        <div className="relative w-full">
+                            <select
+                                value={client.company_type ?? ""}
+                                onChange={(e) =>
+                                    setClient({
+                                        ...client,
+                                        company_type: e.target.value,
+                                    })
+                                }
+                                className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                            >
+                                <option value="" disabled>
+                                    Select Type
+                                </option>
+                                <option value="Private Individual">
+                                    Private Individual
+                                </option>
+                                <option value="Private Corp">
+                                    Private Corp
+                                </option>
+                                <option value="Government">Government</option>
+                            </select>
+                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
+                                Company Type
                             </label>
                         </div>
 

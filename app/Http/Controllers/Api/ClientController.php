@@ -36,6 +36,7 @@ class ClientController extends Controller
             'phone_number' => 'required',
             'company_name' => 'required',
             'company_address' => 'required',
+            'company_type' => 'required|in:Private Individual,Private Corp,Government',
         ]);
 
         $data['company_id'] = $this->company()->id;

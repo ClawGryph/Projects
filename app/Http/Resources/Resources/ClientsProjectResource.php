@@ -66,6 +66,7 @@ class ClientsProjectResource extends JsonResource
             'client' => [
                 'id' => $this->client->id,
                 'name' => $this->client->name,
+                'company_type' => $this->client->company_type,
             ],
 
             'payment_transaction' => $transaction ? [

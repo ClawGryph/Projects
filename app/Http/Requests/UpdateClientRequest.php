@@ -23,10 +23,11 @@ class UpdateClientRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:55',
-            'email' => 'required|email|unique:users,email,'.$this->id,
+            'email' => 'required|email|unique:clients,email,'.$this->id,
             'phone_number' => 'required|string|max:20',
             'company_name' => 'required|string|max:55',
-            'company_address' => 'required|string|max:100'
+            'company_address' => 'required|string|max:100',
+            'company_type' => 'required|in:Private Individual,Private Corp,Government',
         ];
     }
 }
