@@ -110,6 +110,7 @@ export default function OfficialReceiptModal({
     scheduleIndex,
     onClose,
     onSaved,
+    company,
 }) {
     const existingOR = payment?.transaction?.officialReceipt;
 
@@ -142,15 +143,20 @@ export default function OfficialReceiptModal({
     const panDebounceRef = useRef(null);
     const bsDebounceRef = useRef(null);
 
+    const vatType = payment?.clientsProject?.vat_type ?? "vat_exempt";
+    const isVatExclusive = vatType === "vat_exclusive";
+    const isVatInclusive = vatType === "vat_inclusive";
+    const isVatable = isVatExclusive || isVatInclusive;
+    const clientType = payment?.clientsProject?.client?.company_type ?? "";
+
     useEffect(() => {
         const expectedAmount = parseFloat(payment?.expected_amount) || 0;
-        const isVatable = payment?.clientsProject?.is_vatable;
 
-        const autoBase = isVatable
+        const subtotal = isVatable
             ? parseFloat((expectedAmount / 1.12).toFixed(2))
             : expectedAmount;
         const autoVat = isVatable
-            ? parseFloat((expectedAmount - autoBase).toFixed(2))
+            ? parseFloat((subtotal * 0.12).toFixed(2))
             : 0;
 
         const str = (val) => val ?? "";
@@ -175,7 +181,7 @@ export default function OfficialReceiptModal({
         } else {
             setForm((prev) => ({
                 ...prev,
-                amount: autoBase > 0 ? String(autoBase) : "",
+                amount: subtotal > 0 ? String(subtotal) : "",
                 vat_amount: autoVat > 0 ? String(autoVat) : "",
             }));
         }
@@ -235,6 +241,23 @@ export default function OfficialReceiptModal({
         (parseFloat(form.vat_amount) || 0) +
         (parseFloat(form.other) || 0)
     ).toFixed(2);
+
+    // Withholding tax
+    const annualGross = parseFloat(company?.annual_gross) || 0;
+    const getWithholdingRate = () => {
+        if (clientType === "Private Corp") {
+            return annualGross >= 3_000_000 ? 0.02 : 0.01;
+        }
+        if (clientType === "Government") return 0.01;
+        return 0;
+    };
+    const withholdingRate = getWithholdingRate();
+    const withholdingBase =
+        clientType === "Government"
+            ? parseFloat(totalAmount)
+            : parseFloat(form.amount) || 0;
+    const withholdingTax = withholdingBase * withholdingRate;
+    const netAmountDue = parseFloat(totalAmount) - withholdingTax;
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -569,6 +592,16 @@ export default function OfficialReceiptModal({
                         />
                     </Field>
 
+                    {/* Company Type — read only */}
+                    <Field label="Company Type">
+                        <input
+                            type="text"
+                            value={clientType}
+                            readOnly
+                            className={readOnlyClass}
+                        />
+                    </Field>
+
                     {/* Amount Breakdown */}
                     <div className="border-t border-dashed border-gray-200 pt-4">
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
@@ -598,7 +631,15 @@ export default function OfficialReceiptModal({
                             </Field>
 
                             {/* VAT Amount — read-only */}
-                            <Field label="VAT Amount">
+                            <Field
+                                label={
+                                    vatType === "vat_inclusive"
+                                        ? "VAT Amount (Inclusive 12%)"
+                                        : vatType === "vat_exclusive"
+                                          ? "VAT Amount (Exclusive 12%)"
+                                          : "VAT Amount (Exempt)"
+                                }
+                            >
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
                                         ₱
@@ -656,7 +697,7 @@ export default function OfficialReceiptModal({
                                 ₱
                                 {new Intl.NumberFormat("en-PH", {
                                     minimumFractionDigits: 2,
-                                }).format(totalAmount || 0)}
+                                }).format(totalAmount)}
                             </span>
                         </div>
 

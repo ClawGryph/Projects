@@ -846,6 +846,7 @@ export default function Payments() {
                 <OfficialReceiptModal
                     payment={orPayment}
                     scheduleIndex={orPayment.schedule_index}
+                    company={company}
                     onClose={() => setOrPayment(null)}
                     onSaved={() => {
                         setOrPayment(null);
