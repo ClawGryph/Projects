@@ -67,8 +67,8 @@ export default function ClientsProject() {
     // Fetch company
     useEffect(() => {
         axiosClient
-            .get("/company") // adjust to your actual endpoint
-            .then(({ data }) => setCompany(data.data))
+            .get("/company")
+            .then(({ data }) => setCompany(data))
             .catch(() => setNotification("Failed to load company data"));
     }, []);
 
@@ -79,6 +79,9 @@ export default function ClientsProject() {
     }
 
     const isNonVat = company?.vat_type === "non_vat";
+    // Computation for VAT
+    const vatRate = company?.vat_type === "vat_registered" ? 0.12 : 0;
+    const vatMultiplier = 1 + vatRate;
 
     const getClientProjects = () => {
         setLoading(true);
@@ -118,14 +121,14 @@ export default function ClientsProject() {
     const displayPrice = isVatIncluded
         ? basePrice
         : includeVat
-          ? basePrice * 1.12
+          ? basePrice * vatMultiplier
           : basePrice;
 
     // The VAT amount to show beneath Original Price
     const vatAmount = isVatIncluded
-        ? basePrice - basePrice / 1.12 // extract VAT from inclusive price
+        ? basePrice - basePrice / vatMultiplier // extract VAT from inclusive price
         : includeVat
-          ? basePrice * 0.12 // add VAT on top
+          ? basePrice * vatRate // add VAT on top
           : 0;
 
     const showVatLine = isVatIncluded || includeVat;
@@ -168,7 +171,7 @@ export default function ClientsProject() {
                 final_price: isVatIncluded
                     ? basePrice
                     : includeVat
-                      ? basePrice * 1.12
+                      ? basePrice * vatMultiplier
                       : basePrice,
                 is_vatable: isVatIncluded || includeVat,
             })
@@ -693,11 +696,11 @@ export default function ClientsProject() {
                                                                                 ((recurringRate /
                                                                                     100) *
                                                                                     displayPrice) /
-                                                                                    1.12
+                                                                                    vatMultiplier
                                                                           : (recurringRate /
                                                                                 100) *
                                                                                 basePrice *
-                                                                                0.12,
+                                                                                vatRate,
                                                                   )}`
                                                                 : "₱0.00"
                                                         }
@@ -759,12 +762,12 @@ export default function ClientsProject() {
                                                                               ((recurringRate /
                                                                                   100) *
                                                                                   displayPrice) /
-                                                                                  1.12) *
+                                                                                  vatMultiplier) *
                                                                               recurringCycles
                                                                         : (recurringRate /
                                                                               100) *
                                                                               basePrice *
-                                                                              0.12 *
+                                                                              vatRate *
                                                                               recurringCycles,
                                                                 )}
                                                             </span>
@@ -796,12 +799,12 @@ export default function ClientsProject() {
                                                                                       ((recurringRate /
                                                                                           100) *
                                                                                           displayPrice) /
-                                                                                          1.12) *
+                                                                                          vatMultiplier) *
                                                                                   recurringCycles
                                                                                 : (recurringRate /
                                                                                       100) *
                                                                                   basePrice *
-                                                                                  0.12 *
+                                                                                  vatRate *
                                                                                   recurringCycles;
                                                                         // If VAT is included, totalAmt already contains VAT, so no need to add again
                                                                         return isVatIncluded
@@ -1020,11 +1023,11 @@ export default function ClientsProject() {
                                                                                 ((item.payment_rate /
                                                                                     100) *
                                                                                     displayPrice) /
-                                                                                    1.12
+                                                                                    vatMultiplier
                                                                           : (item.payment_rate /
                                                                                 100) *
                                                                                 basePrice *
-                                                                                0.12,
+                                                                                vatRate,
                                                                   )}`
                                                                 : "₱0.00"
                                                         }
@@ -1116,11 +1119,11 @@ export default function ClientsProject() {
                                                                     (isVatIncluded
                                                                         ? itemAmount -
                                                                           itemAmount /
-                                                                              1.12
+                                                                              vatMultiplier
                                                                         : (rate /
                                                                               100) *
                                                                           basePrice *
-                                                                          0.12)
+                                                                          vatRate)
                                                                 );
                                                             },
                                                             0,
@@ -1176,11 +1179,11 @@ export default function ClientsProject() {
                                                                             (isVatIncluded
                                                                                 ? itemAmount -
                                                                                   itemAmount /
-                                                                                      1.12
+                                                                                      vatMultiplier
                                                                                 : (rate /
                                                                                       100) *
                                                                                   basePrice *
-                                                                                  0.12)
+                                                                                  vatRate)
                                                                         );
                                                                     },
                                                                     0,
