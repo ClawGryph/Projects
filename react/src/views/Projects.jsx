@@ -93,6 +93,17 @@ export default function Projects() {
         return () => window.removeEventListener("click", close);
     }, []);
 
+    const tableHeaders = [
+        "ID",
+        "Title",
+        "Cost",
+        "Start Date",
+        "End Date",
+        "Status",
+        "View",
+        "Actions",
+    ];
+
     return (
         <>
             <div className="flex justify-between items-center p-5 mt-5">
@@ -115,38 +126,30 @@ export default function Projects() {
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                         <thead>
                             <tr className="bg-cyan-800">
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    ID
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Title
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Cost
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Start Date
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    End Date
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Status
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    View
-                                </th>
-                                {user?.role_name !== "viewer" && (
-                                    <th className="px-4 py-2 text-white text-sm font-medium">
-                                        Actions
-                                    </th>
-                                )}
+                                {tableHeaders.map((header) => {
+                                    if (
+                                        header === "Actions" &&
+                                        user?.role_name === "viewer"
+                                    )
+                                        return null;
+                                    return (
+                                        <th
+                                            key={header}
+                                            className="px-4 py-2 text-white text-sm font-medium"
+                                        >
+                                            {header}
+                                        </th>
+                                    );
+                                })}
                             </tr>
                         </thead>
                         {loading && (
                             <tbody>
                                 <tr>
-                                    <td colSpan="7" className="text-center">
+                                    <td
+                                        colSpan={tableHeaders.length}
+                                        className="text-center"
+                                    >
                                         Loading...
                                     </td>
                                 </tr>
@@ -318,7 +321,7 @@ export default function Projects() {
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={tableHeaders.length}
                                             className="px-4 py-6 text-center text-gray-500"
                                         >
                                             No projects

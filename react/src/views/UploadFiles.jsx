@@ -67,6 +67,66 @@ export default function UploadFiles() {
             .join(" ");
     };
 
+    const tableHeaders = [
+        { key: "Paid Date" },
+        { key: "Client Name" },
+        { key: "Project Name" },
+        { key: "Payment Details" },
+        { key: "S.I / ACK No." },
+        {
+            key: "O.R. Status",
+            render: () => (
+                <div className="flex items-center justify-center gap-1">
+                    <span>O.R. Status</span>
+                    <div className="relative">
+                        <select
+                            value={selectedOrStatus}
+                            onChange={(e) =>
+                                setSelectedOrStatus(e.target.value)
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-black"
+                        >
+                            <option value="">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="uploaded">Uploaded</option>
+                        </select>
+                        <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className={`h-3 w-3 transition-colors ${selectedOrStatus ? "text-yellow-300" : "text-white/70"} text-xs`}
+                        />
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: "2307 Status",
+            render: () => (
+                <div className="relative">
+                    <select
+                        value={selected2307Status}
+                        onChange={(e) => setSelected2307Status(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-black"
+                    >
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="uploaded">Uploaded</option>
+                    </select>
+                    <FontAwesomeIcon
+                        icon={faChevronDown}
+                        className={`h-3 w-3 transition-colors ${selected2307Status ? "text-yellow-300" : "text-white/70"} text-xs`}
+                    />
+                </div>
+            ),
+        },
+        { key: "Action" },
+    ];
+
+    const columnCount = tableHeaders.filter(
+        (h) => !(h.key === "Action" && user?.role_name === "viewer"),
+    ).length;
+
     return (
         <>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 mt-5 gap-3">
@@ -116,88 +176,23 @@ export default function UploadFiles() {
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                         <thead className="sticky top-0 z-20 bg-cyan-800">
                             <tr>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Paid Date
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Client Name
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Project Name
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    Payment Details
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    S.I / ACK No.
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span>O.R. Status</span>
-                                        <div className="relative">
-                                            <select
-                                                value={selectedOrStatus}
-                                                onChange={(e) =>
-                                                    setSelectedOrStatus(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-black"
-                                            >
-                                                <option value="">All</option>
-                                                <option value="pending">
-                                                    Pending
-                                                </option>
-                                                <option value="uploaded">
-                                                    Uploaded
-                                                </option>
-                                            </select>
-                                            <FontAwesomeIcon
-                                                icon={faChevronDown}
-                                                className={`h-3 w-3 transition-colors ${selectedOrStatus ? "text-yellow-300" : "text-white/70"} text-xs`}
-                                            />
-                                        </div>
-                                    </div>
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span>2307 Status</span>
-                                        <div className="relative">
-                                            <select
-                                                value={selected2307Status}
-                                                onChange={(e) =>
-                                                    setSelected2307Status(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-black"
-                                            >
-                                                <option value="">All</option>
-                                                <option value="pending">
-                                                    Pending
-                                                </option>
-                                                <option value="uploaded">
-                                                    Uploaded
-                                                </option>
-                                            </select>
-                                            <FontAwesomeIcon
-                                                icon={faChevronDown}
-                                                className={`h-3 w-3 transition-colors ${selected2307Status ? "text-yellow-300" : "text-white/70"} text-xs`}
-                                            />
-                                        </div>
-                                    </div>
-                                </th>
-                                {user?.role_name !== "viewer" && (
-                                    <th className="px-4 py-2 text-white text-sm font-medium">
-                                        Action
-                                    </th>
-                                )}
+                                {tableHeaders.map((header) => {
+                                    if (
+                                        header.key === "Action" &&
+                                        user?.role_name === "viewer"
+                                    )
+                                        return null;
+                                    return (
+                                        <th
+                                            key={header.key}
+                                            className="px-4 py-2 text-white text-sm font-medium"
+                                        >
+                                            {header.render
+                                                ? header.render()
+                                                : header.key}
+                                        </th>
+                                    );
+                                })}
                             </tr>
                         </thead>
 
@@ -205,7 +200,7 @@ export default function UploadFiles() {
                             <tbody>
                                 <tr>
                                     <td
-                                        colSpan="7"
+                                        colSpan={columnCount}
                                         className="text-center py-4"
                                     >
                                         Loading...
@@ -343,11 +338,7 @@ export default function UploadFiles() {
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={
-                                                user?.role_name !== "viewer"
-                                                    ? 7
-                                                    : 6
-                                            }
+                                            colSpan={columnCount}
                                             className="px-4 py-6 text-center text-gray-500"
                                         >
                                             No paid transactions found
