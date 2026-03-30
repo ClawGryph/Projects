@@ -132,7 +132,7 @@ export default function ClientForm() {
                                 Phone Number
                             </label>
                             <div className="flex items-center pt-6">
-                                <span className="px-3 pb-2 text-gray-500 text-sm border-r self-stretch flex items-center rounded-l-md">
+                                <span className="px-3 pb-2 text-gray-500 bg-gray-100 text-sm border-r self-stretch flex items-center rounded-l-md">
                                     +63
                                 </span>
                                 <input
