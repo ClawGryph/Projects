@@ -68,6 +68,8 @@ class PaymentScheduleController extends Controller
 
         $request->validate([
             'status' => 'required|in:pending,paid,overdue,ended',
+            'amount_paid'     => 'nullable|numeric',
+            'withholding_tax' => 'nullable|numeric',
         ]);
 
         $schedule->status = $request->status;
@@ -75,7 +77,9 @@ class PaymentScheduleController extends Controller
 
         if ($request->status === 'paid' && !$schedule->transaction()->exists()) {
             $schedule->paymentTransactions()->create([
-                'amount_paid' => $schedule->expected_amount,
+                'company_id'  => $this->company()->id,
+                'amount_paid' => $request->amount_paid ?? $schedule->expected_amount,
+                'wh_tax'      => $request->wh_tax ?? 0,
                 'paid_at'     => now(),
             ]);
         }

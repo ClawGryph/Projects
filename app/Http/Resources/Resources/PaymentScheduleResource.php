@@ -54,6 +54,7 @@ class PaymentScheduleResource extends JsonResource
             'transaction' => $this->transaction ? [
                 'id'          => $this->transaction->id,
                 'amount_paid' => $this->transaction->amount_paid,
+                'wh_tax'      => $this->transaction->wh_tax,
                 'paid_at'     => $this->transaction->paid_at,
                 'officialReceipt' => $this->transaction->officialReceipt ? [
                     'id'                     => $this->transaction->officialReceipt->id,

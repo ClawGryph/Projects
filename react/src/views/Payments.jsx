@@ -74,10 +74,49 @@ export default function Payments() {
         const changingToPending = newStatus === "pending";
 
         const doUpdate = () => {
+            const payload = { status: newStatus };
+
+            // Calculate amounts when marking as paid
+            if (newStatus === "paid") {
+                const vatType =
+                    currentPayment.clientsProject?.vat_type ?? "vat_exempt";
+                const isVatExclusive = vatType === "vat_exclusive";
+                const isVatInclusive = vatType === "vat_inclusive";
+
+                const expectedAmount =
+                    parseFloat(currentPayment.expected_amount) || 0;
+                const subtotal =
+                    isVatInclusive || isVatExclusive
+                        ? expectedAmount / 1.12
+                        : expectedAmount;
+                const vatAmount =
+                    isVatInclusive || isVatExclusive ? subtotal * 0.12 : 0;
+                const total = subtotal + vatAmount;
+
+                const clientType =
+                    currentPayment.clientsProject?.client?.company_type ?? "";
+                const annualGross = parseFloat(company?.annual_gross) || 0;
+
+                const getWithholdingRate = () => {
+                    if (clientType === "Private Corp") {
+                        return annualGross >= 3_000_000 ? 0.02 : 0.01;
+                    }
+                    if (clientType === "Government") return 0.01;
+                    return 0;
+                };
+
+                const withholdingRate = getWithholdingRate();
+                const withholdingBase =
+                    clientType === "Government" ? total : subtotal;
+                const withholdingTax = withholdingBase * withholdingRate;
+                const netAmount = total - withholdingTax;
+
+                payload.amount_paid = netAmount;
+                payload.wh_tax = withholdingTax;
+            }
+
             axiosClient
-                .put(`/payment-schedules/${scheduleId}/status`, {
-                    status: newStatus,
-                })
+                .put(`/payment-schedules/${scheduleId}/status`, payload)
                 .then(() => {
                     getPaymentSchedules();
                     setNotification("Payment status updated");
