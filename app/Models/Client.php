@@ -13,6 +13,7 @@ class Client extends Model
         'phone_number',
         'company_name',
         'company_address',
+        'company_type',
     ];
 
     public function projects()
