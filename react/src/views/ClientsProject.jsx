@@ -337,9 +337,12 @@ export default function ClientsProject() {
                                     parseFloat(project.final_price),
                                 )}
                             </p>
-                            {project.is_vatable === 1 && (
+                            {project.vat_type !== "vat_exempt" && (
                                 <p className="text-xs text-cyan-600 mt-0.5">
-                                    VAT Included (12%)
+                                    {project.vat_type === "vat_exclusive"
+                                        ? "VAT Exclusive"
+                                        : "VAT Inclusive"}{" "}
+                                    (12%)
                                 </p>
                             )}
                         </div>
