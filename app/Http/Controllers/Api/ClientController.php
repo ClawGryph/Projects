@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\Resources\ClientResource;
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
@@ -32,7 +33,7 @@ class ClientController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:clients,email',
+            'email' => ['required', 'email', Rule::unique('clients','email')->where('company_id', $this->company()->id)],
             'phone_number' => 'required',
             'company_name' => 'required',
             'company_address' => 'required',
