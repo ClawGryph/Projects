@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\ClientsProject;
 use App\Models\Payment;
 use App\Models\PaymentSchedule;
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -61,12 +62,12 @@ class ClientsProjectController extends Controller
             'installment_schedule.*.due_date'      => 'required_with:installment_schedule|date',
             'installment_schedule.*.payment_rate'  => 'required_with:installment_schedule|numeric',
             'recurring_rate'                       => 'nullable|numeric',
-            'is_vatable'                           => 'required|boolean',
+            'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive',
             'final_price'                          => 'required|numeric|min:0',
         ]);
 
         // Ensure project belongs to this company
-        $project = \App\Models\Project::findOrFail($data['project_id']);
+        $project = Project::findOrFail($data['project_id']);
         abort_if($project->company_id !== $this->company()->id, 403);
 
         $exists = ClientsProject::where('client_id', $clientId)
@@ -83,13 +84,14 @@ class ClientsProjectController extends Controller
             'client_id'   => $clientId,
             'project_id'  => $data['project_id'],
             'final_price' => $data['final_price'],
-            'is_vatable'  => $data['is_vatable'],
+            'vat_type'    => $data['vat_type'],
         ]);
 
         $startDate = Carbon::parse($data['start_date']);
 
         $payment = Payment::create([
             'clients_project_id' => $clientsProject->id,
+            'company_id'         => $this->company()->id,
             'payment_type'       => $data['payment_type'],
             'recurring_type'     => $data['recurring_type'] ?? null,
             'number_of_cycles'   => $data['number_of_cycles'] ?? null,

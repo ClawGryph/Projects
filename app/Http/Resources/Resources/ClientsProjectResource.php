@@ -40,7 +40,7 @@ class ClientsProjectResource extends JsonResource
             'id' => $this->id,
             'created_at' => $this->created_at,
             'final_price' => $this->final_price,
-            'is_vatable' => $this->is_vatable,
+            'vat_type' => $this->vat_type,
 
             'project' => $this->project ? [
                 'id' => $this->project->id,

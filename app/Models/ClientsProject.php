@@ -12,7 +12,7 @@ class ClientsProject extends Model
         'client_id',
         'project_id',
         'final_price',
-        'is_vatable',
+        'vat_type',
     ];
 
     public function client()

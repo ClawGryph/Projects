@@ -16,12 +16,11 @@ export default function ClientsProject() {
     const [installmentSchedule, setInstallmentSchedule] = useState([]);
     const [selectedProject, setSelectedProject] = useState("");
     const [paymentType, setPaymentType] = useState("");
+    const [vatType, setVatType] = useState("vat_exempt");
     const [recurringType, setRecurringType] = useState("");
     const [installmentMonths, setInstallmentMonths] = useState("");
     const [recurringCycles, setRecurringCycles] = useState("");
     const [recurringRate, setRecurringRate] = useState("");
-    const [includeVat, setIncludeVat] = useState(false);
-    const [isVatIncluded, setIsVatIncluded] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -82,6 +81,10 @@ export default function ClientsProject() {
     // Computation for VAT
     const vatRate = company?.vat_type === "vat_registered" ? 0.12 : 0;
     const vatMultiplier = 1 + vatRate;
+
+    // Include Vat to Fee
+    const isVatIncluded = vatType === "vat_inclusive";
+    const includeVat = vatType === "vat_exclusive";
 
     const getClientProjects = () => {
         setLoading(true);
@@ -173,7 +176,7 @@ export default function ClientsProject() {
                     : includeVat
                       ? basePrice * vatMultiplier
                       : basePrice,
-                is_vatable: isVatIncluded || includeVat,
+                vat_type: vatType,
             })
             .then(() => {
                 setNotification("Project assigned successfully");
@@ -183,8 +186,7 @@ export default function ClientsProject() {
                 setRecurringCycles("");
                 setRecurringRate("");
                 setInstallmentMonths("");
-                setIncludeVat(false);
-                setIsVatIncluded(false);
+                setVatType("vat_exempt");
                 setInstallmentSchedule([]);
                 closeModal();
                 getClientProjects();
@@ -203,10 +205,7 @@ export default function ClientsProject() {
     };
 
     const openModal = () => {
-        if (isNonVat) {
-            setIncludeVat(false);
-            setIsVatIncluded(false);
-        }
+        if (isNonVat) setVatType("vat_exempt");
         setIsOpen(true);
     };
     const closeModal = () => setIsOpen(false);
@@ -239,80 +238,33 @@ export default function ClientsProject() {
                     className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
                 />
                 <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
-                    {isVatIncluded ? "VAT Included" : "VAT Added (12%)"}
+                    {vatType === "vat_inclusive"
+                        ? `VAT Inclusive (${vatRate * 100}%)`
+                        : `VAT Exclusive (${vatRate * 100}%)`}
                 </label>
             </div>
         ) : null;
 
     /** "Is VAT Included?" radio — always shown when paymentType is selected */
-    const IsVatIncludedField = () => (
-        <div className="relative w-full mb-2 border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2">
+    const VatTypeField = () => (
+        <div className="relative w-full mb-2">
+            <select
+                value={vatType}
+                onChange={(e) => setVatType(e.target.value)}
+                className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
+                <option value="" disabled>
+                    Select Vat Type
+                </option>
+                <option value="vat_exempt">VAT Exempt</option>
+                <option value="vat_exclusive">VAT Exclusive</option>
+                <option value="vat_inclusive">VAT Inclusive</option>
+            </select>
             <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
-                Is VAT included?
+                VAT Type
             </label>
-            <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="radio"
-                        name="is_vat_included"
-                        value="yes"
-                        checked={isVatIncluded === true}
-                        onChange={() => {
-                            setIsVatIncluded(true);
-                            setIncludeVat(false); // reset "Include VAT" when price already has VAT
-                        }}
-                        className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
-                    />
-                    Yes
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="radio"
-                        name="is_vat_included"
-                        value="no"
-                        checked={isVatIncluded === false}
-                        onChange={() => setIsVatIncluded(false)}
-                        className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
-                    />
-                    No
-                </label>
-            </div>
         </div>
     );
-
-    /** "Include VAT?" radio — only shown when isVatIncluded = false */
-    const IncludeVatField = () =>
-        !isVatIncluded ? (
-            <div className="relative w-full mb-2 border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2">
-                <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
-                    Include VAT
-                </label>
-                <div className="flex gap-4 pt-2 pb-1">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="radio"
-                            name="include_vat"
-                            value="yes"
-                            checked={includeVat === true}
-                            onChange={() => setIncludeVat(true)}
-                            className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
-                        />
-                        Yes
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="radio"
-                            name="include_vat"
-                            value="no"
-                            checked={includeVat === false}
-                            onChange={() => setIncludeVat(false)}
-                            className="w-4 h-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
-                        />
-                        No
-                    </label>
-                </div>
-            </div>
-        ) : null;
 
     /** Total Price field */
     const TotalPriceField = () =>
@@ -326,11 +278,11 @@ export default function ClientsProject() {
                 />
                 <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
                     Total Price{" "}
-                    {isVatIncluded
-                        ? "(VAT Included)"
-                        : includeVat
-                          ? "(VAT Added 12%)"
-                          : "(No VAT)"}
+                    {vatType === "vat_inclusive"
+                        ? "(VAT Inclusive)"
+                        : vatType === "vat_exclusive"
+                          ? `(VAT Exclusive ${vatRate * 100}%)`
+                          : "(VAT Exempt)"}
                 </label>
             </div>
         ) : null;
@@ -577,11 +529,8 @@ export default function ClientsProject() {
                                 {/* Row: Original Price  |  Is VAT Included? */}
                                 <div className="flex gap-2">
                                     <PriceDisplay />
-                                    {!isNonVat && <IsVatIncludedField />}
+                                    {!isNonVat && <VatTypeField />}
                                 </div>
-
-                                {/* Include VAT — only when isVatIncluded = false */}
-                                {!isNonVat && <IncludeVatField />}
 
                                 {/* VAT Amount — shown above Total Price when VAT is active */}
                                 {!isNonVat && <VatAmountField />}
@@ -602,7 +551,6 @@ export default function ClientsProject() {
                                             setRecurringType(e.target.value);
                                             setRecurringCycles("");
                                             setRecurringRate("");
-                                            setIncludeVat(false);
                                         }}
                                         className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                     >
@@ -665,8 +613,8 @@ export default function ClientsProject() {
                                                     readOnly
                                                     value={
                                                         recurringRate &&
-                                                        displayPrice
-                                                            ? `₱${new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format((recurringRate / 100) * displayPrice)}`
+                                                        basePrice
+                                                            ? `₱${new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format((recurringRate / 100) * basePrice)}`
                                                             : "₱0.00"
                                                     }
                                                     className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
@@ -707,9 +655,10 @@ export default function ClientsProject() {
                                                         className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
                                                     />
                                                     <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none">
-                                                        {isVatIncluded
-                                                            ? "VAT Included"
-                                                            : "VAT (12%)"}
+                                                        {vatType ===
+                                                        "vat_inclusive"
+                                                            ? `VAT Inclusive (${vatRate * 100}%)`
+                                                            : `VAT Exclusive (${vatRate * 100}%)`}
                                                     </label>
                                                 </div>
                                             )}
@@ -720,7 +669,7 @@ export default function ClientsProject() {
                                             <div className="border-t border-gray-200 pt-3 mt-1 mb-2 space-y-1">
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-gray-600 font-medium">
-                                                        Total Amount:
+                                                        Sub-Total:
                                                     </span>
                                                     <span className="font-semibold text-cyan-800">
                                                         ₱
@@ -732,7 +681,7 @@ export default function ClientsProject() {
                                                         ).format(
                                                             (recurringRate /
                                                                 100) *
-                                                                displayPrice *
+                                                                basePrice *
                                                                 recurringCycles,
                                                         )}
                                                     </span>
@@ -742,9 +691,10 @@ export default function ClientsProject() {
                                                         <div className="flex justify-between text-sm">
                                                             <span className="text-gray-600 font-medium">
                                                                 Total VAT{" "}
-                                                                {isVatIncluded
-                                                                    ? "(Included)"
-                                                                    : "(12%)"}
+                                                                {vatType ===
+                                                                "vat_inclusive"
+                                                                    ? "(Inclusive)"
+                                                                    : `(${vatRate * 100}%)`}
                                                                 :
                                                             </span>
                                                             <span className="font-semibold text-cyan-700">
@@ -774,8 +724,7 @@ export default function ClientsProject() {
                                                         </div>
                                                         <div className="flex justify-between text-sm">
                                                             <span className="text-gray-600 font-medium">
-                                                                Total (Amount +
-                                                                VAT):
+                                                                Total Amount:
                                                             </span>
                                                             <span className="font-semibold text-cyan-900">
                                                                 ₱
@@ -789,7 +738,7 @@ export default function ClientsProject() {
                                                                         const totalAmt =
                                                                             (recurringRate /
                                                                                 100) *
-                                                                            displayPrice *
+                                                                            basePrice *
                                                                             recurringCycles;
                                                                         const totalVat =
                                                                             isVatIncluded
@@ -806,7 +755,6 @@ export default function ClientsProject() {
                                                                                   basePrice *
                                                                                   vatRate *
                                                                                   recurringCycles;
-                                                                        // If VAT is included, totalAmt already contains VAT, so no need to add again
                                                                         return isVatIncluded
                                                                             ? totalAmt
                                                                             : totalAmt +
@@ -820,10 +768,10 @@ export default function ClientsProject() {
                                                 {(() => {
                                                     const totalRecurringAmount =
                                                         (recurringRate / 100) *
-                                                        displayPrice *
+                                                        basePrice *
                                                         recurringCycles;
                                                     const remaining =
-                                                        displayPrice -
+                                                        basePrice -
                                                         totalRecurringAmount;
                                                     return remaining !== 0 ? (
                                                         <div className="flex justify-between text-sm">
@@ -1066,7 +1014,7 @@ export default function ClientsProject() {
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600 font-medium">
-                                            Total Amount:
+                                            Sub-Total:
                                         </span>
                                         <span className="font-semibold text-cyan-800">
                                             ₱
@@ -1133,7 +1081,7 @@ export default function ClientsProject() {
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-gray-600 font-medium">
-                                                    Total (Amount + VAT):
+                                                    Total Amount:
                                                 </span>
                                                 <span className="font-semibold text-cyan-900">
                                                     ₱
@@ -1261,8 +1209,7 @@ export default function ClientsProject() {
                                 setRecurringCycles("");
                                 setRecurringRate("");
                                 setInstallmentMonths("");
-                                setIncludeVat(false);
-                                setIsVatIncluded(false);
+                                setVatType("vat_exempt");
                                 setInstallmentSchedule([]);
                             }}
                             className="px-4 py-2 bg-red-500 text-white rounded cursor-pointer"
