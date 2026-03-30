@@ -74,6 +74,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
 
 // All roles can view
 Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])->group(function () {
+    Route::get('/company', [CompanyController::class, 'current']);
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::get('/projects', [ProjectController::class, 'index']);

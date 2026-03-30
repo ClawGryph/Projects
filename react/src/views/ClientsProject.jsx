@@ -25,6 +25,7 @@ export default function ClientsProject() {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
+    const [company, setCompany] = useState(null);
 
     // Fetch client info
     useEffect(() => {
@@ -63,11 +64,21 @@ export default function ClientsProject() {
             .catch(() => setNotification("Failed to load projects"));
     }, []);
 
+    // Fetch company
+    useEffect(() => {
+        axiosClient
+            .get("/company") // adjust to your actual endpoint
+            .then(({ data }) => setCompany(data.data))
+            .catch(() => setNotification("Failed to load company data"));
+    }, []);
+
     if (loading) {
         return (
             <div className="text-center mt-10 text-gray-500">Loading...</div>
         );
     }
+
+    const isNonVat = company?.vat_type === "non_vat";
 
     const getClientProjects = () => {
         setLoading(true);
@@ -188,7 +199,13 @@ export default function ClientsProject() {
             });
     };
 
-    const openModal = () => setIsOpen(true);
+    const openModal = () => {
+        if (isNonVat) {
+            setIncludeVat(false);
+            setIsVatIncluded(false);
+        }
+        setIsOpen(true);
+    };
     const closeModal = () => setIsOpen(false);
 
     // ─── Reusable sub-components ────────────────────────────────────────────
@@ -557,14 +574,14 @@ export default function ClientsProject() {
                                 {/* Row: Original Price  |  Is VAT Included? */}
                                 <div className="flex gap-2">
                                     <PriceDisplay />
-                                    <IsVatIncludedField />
+                                    {!isNonVat && <IsVatIncludedField />}
                                 </div>
 
                                 {/* Include VAT — only when isVatIncluded = false */}
-                                <IncludeVatField />
+                                {!isNonVat && <IncludeVatField />}
 
                                 {/* VAT Amount — shown above Total Price when VAT is active */}
-                                <VatAmountField />
+                                {!isNonVat && <VatAmountField />}
 
                                 {/* Total Price */}
                                 <TotalPriceField />
