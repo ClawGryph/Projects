@@ -46,6 +46,18 @@ export default function Clients() {
             });
     };
 
+    const tableHeaders = [
+        "ID",
+        "Name",
+        "Email",
+        "Phone",
+        "Company",
+        "Address",
+        "Company Type",
+        "Projects",
+        "Actions",
+    ];
+
     return (
         <>
             <div className="flex justify-between items-center p-5 mt-5">
@@ -67,41 +79,30 @@ export default function Clients() {
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                         <thead>
                             <tr className="bg-cyan-800">
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    ID
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Name
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Email
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Phone
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Company
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Address
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Company Type
-                                </th>
-                                <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                    Projects
-                                </th>
-                                {user?.role_name !== "viewer" && (
-                                    <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                        Actions
-                                    </th>
-                                )}
+                                {tableHeaders.map((header) => {
+                                    if (
+                                        header === "Actions" &&
+                                        user?.role_name === "viewer"
+                                    )
+                                        return null;
+                                    return (
+                                        <th
+                                            key={header}
+                                            className="px-4 py-2 text-white text-sm font-medium"
+                                        >
+                                            {header}
+                                        </th>
+                                    );
+                                })}
                             </tr>
                         </thead>
                         {loading && (
                             <tbody>
                                 <tr>
-                                    <td colSpan="8" className="text-center">
+                                    <td
+                                        colSpan={tableHeaders.length}
+                                        className="text-center"
+                                    >
                                         Loading...
                                     </td>
                                 </tr>
@@ -188,7 +189,7 @@ export default function Clients() {
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={8}
+                                            colSpan={tableHeaders.length}
                                             className="px-4 py-6 text-center text-gray-500"
                                         >
                                             No clients
