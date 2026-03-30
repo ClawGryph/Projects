@@ -6,6 +6,7 @@ export default function InvoiceModal({
     onClose,
     scheduleIndex,
     totalSchedules,
+    company,
 }) {
     const invoiceRef = useRef();
     const [downloading, setDownloading] = useState(false);
@@ -15,7 +16,12 @@ export default function InvoiceModal({
     const client = payment.clientsProject?.client ?? {};
     const project = payment.clientsProject?.project ?? {};
     const paymentInfo = payment.clientsProject?.payment ?? {};
-    const isVatable = payment.clientsProject?.is_vatable === 1;
+    const vatType = payment.clientsProject?.vat_type ?? "vat_exempt";
+    const isVatExclusive = vatType === "vat_exclusive";
+    const isVatInclusive = vatType === "vat_inclusive";
+    const isVatable = isVatExclusive || isVatInclusive;
+    const clientType = client.company_type ?? "";
+    const annualGross = parseFloat(company?.annual_gross) || 0;
 
     const formattedIndex =
         scheduleIndex != null ? String(scheduleIndex).padStart(2, "0") : "??";
@@ -52,16 +58,36 @@ export default function InvoiceModal({
         return "-";
     };
 
-    const subtotal = isVatable
-        ? (parseFloat(payment.expected_amount) || 0) / 1.12
-        : parseFloat(payment.expected_amount) || 0;
-    const vatAmount = isVatable ? subtotal * 0.12 : 0;
+    const expectedAmount = parseFloat(payment.expected_amount) || 0;
+    const subtotal =
+        isVatInclusive || isVatExclusive
+            ? expectedAmount / 1.12
+            : expectedAmount;
+    const vatAmount = isVatInclusive || isVatExclusive ? subtotal * 0.12 : 0;
     const total = subtotal + vatAmount;
-
     const formatPHP = (val) =>
-        new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(
-            val,
-        );
+        new Intl.NumberFormat("en-PH", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(val);
+
+    // Withholding tax
+    const getWithholdingRate = () => {
+        if (clientType === "Private Corp") {
+            return annualGross >= 3_000_000 ? 0.02 : 0.01;
+        }
+        if (clientType === "Government") {
+            return 0.01;
+        }
+        return 0;
+    };
+
+    const withholdingRate = getWithholdingRate();
+    // Private Corp → based on subtotal (excluding VAT)
+    // Government → based on total (including VAT)
+    const withholdingBase = clientType === "Government" ? total : subtotal;
+    const withholdingTax = withholdingBase * withholdingRate;
+    const netAmount = total - withholdingTax;
 
     const handleDownloadPDF = async () => {
         setDownloading(true);
@@ -301,6 +327,25 @@ export default function InvoiceModal({
                                     {client.company_address || ""}
                                 </p>
                             </div>
+                            <div>
+                                <div
+                                    style={{
+                                        background: "#2980b9",
+                                        color: "#fff",
+                                        padding: "5px 14px",
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        letterSpacing: 1.5,
+                                        display: "inline-block",
+                                        marginBottom: 8,
+                                    }}
+                                >
+                                    Company Type
+                                </div>
+                                <p style={{ fontSize: 13, lineHeight: 1.8 }}>
+                                    {client.company_type || ""}
+                                </p>
+                            </div>
                             <div style={{ textAlign: "right" }}>
                                 <div
                                     style={{
@@ -522,7 +567,9 @@ export default function InvoiceModal({
                                                         fontSize: 13,
                                                     }}
                                                 >
-                                                    VAT (12%)
+                                                    {isVatInclusive
+                                                        ? "VAT Inclusive (12%)"
+                                                        : "VAT Exclusive (12%)"}
                                                 </td>
                                                 <td
                                                     style={{
@@ -538,42 +585,107 @@ export default function InvoiceModal({
                                         <tr>
                                             <td
                                                 style={{
-                                                    background: "#2980b9",
-                                                    color: "#fff",
+                                                    padding: "4px 16px",
+                                                    color: "#555",
+                                                    fontSize: 13,
                                                     fontWeight: 700,
-                                                    fontSize: 15,
-                                                    padding: "8px 16px",
                                                 }}
                                             >
                                                 TOTAL
                                             </td>
                                             <td
                                                 style={{
-                                                    background: "#2980b9",
-                                                    color: "#fff",
-                                                    fontWeight: 700,
-                                                    fontSize: 15,
-                                                    padding: "8px 16px",
+                                                    padding: "4px 16px",
+                                                    fontSize: 13,
                                                     textAlign: "right",
+                                                    fontWeight: 700,
                                                 }}
                                             >
                                                 PHP &nbsp; {formatPHP(total)}
                                             </td>
                                         </tr>
+                                        {withholdingRate > 0 && (
+                                            <>
+                                                {/* ✅ spacer row */}
+                                                <tr>
+                                                    <td
+                                                        colSpan={2}
+                                                        style={{
+                                                            padding: "6px 0",
+                                                        }}
+                                                    />
+                                                </tr>
+                                                <tr>
+                                                    <td
+                                                        style={{
+                                                            padding: "4px 16px",
+                                                            color: "#555",
+                                                            fontSize: 13,
+                                                        }}
+                                                    >
+                                                        Less: Withholding Tax (
+                                                        {withholdingRate * 100}
+                                                        %)
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            padding: "4px 16px",
+                                                            fontSize: 13,
+                                                            textAlign: "right",
+                                                        }}
+                                                    >
+                                                        -{" "}
+                                                        {formatPHP(
+                                                            withholdingTax,
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td
+                                                        style={{
+                                                            background:
+                                                                "#1a5276",
+                                                            color: "#fff",
+                                                            fontWeight: 700,
+                                                            fontSize: 15,
+                                                            padding: "8px 16px",
+                                                        }}
+                                                    >
+                                                        NET AMOUNT DUE
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            background:
+                                                                "#1a5276",
+                                                            color: "#fff",
+                                                            fontWeight: 700,
+                                                            fontSize: 15,
+                                                            padding: "8px 16px",
+                                                            textAlign: "right",
+                                                        }}
+                                                    >
+                                                        PHP &nbsp;{" "}
+                                                        {formatPHP(netAmount)}
+                                                    </td>
+                                                </tr>
+                                            </>
+                                        )}
                                     </tbody>
                                 </table>
-                                {isVatable && (
-                                    <div
-                                        style={{
-                                            fontSize: 11,
-                                            color: "#888",
-                                            textAlign: "right",
-                                            marginTop: 4,
-                                        }}
-                                    >
-                                        VAT inclusive
-                                    </div>
-                                )}
+                                <div
+                                    style={{
+                                        fontSize: 11,
+                                        color: "#888",
+                                        textAlign: "right",
+                                        marginTop: 4,
+                                    }}
+                                >
+                                    {vatType === "vat_inclusive"
+                                        ? "VAT Inclusive (12%)"
+                                        : vatType === "vat_exclusive"
+                                          ? "VAT Exclusive (12%)"
+                                          : "VAT Exempt"}
+                                </div>
                             </div>
                         </div>
 

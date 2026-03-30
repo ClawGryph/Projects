@@ -16,6 +16,7 @@ import ManualInvoiceModal from "../components/ManualInvoiceModal";
 import Form2307Modal from "../components/Form2307Modal";
 
 export default function Payments() {
+    const [company, setCompany] = useState(null);
     const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [projects, setProjects] = useState([]);
     const [invoicePayment, setInvoicePayment] = useState(null);
@@ -49,6 +50,14 @@ export default function Payments() {
                 setLoading(false);
             });
     };
+
+    // Fetch company
+    useEffect(() => {
+        axiosClient
+            .get("/company")
+            .then(({ data }) => setCompany(data))
+            .catch(() => setNotification("Failed to load company data"));
+    }, []);
 
     useEffect(() => {
         getPaymentSchedules();
@@ -781,6 +790,7 @@ export default function Payments() {
                     payment={invoicePayment}
                     scheduleIndex={invoicePayment.schedule_index}
                     totalSchedules={invoicePayment.total_schedules}
+                    company={company}
                     onClose={() => setInvoicePayment(null)}
                 />
             )}
@@ -788,6 +798,7 @@ export default function Payments() {
             {manualInvoicePayment && (
                 <ManualInvoiceModal
                     payment={manualInvoicePayment}
+                    company={company}
                     onClose={() => setManualInvoicePayment(null)}
                 />
             )}
