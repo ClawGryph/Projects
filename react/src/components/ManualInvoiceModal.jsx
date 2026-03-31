@@ -771,7 +771,11 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                                         textAlign: "right",
                                                     }}
                                                 >
-                                                    {formatPHP(up)}
+                                                    {formatPHP(
+                                                        isVatInclusive
+                                                            ? up * 1.12
+                                                            : up,
+                                                    )}
                                                 </td>
                                                 <td
                                                     style={{
@@ -781,7 +785,11 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                                         textAlign: "right",
                                                     }}
                                                 >
-                                                    {formatPHP(qty * up)}
+                                                    {formatPHP(
+                                                        isVatInclusive
+                                                            ? up * 1.12
+                                                            : up,
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

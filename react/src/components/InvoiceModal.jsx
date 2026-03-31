@@ -466,7 +466,11 @@ export default function InvoiceModal({
                                             textAlign: "center",
                                         }}
                                     >
-                                        {formatPHP(subtotal)}
+                                        {formatPHP(
+                                            isVatInclusive
+                                                ? expectedAmount
+                                                : subtotal,
+                                        )}
                                     </td>
                                     <td
                                         style={{
@@ -475,7 +479,11 @@ export default function InvoiceModal({
                                             textAlign: "center",
                                         }}
                                     >
-                                        {formatPHP(subtotal)}
+                                        {formatPHP(
+                                            isVatInclusive
+                                                ? expectedAmount
+                                                : subtotal,
+                                        )}
                                     </td>
                                 </tr>
                                 {[...Array(3)].map((_, i) => (
