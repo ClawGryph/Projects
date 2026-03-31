@@ -102,21 +102,30 @@ export default function UploadFiles() {
         {
             key: "2307 Status",
             render: () => (
-                <div className="relative">
-                    <select
-                        value={selected2307Status}
-                        onChange={(e) => setSelected2307Status(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-black"
-                    >
-                        <option value="">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="uploaded">Uploaded</option>
-                    </select>
-                    <FontAwesomeIcon
-                        icon={faChevronDown}
-                        className={`h-3 w-3 transition-colors ${selected2307Status ? "text-yellow-300" : "text-white/70"} text-xs`}
-                    />
+                <div className="flex items-center justify-center gap-1">
+                    <span>2307 Status</span>
+                    <div className="relative">
+                        <select
+                            value={selected2307Status}
+                            onChange={(e) =>
+                                setSelected2307Status(e.target.value)
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-black"
+                        >
+                            <option value="">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="uploaded">Uploaded</option>
+                        </select>
+                        <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className={`h-3 w-3 transition-colors ${
+                                selected2307Status
+                                    ? "text-yellow-300"
+                                    : "text-white/70"
+                            } text-xs`}
+                        />
+                    </div>
                 </div>
             ),
         },
