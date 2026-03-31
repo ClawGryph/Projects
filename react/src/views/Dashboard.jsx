@@ -284,9 +284,11 @@ export default function Dashboard() {
         (t) => t.paid_at && get2307Status(t) === "no_or",
     );
 
-    const pendingForm2307Payments = transactions.filter(
-        (t) => t.paid_at && get2307Status(t) === "pending",
-    );
+    const pendingForm2307Payments = transactions.filter((t) => {
+        if (!t.paid_at) return false;
+        if (!t.official_receipt) return true;
+        return get2307Status(t) === "pending";
+    });
 
     const active2307List =
         pending2307Filter === "no_or" ? noORPayments : pendingForm2307Payments;
@@ -1114,8 +1116,9 @@ export default function Dashboard() {
                                         transactions.filter(
                                             (t) =>
                                                 t.paid_at &&
-                                                t.official_receipt &&
-                                                !t.official_receipt.or_file_url,
+                                                (!t.official_receipt
+                                                    ?.or_file_url ||
+                                                    !t.official_receipt?.id),
                                         ).length
                                     }
                                 </h3>
@@ -1141,23 +1144,6 @@ export default function Dashboard() {
                                 })()}
                             </span>
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-3">
-                        <span className="text-sm font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-lg">
-                            {(() => {
-                                const count = transactions.filter(
-                                    (t) =>
-                                        t.paid_at &&
-                                        t.official_receipt &&
-                                        !t.official_receipt.or_file_url,
-                                ).length;
-                                return `${count} ${count === 1 ? "payment" : "payments"}`;
-                            })()}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                            missing O.R. file
-                        </span>
                     </div>
                 </div>
 
@@ -1189,15 +1175,16 @@ export default function Dashboard() {
                                         transactions.filter(
                                             (t) =>
                                                 t.paid_at &&
-                                                t.official_receipt &&
+                                                (!t.official_receipt
+                                                    ?.form2307_id ||
+                                                    !t.official_receipt
+                                                        .form2307_file_url) &&
                                                 t.official_receipt
-                                                    .service_invoice_number !==
+                                                    ?.service_invoice_number !==
                                                     null &&
                                                 t.official_receipt
-                                                    .service_invoice_number !==
-                                                    "" &&
-                                                !t.official_receipt
-                                                    .form2307_file_url,
+                                                    ?.service_invoice_number !==
+                                                    "",
                                         ).length
                                     }
                                 </h3>
@@ -1229,26 +1216,6 @@ export default function Dashboard() {
                                 })()}
                             </span>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                        <span className="text-sm font-semibold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg">
-                            {(() => {
-                                const count = transactions.filter(
-                                    (t) =>
-                                        t.paid_at &&
-                                        t.official_receipt &&
-                                        t.official_receipt
-                                            .service_invoice_number !== null &&
-                                        t.official_receipt
-                                            .service_invoice_number !== "" &&
-                                        !t.official_receipt.form2307_file_url,
-                                ).length;
-                                return `${count} ${count === 1 ? "payment" : "payments"}`;
-                            })()}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                            missing 2307 file
-                        </span>
                     </div>
                 </div>
             </div>
