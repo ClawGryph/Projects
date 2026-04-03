@@ -7,6 +7,7 @@ export default function GuestLayout() {
     const { token } = useStateContext();
     const matches = useMatches();
 
+    // Handles tab title name for browser
     useEffect(() => {
         const current = matches[matches.length - 1];
         const title = current?.handle?.title;
@@ -18,6 +19,7 @@ export default function GuestLayout() {
         }
     }, [matches]);
 
+    // If access token exists navigate to main page
     if (token) {
         return <Navigate to="/" />;
     }

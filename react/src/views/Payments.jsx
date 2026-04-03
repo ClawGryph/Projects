@@ -76,36 +76,43 @@ export default function Payments() {
         const doUpdate = () => {
             const payload = { status: newStatus };
 
-            // Calculate amounts when marking as paid
+            // Calculate amounts when marking payment as "paid"
             if (newStatus === "paid") {
+                // Determine VAT treatment type
                 const vatType =
                     currentPayment.clientsProject?.vat_type ?? "vat_exempt";
                 const isVatExclusive = vatType === "vat_exclusive";
                 const isVatInclusive = vatType === "vat_inclusive";
 
+                // Calculate VAT breakdown
                 const expectedAmount =
                     parseFloat(currentPayment.expected_amount) || 0;
                 const subtotal =
                     isVatInclusive || isVatExclusive
-                        ? expectedAmount / 1.12
+                        ? expectedAmount / 1.12 // Remove 12% VAT from total
                         : expectedAmount;
                 const vatAmount =
-                    isVatInclusive || isVatExclusive ? subtotal * 0.12 : 0;
+                    isVatInclusive || isVatExclusive ? subtotal * 0.12 : 0; // Calculate 12% VAT
                 const total = subtotal + vatAmount;
 
+                // Get withholding tax rate based on client type and annual gross
                 const clientType =
                     currentPayment.clientsProject?.client?.company_type ?? "";
                 const annualGross = parseFloat(company?.annual_gross) || 0;
 
                 const getWithholdingRate = () => {
                     if (clientType === "Private Corp") {
-                        return annualGross >= 3_000_000 ? 0.02 : 0.01;
+                        return annualGross >= 3_000_000 ? 0.02 : 0.01; // 2% if ≥₱3M, else 1%
                     }
                     if (clientType === "Government") return 0.01;
                     return 0;
                 };
 
                 const withholdingRate = getWithholdingRate();
+
+                // Determine withholding base amount:
+                // - Government: total (including VAT)
+                // - Private Corp: subtotal (excluding VAT)
                 const withholdingBase =
                     clientType === "Government" ? total : subtotal;
                 const withholdingTax = withholdingBase * withholdingRate;
@@ -126,6 +133,8 @@ export default function Payments() {
                 });
         };
 
+        // If changing from "paid" back to "pending", delete the transaction record first
+        // Otherwise, just update the status directly
         if (wasPaid && changingToPending && currentPayment.transaction?.id) {
             axiosClient
                 .delete(`/transactions/${currentPayment.transaction.id}`)
@@ -147,12 +156,16 @@ export default function Payments() {
         return () => window.removeEventListener("click", close);
     }, []);
 
+    // Filter payment schedules by status and 2307 issuance
     const filteredSchedules = paymentSchedules.filter((p) => {
         const isPaid = p.status === "paid";
+
+        // Check if 2307 has been issued (only relevant for paid payments)
         const form2307Status = p.transaction?.officialReceipt?.form2307
             ? "issued"
             : "pending";
 
+        // Apply filters
         const matchesStatus = !selectedStatus || p.status === selectedStatus;
         const matches2307 =
             !selected2307Status ||
@@ -161,6 +174,7 @@ export default function Payments() {
         return matchesStatus && matches2307;
     });
 
+    // Format strings by converting underscores to spaces and capetalize each word
     const formatPaymentType = (type) => {
         if (!type) return "";
         return type

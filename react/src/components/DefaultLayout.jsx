@@ -31,6 +31,7 @@ export default function DefaultLayout() {
     const matches = useMatches();
 
     useEffect(() => {
+        // If access token exist get the users data
         if (token) {
             axiosClient.get("/user").then(({ data }) => {
                 setUser(data);
@@ -38,6 +39,7 @@ export default function DefaultLayout() {
         }
     }, [token]);
 
+    // Handles tab title name for browser
     useEffect(() => {
         const current = matches[matches.length - 1];
         const title = current?.handle?.title;
@@ -46,7 +48,9 @@ export default function DefaultLayout() {
             : "Client Management System";
     }, [matches]);
 
+    // If no token always go back to login page
     if (!token) return <Navigate to="/login" />;
+    // If no company always navigate to company page
     if (!selectedCompany) return <Navigate to="/company" />;
 
     const onLogout = (e) => {

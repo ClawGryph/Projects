@@ -102,6 +102,7 @@ export default function ClientsProject() {
         return "Number of cycles";
     };
 
+    // Format strings by converting underscores to spaces and capetalize each word
     const formatPaymentType = (type) => {
         if (!type) return "";
         const formatted = type.replace(/_/g, " ");
@@ -212,7 +213,7 @@ export default function ClientsProject() {
 
     // ─── Reusable sub-components ────────────────────────────────────────────
 
-    /** Shows Original Price only */
+    // Shows Original Price only
     const PriceDisplay = () => (
         <div className="relative w-full mb-2">
             <input

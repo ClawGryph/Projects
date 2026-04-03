@@ -415,7 +415,9 @@ export default function Projects() {
                                             <th className="px-4 py-2">
                                                 Status
                                             </th>
-                                            <th className="px-4 py-2">O.R #</th>
+                                            <th className="px-4 py-2">
+                                                S.I/ACK No.
+                                            </th>
                                             <th className="px-4 py-2 rounded-tr-lg">
                                                 2307 Status
                                             </th>
@@ -427,9 +429,14 @@ export default function Projects() {
                                             const officialReceipt =
                                                 p.transaction?.officialReceipt;
                                             const orNumber =
-                                                officialReceipt?.or_number;
-                                            const form2307Status =
-                                                officialReceipt?.form_2307_status;
+                                                officialReceipt?.service_invoice_number ??
+                                                officialReceipt?.payment_acknowledgement_number;
+                                            const form2307Status = isPaid
+                                                ? p.transaction?.officialReceipt
+                                                      ?.form2307
+                                                    ? "issued"
+                                                    : "pending"
+                                                : "";
 
                                             return (
                                                 <tr

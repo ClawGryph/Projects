@@ -4,6 +4,8 @@ import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import logo from "../assets/logo1.png";
 
+// Color palette for avatars - each entry contains [background color, text color]
+// Colors cycle through these 6 options based on user/entity ID
 const COLORS = [
     ["#6c63ff", "#1a1640"],
     ["#34d399", "#0d2e21"],
@@ -13,6 +15,7 @@ const COLORS = [
     ["#fb923c", "#2e1500"],
 ];
 
+// Extracts initials from a full name for avatar display
 function initials(name) {
     return name
         .split(" ")
@@ -22,6 +25,7 @@ function initials(name) {
         .toUpperCase();
 }
 
+// Assigns a consistent color pair based on ID
 function colorFor(id) {
     return COLORS[id % COLORS.length];
 }

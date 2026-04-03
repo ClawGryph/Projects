@@ -29,9 +29,10 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
             payment.schedule_index != null
                 ? String(payment.schedule_index).padStart(2, "0")
                 : "??";
-        return `C${client.id ?? "?"}P${project.id ?? "?"}-${idx}`;
+        return `C${client.id ?? "?"}P${project.id ?? "?"}-${idx}`; // Formatted invoice number
     };
 
+    // Payment term label
     const getTerms = () => {
         const type = paymentInfo.payment_type;
         const total = payment.total_schedules ?? paymentInfo.number_of_cycles;
@@ -60,6 +61,7 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
     const clientType = client.company_type ?? "";
     const annualGross = parseFloat(company?.annual_gross) || 0;
 
+    // Determines withholding tax rate based on client type and companies annual gross
     const getWithholdingRate = () => {
         if (clientType === "Private Corp") {
             return annualGross >= 3_000_000 ? 0.02 : 0.01;
@@ -72,6 +74,7 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
 
     const withholdingRate = getWithholdingRate();
 
+    // Calculates subtotal base on payment amount and vat type
     const getDefaultSubtotal = () => {
         const amount = parseFloat(payment.expected_amount) || 0;
         if (isVatInclusive || isVatExclusive) return amount / 1.12;
@@ -160,23 +163,30 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
         markDirty();
     };
 
-    // Totals
+    // Calculates by adding up the line items in an invoice
     const subtotal = lineItems.reduce(
         (s, i) => s + (parseFloat(i.qty) || 0) * (parseFloat(i.unitPrice) || 0),
         0,
     );
+
+    // Calculates vat amount (12%)
     const vatAmount = isVatExclusive || isVatInclusive ? subtotal * 0.12 : 0;
     const total = subtotal + vatAmount;
+
+    // Private Corp → based on subtotal (excluding VAT)
+    // Government → based on total (including VAT)
     const withholdingBase = clientType === "Government" ? total : subtotal;
     const withholdingTax = withholdingBase * withholdingRate;
     const netAmount = total - withholdingTax;
 
+    // Converts numbers into philippine peso format with proper decimal places
     const formatPHP = (val) =>
         new Intl.NumberFormat("en-PH", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(val);
 
+    // Format date
     const formatDate = (dateStr) => {
         if (!dateStr) return "-";
         return new Date(dateStr).toLocaleDateString("en-PH", {
@@ -210,6 +220,7 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
         }
     };
 
+    // Styling input fields
     const inputCls =
         "border border-gray-200 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-cyan-500 bg-white";
 

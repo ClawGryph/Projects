@@ -8,6 +8,7 @@ import {
     faFileInvoiceDollar,
 } from "@fortawesome/free-solid-svg-icons";
 
+// Dynamic input field
 const Field = ({ label, required, error, children, labelSize = "text-xs" }) => (
     <div>
         <label
@@ -25,11 +26,13 @@ const Field = ({ label, required, error, children, labelSize = "text-xs" }) => (
     </div>
 );
 
+// Dynamic css classname for styling form inputs based on validation state
 const inputClass = (hasError) =>
     `w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-600 ${
         hasError ? "border-red-400 bg-red-50" : "border-gray-300"
     }`;
 
+// Dynamic css classname for currency input field based on validation state
 const pesoInputClass = (hasError) =>
     `w-full border rounded-lg pl-7 pr-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-600 ${
         hasError ? "border-red-400 bg-red-50" : "border-gray-300"
@@ -58,6 +61,7 @@ export default function Form2307Modal({ payment, onClose, onSaved }) {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        // If there is an existing 2307 populate the form with existing data
         if (existing2307) {
             setForm2307({
                 period_from: existing2307.period_from ?? "",
@@ -72,16 +76,19 @@ export default function Form2307Modal({ payment, onClose, onSaved }) {
         }
     }, [existing2307]);
 
+    // Calculates total income by adding three monthly amounts
     const totalIncome = (
         (parseFloat(form2307.month1_amount) || 0) +
         (parseFloat(form2307.month2_amount) || 0) +
         (parseFloat(form2307.month3_amount) || 0)
     ).toFixed(2);
 
+    // Calculates the total income including withheld tax
     const totalIncomeWithTax = (
         parseFloat(totalIncome) + (parseFloat(form2307.tax_withheld) || 0)
     ).toFixed(2);
 
+    // Updates form state and clears validation errors when a user types in an input field
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm2307((prev) => ({ ...prev, [name]: value }));
@@ -106,7 +113,7 @@ export default function Form2307Modal({ payment, onClose, onSaved }) {
             return;
         }
 
-        setSaving(true);
+        setSaving(true); // Disables submit button
 
         const payload = {
             ...form2307,

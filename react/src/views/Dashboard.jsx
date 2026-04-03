@@ -59,6 +59,8 @@ export default function Dashboard() {
         // Only count transactions that are actually paid (have a paid_at date)
         const paidTransactions = transactionsData.filter((t) => !!t.paid_at);
 
+        // Calculates total revenue for the current month from paid transactions
+        //Filters transactions by month and year, then sums the amounts
         const currentMonthRevenue = paidTransactions
             .filter((t) => {
                 const date = new Date(t.paid_at);
@@ -69,6 +71,8 @@ export default function Dashboard() {
             })
             .reduce((sum, t) => sum + Number(t.amount_paid || 0), 0);
 
+        // Calculates total revenue for the previous month from paid transactions
+        // Handles year boundary cases (e.g., January vs December of previous year)
         const lastMonthRevenue = paidTransactions
             .filter((t) => {
                 const date = new Date(t.paid_at);
@@ -79,6 +83,8 @@ export default function Dashboard() {
             })
             .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
+        // Calculates month-over-month revenue growth percentage
+        // Handles edge cases like no previous revenue or zero values
         const revenueChangePercent =
             lastMonthRevenue > 0
                 ? (
@@ -90,7 +96,7 @@ export default function Dashboard() {
                   ? 100
                   : 0;
 
-        // Overdue
+        // Gets all overdue payment schedules for the current month
         const overdueSchedulesThisMonth = clientsProjectsData
             .flatMap((cp) => cp.payment_schedules || [])
             .filter((s) => {
@@ -105,11 +111,13 @@ export default function Dashboard() {
                 );
             });
 
+        // Gets the count of overdue payment schedules for the current month
         const overdueCount =
             overdueSchedulesThisMonth.length > 0
                 ? overdueSchedulesThisMonth.length
                 : 0;
 
+        // Filters clients who were created in the current month and year
         const currentMonthClients = clientData.filter((c) => {
             if (!c.created_at) return false;
             const createdDate = new Date(c.created_at);
@@ -119,6 +127,7 @@ export default function Dashboard() {
             );
         });
 
+        // Filters projects that were created in the current month and year
         const currentMonthProjects = projectsData.filter((p) => {
             if (!p.created_at) return false;
             const date = new Date(p.created_at);
@@ -180,6 +189,7 @@ export default function Dashboard() {
     // View for all successful payments and filter
     const paidTransactions = transactions.filter((t) => t.paid_at);
 
+    // Filters paid transactions by selected month and year
     const filteredPayments = paidTransactions.filter((t) => {
         const paidDate = new Date(t.paid_at);
 
@@ -206,6 +216,7 @@ export default function Dashboard() {
             })),
     );
 
+    // Filters overdue payments by selected due date month and year
     const filteredOverduePayments = overduePayments.filter((o) => {
         if (!o.due_date) return false;
 
@@ -246,8 +257,12 @@ export default function Dashboard() {
 
         let cycleLabel = "";
         if (paymentType === "one_time") {
+            // One-time payment: simple paid/unpaid status
             cycleLabel = paid > 0 ? "Paid" : "Unpaid";
         } else {
+            // Recurring or installment payments: show progress (e.g., "3 / 12 installments paid")
+
+            // Determine the unit label based on payment frequency
             const unit =
                 paymentType === "installment"
                     ? "installment"
@@ -256,6 +271,8 @@ export default function Dashboard() {
                       : recurringType === "yearly"
                         ? "year"
                         : "month";
+
+            // Format progress with proper pluralization
             cycleLabel = `${paid} / ${total} ${unit}${total !== 1 ? "s" : ""} paid`;
         }
 
@@ -267,6 +284,8 @@ export default function Dashboard() {
         return { overallStatus, cycleLabel, totalCostPaid };
     };
 
+    // Determines the Form 2307 (Tax Withholding Certificate) status for a transaction
+    // Status flow: no OR → not applicable → pending → issued
     const get2307Status = (transaction) => {
         if (!transaction.official_receipt) return "no_or";
 
@@ -280,16 +299,21 @@ export default function Dashboard() {
         return "issued";
     };
 
+    // Filters transactions that have been paid but are missing Official Receipt (OR)
+    // These are transactions that need an OR to be generated for compliance
     const noORPayments = transactions.filter(
         (t) => t.paid_at && get2307Status(t) === "no_or",
     );
 
+    //Filters transactions that need Form 2307 (Tax Certificate) issuance
     const pendingForm2307Payments = transactions.filter((t) => {
-        if (!t.paid_at) return false;
-        if (!t.official_receipt) return true;
-        return get2307Status(t) === "pending";
+        if (!t.paid_at) return false; // Only paid transactions
+        if (!t.official_receipt) return true; // Missing OR - needs attention
+        return get2307Status(t) === "pending"; // Has OR but needs 2307
     });
 
+    // Switch between transaction lists based on selected filter
+    // "no_or" = missing OR only, otherwise = all pending 2307 items
     const active2307List =
         pending2307Filter === "no_or" ? noORPayments : pendingForm2307Payments;
 

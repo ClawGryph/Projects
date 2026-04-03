@@ -41,6 +41,7 @@ export default function UploadFileModal({ transaction, onClose, onSaved }) {
         return faFileImage;
     };
 
+    // Validation for uploaded file
     const validateFile = (file) => {
         const allowed = ["image/jpeg", "image/png", "application/pdf"];
         if (!allowed.includes(file.type))
@@ -50,6 +51,7 @@ export default function UploadFileModal({ transaction, onClose, onSaved }) {
         return null;
     };
 
+    // Validate the O.R. file uploaded before storing
     const handleOrFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -64,6 +66,7 @@ export default function UploadFileModal({ transaction, onClose, onSaved }) {
         setOrFile(file);
     };
 
+    // Validate the 2307 file uploaded before storing
     const handleForm2307FileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -128,6 +131,7 @@ export default function UploadFileModal({ transaction, onClose, onSaved }) {
             .finally(() => setForm2307Uploading(false));
     };
 
+    // Uploading file field
     const DropZone = ({ file, onZoneClick, inputRef, onChange, accept }) => (
         <>
             <div

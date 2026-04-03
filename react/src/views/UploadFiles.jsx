@@ -58,6 +58,7 @@ export default function UploadFiles() {
         return matchesProject && matchesOrStatus && matches2307;
     });
 
+    // Format strings by converting underscores to spaces and capetalize each word
     const formatPaymentType = (type) => {
         if (!type) return "";
         return type

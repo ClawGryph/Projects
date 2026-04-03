@@ -11,6 +11,7 @@ import {
     faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 
+// Dynamic input field
 const Field = ({ label, required, error, children, labelSize = "text-xs" }) => (
     <div>
         <label
@@ -28,6 +29,7 @@ const Field = ({ label, required, error, children, labelSize = "text-xs" }) => (
     </div>
 );
 
+// Dynamic css classname for styling form inputs based on validation state
 const inputClass = (hasError) =>
     `w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-600 ${
         hasError ? "border-red-400 bg-red-50" : "border-gray-300"
@@ -39,6 +41,7 @@ const disabledInputClass =
 const readOnlyClass =
     "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-500 bg-gray-50 cursor-default select-none";
 
+// Dynamic css classname for currency input field based on validation state
 const pesoInputClass = (hasError) =>
     `w-full border rounded-lg pl-7 pr-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-600 ${
         hasError ? "border-red-400 bg-red-50" : "border-gray-300"
@@ -163,6 +166,7 @@ export default function OfficialReceiptModal({
         const num = (val) => (val != null ? String(val) : "");
 
         if (existingOR) {
+            // If there is an existing O.R. populate the form with existing data
             setForm({
                 service_invoice_number: str(existingOR.service_invoice_number),
                 payment_acknowledgement_number: str(
@@ -242,8 +246,10 @@ export default function OfficialReceiptModal({
         (parseFloat(form.other) || 0)
     ).toFixed(2);
 
-    // Withholding tax
+    // Company annual gross
     const annualGross = parseFloat(company?.annual_gross) || 0;
+
+    // Determines withholding tax rate based on client type and companies annual gross
     const getWithholdingRate = () => {
         if (clientType === "Private Corp") {
             return annualGross >= 3_000_000 ? 0.02 : 0.01;
@@ -251,7 +257,10 @@ export default function OfficialReceiptModal({
         if (clientType === "Government") return 0.01;
         return 0;
     };
+
     const withholdingRate = getWithholdingRate();
+    // Private Corp → based on subtotal (excluding VAT)
+    // Government → based on total (including VAT)
     const withholdingBase =
         clientType === "Government"
             ? parseFloat(totalAmount)
@@ -259,6 +268,7 @@ export default function OfficialReceiptModal({
     const withholdingTax = withholdingBase * withholdingRate;
     const netAmountDue = parseFloat(totalAmount) - withholdingTax;
 
+    // Updates form state and clears validation errors and triggers real-time validation checks
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
@@ -286,7 +296,7 @@ export default function OfficialReceiptModal({
                 ? String(scheduleIndex).padStart(2, "0")
                 : "??";
 
-        return `C${clientId}P${projectId}-${formattedIndex}`;
+        return `C${clientId}P${projectId}-${formattedIndex}`; //Formatted invoice number
     };
 
     // ── Block save if any checker is still running / found a conflict ──────

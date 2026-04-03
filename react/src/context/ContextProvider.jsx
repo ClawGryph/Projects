@@ -31,6 +31,7 @@ export const ContextProvider = ({ children }) => {
         return saved ? JSON.parse(saved) : null;
     });
 
+    // Displays notification message
     const setNotification = (message) => {
         _setNotification(message);
         setTimeout(() => {
@@ -38,6 +39,7 @@ export const ContextProvider = ({ children }) => {
         }, 5000);
     };
 
+    // Sychronize authentication state between react and local storage
     const setToken = (token) => {
         _setToken(token);
         if (token) {
@@ -47,6 +49,7 @@ export const ContextProvider = ({ children }) => {
         }
     };
 
+    // Synchronizes the selected company between React state and localStorage for persistence across sessions
     const setSelectedCompany = (company) => {
         _setSelectedCompany(company);
         if (company) {

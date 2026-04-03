@@ -23,9 +23,11 @@ export default function InvoiceModal({
     const clientType = client.company_type ?? "";
     const annualGross = parseFloat(company?.annual_gross) || 0;
 
+    // Formats number into a two digit string
     const formattedIndex =
         scheduleIndex != null ? String(scheduleIndex).padStart(2, "0") : "??";
 
+    // Generate formatted invoice number
     const invoiceNumber = `C${client.id ?? "?"}P${project.id ?? "?"}-${formattedIndex}`;
 
     // Format date
@@ -59,19 +61,26 @@ export default function InvoiceModal({
     };
 
     const expectedAmount = parseFloat(payment.expected_amount) || 0;
+    // Calculates amount before VAT
     const subtotal =
         isVatInclusive || isVatExclusive
             ? expectedAmount / 1.12
             : expectedAmount;
+
+    // Calculates vat amount (12%)
     const vatAmount = isVatInclusive || isVatExclusive ? subtotal * 0.12 : 0;
+
+    // Calculates the sum of amount before vat and vat amount
     const total = subtotal + vatAmount;
+
+    // Converts numbers into philippine peso format with proper decimal places
     const formatPHP = (val) =>
         new Intl.NumberFormat("en-PH", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(val);
 
-    // Withholding tax
+    // Determines withholding tax rate based on client type and companies annual gross
     const getWithholdingRate = () => {
         if (clientType === "Private Corp") {
             return annualGross >= 3_000_000 ? 0.02 : 0.01;
@@ -86,6 +95,7 @@ export default function InvoiceModal({
     // Private Corp → based on subtotal (excluding VAT)
     // Government → based on total (including VAT)
     const withholdingBase = clientType === "Government" ? total : subtotal;
+
     const withholdingTax = withholdingBase * withholdingRate;
     const netAmount = total - withholdingTax;
 
@@ -614,7 +624,6 @@ export default function InvoiceModal({
                                         </tr>
                                         {withholdingRate > 0 && (
                                             <>
-                                                {/* ✅ spacer row */}
                                                 <tr>
                                                     <td
                                                         colSpan={2}
