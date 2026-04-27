@@ -11,5 +11,8 @@ php artisan migrate --force
 
 php artisan db:seed --force
 
+# Create storage symlink
+php artisan storage:link --force
+
 # Start all services via supervisor
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

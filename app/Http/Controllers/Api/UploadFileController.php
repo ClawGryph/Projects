@@ -22,32 +22,20 @@ class UploadFileController extends Controller
 
         $receipt = OfficialReceipt::findOrFail($id);
 
-        // Delete old file from Cloudinary if exists
-        if ($receipt->or_file_path) {
-            // Only delete if it's a Cloudinary URL
-            if (str_contains($receipt->or_file_path, 'cloudinary.com')) {
-                $publicId = pathinfo(parse_url($receipt->or_file_path, PHP_URL_PATH), PATHINFO_FILENAME);
-                Storage::disk('cloudinary')->delete($publicId);
-            }
+        // Delete old file from local storage if exists
+        if ($receipt->or_file_path && Storage::disk('public')->exists($receipt->or_file_path)) {
+            Storage::disk('public')->delete($receipt->or_file_path);
         }
 
-        // Upload new file to Cloudinary
-        $path = Storage::disk('cloudinary')->putFile(
-            'official-receipts',
-            $request->file('file')
-        );
+        // Store new file in storage/app/public/official-receipts
+        $path = $request->file('file')->store('official-receipts', 'public');
 
-        // Build full Cloudinary URL
-        $mimeType = $request->file('file')->getMimeType();
-        $resourceType = $mimeType === 'application/pdf' ? 'raw' : 'image';
-        $fullUrl = 'https://res.cloudinary.com/' . env('CLOUDINARY_CLOUD_NAME') . '/' . $resourceType . '/upload/' . $path;
-
-        $receipt->update(['or_file_path' => $fullUrl]);
+        $receipt->update(['or_file_path' => $path]);
 
         return response()->json([
             'message'      => 'O.R. file uploaded successfully.',
-            'or_file_path' => $fullUrl,
-            'or_file_url'  => $fullUrl,
+            'or_file_path' => $path,
+            'or_file_url'  => asset('storage/' . $path),
         ]);
     }
 
@@ -63,27 +51,20 @@ class UploadFileController extends Controller
 
         $form = Form2307::findOrFail($id);
 
-        // Delete old file from Cloudinary if exists
-        if ($form->form_file_path) {
-            Storage::disk('cloudinary')->delete($form->form_file_path);
+        // Delete old file from local storage if exists
+        if ($form->form_file_path && Storage::disk('public')->exists($form->form_file_path)) {
+            Storage::disk('public')->delete($form->form_file_path);
         }
 
-        // Upload new file to Cloudinary
-        $path = Storage::disk('cloudinary')->putFile(
-            'form-2307s',
-            $request->file('file')
-        );
+        // Store new file in storage/app/public/form-2307s
+        $path = $request->file('file')->store('form-2307s', 'public');
 
-        $mimeType = $request->file('file')->getMimeType();
-        $resourceType = $mimeType === 'application/pdf' ? 'raw' : 'image';
-        $fullUrl = 'https://res.cloudinary.com/' . env('CLOUDINARY_CLOUD_NAME') . '/' . $resourceType . '/upload/' . $path;
-
-        $form->update(['form_file_path' => $fullUrl]);
+        $form->update(['form_file_path' => $path]);
 
         return response()->json([
             'message'        => '2307 file uploaded successfully.',
-            'form_file_path' => $fullUrl,
-            'form_file_url'  => $fullUrl,
+            'form_file_path' => $path,
+            'form_file_url'  => asset('storage/' . $path),
         ]);
     }
 }

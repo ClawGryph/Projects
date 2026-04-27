@@ -34,9 +34,13 @@ class PaymentTransactionResource extends JsonResource
                 'service_invoice_number'         => $this->officialReceipt->service_invoice_number,
                 'payment_acknowledgement_number' => $this->officialReceipt->payment_acknowledgement_number,
                 'billing_statement_number'       => $this->officialReceipt->billing_statement_number,
-                'or_file_url'                    => $this->officialReceipt->or_file_path ?? null,
+                'or_file_url'                    => $this->officialReceipt->or_file_path
+                                                    ? asset('storage/' . $this->officialReceipt->or_file_path)
+                                                    : null,
                 'form2307_id'                    => $this->officialReceipt->form2307?->id,
-                'form2307_file_url'              => $this->officialReceipt->form2307?->form_file_path ?? null,
+                'form2307_file_url'              => $this->officialReceipt->form2307?->form_file_path
+                                                    ? asset('storage/' . $this->officialReceipt->form2307->form_file_path)
+                                                    : null,
             ] : null,
         ];
     }
