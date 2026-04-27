@@ -78,7 +78,11 @@ export default function DefaultLayout() {
             `}
             >
                 <div className="m-5 flex flex-col items-center justify-center">
-                    <img src={logo} alt="cms logo" className="w-full h-17" />
+                    <img
+                        src={logo}
+                        alt="invoicing logo"
+                        className="w-40 h-15 [filter:brightness(0)_invert(1)_opacity(0.80)]"
+                    />
                 </div>
                 <nav className="text-white text-base font-semibold pt-3">
                     <NavLink

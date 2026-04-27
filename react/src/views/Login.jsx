@@ -47,8 +47,8 @@ export default function Login() {
 
     return (
         <div className="w-full max-w-sm rounded-xl border border-gray-200 py-8 px-6">
-            <div className="mx-auto mb-6 flex h-16 w-full items-center justify-center">
-                <img src={logo} alt="csm logo" />
+            <div className="mx-auto mb-6 flex h-16 w-55 items-center justify-center">
+                <img src={logo} alt="invoicing logo" />
             </div>
 
             <h3 className="mb-6 text-center text-xl font-bold text-cyan-800">
