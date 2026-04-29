@@ -99,7 +99,8 @@ export default function ClientForm() {
                         {/* FULL NAME INPUT */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Full Name
+                                Full Name{" "}
+                                <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
                                 value={client.name}
@@ -123,6 +124,7 @@ export default function ClientForm() {
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                                 Email
+                                <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
                                 type="email"
@@ -146,7 +148,8 @@ export default function ClientForm() {
                         {/* PHONE NUMBER INPUT */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Phone Number
+                                Phone Number{" "}
+                                <span className="text-red-500 text-xs">*</span>
                             </label>
                             <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500">
                                 <span className="px-3 py-2 bg-gray-100 text-gray-500 text-sm border-r">
@@ -174,7 +177,8 @@ export default function ClientForm() {
                         {/* COMPANY NAME INPUT */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Company Name
+                                Company Name{" "}
+                                <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
                                 value={client.company_name}
@@ -197,7 +201,8 @@ export default function ClientForm() {
                         {/* COMPANY ADDRESS INPUT */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Company Address
+                                Company Address{" "}
+                                <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
                                 value={client.company_address}
@@ -220,7 +225,8 @@ export default function ClientForm() {
                         {/* COMPANY TYPE */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Company Type
+                                Company Type{" "}
+                                <span className="text-red-500 text-xs">*</span>
                             </label>
                             <select
                                 value={client.company_type ?? ""}

@@ -7,7 +7,7 @@ export default function UserForm() {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [errors, setErrors] = useState(null);
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const { setNotification } = useStateContext();
     const [formData, setFormData] = useState(null);
@@ -64,45 +64,61 @@ export default function UserForm() {
         }
     };
 
+    // Error Message
+    function validate() {
+        const e = {};
+        if (!form.name.trim()) e.name = "User name is required.";
+        if (!form.email.trim()) e.email = "Email is required.";
+        if (!form.role_name) e.role_name = "Role is required.";
+        if (!form.password) e.password = "Password is required.";
+        if (!form.password_confirmation)
+            e.password_confirmation = "Password confirmation is required.";
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    }
+
     return (
         <>
             {user.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6">
+                <h2 className="p-6 w-full text-lg font-semibold">
                     Update Employee: {formData.name}
                 </h2>
             )}
             {!user.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6">
+                <h2 className="p-6 w-full text-lg font-semibold">
                     New Employee
                 </h2>
             )}
 
-            <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg">
+            <div className="bg-white rounded-xl border p-6 shadow-sm space-y-4 w-full max-w-2xl mx-auto">
                 {loading && <div className="text-center">Loading...</div>}
-                {errors && (
-                    <div className="px-4 py-3 mb-5 rounded shadow text-white bg-red-500 animate-slide-in">
-                        {Object.keys(errors).map((key) => (
-                            <p key={key}>{errors[key][0]}</p>
-                        ))}
-                    </div>
-                )}
                 {!loading && (
                     <form onSubmit={onSubmit} className="space-y-4">
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Full Name{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <input
                                 value={user.name}
                                 onChange={(e) =>
                                     setUser({ ...user, name: e.target.value })
                                 }
                                 placeholder="Enter name of the employee"
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Name
-                            </label>
+                            {errors.name && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.name}
+                                </p>
+                            )}
                         </div>
 
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Email{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <input
                                 type="email"
                                 value={user.email}
@@ -110,14 +126,20 @@ export default function UserForm() {
                                     setUser({ ...user, email: e.target.value })
                                 }
                                 placeholder="xyz@example.com"
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Email
-                            </label>
+                            {errors.email && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.email}
+                                </p>
+                            )}
                         </div>
 
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Role{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <select
                                 value={user.role_name}
                                 onChange={(e) =>
@@ -126,7 +148,7 @@ export default function UserForm() {
                                         role_name: e.target.value,
                                     })
                                 }
-                                className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             >
                                 <option value="" disabled>
                                     Select role
@@ -134,12 +156,18 @@ export default function UserForm() {
                                 <option value="admin">Admin</option>
                                 <option value="viewer">Viewer</option>
                             </select>
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Role
-                            </label>
+                            {errors.role_name && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.role_name}
+                                </p>
+                            )}
                         </div>
 
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Password{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <input
                                 type="password"
                                 onChange={(e) =>
@@ -149,14 +177,20 @@ export default function UserForm() {
                                     })
                                 }
                                 placeholder="Enter password"
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Password
-                            </label>
+                            {errors.password && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.password}
+                                </p>
+                            )}
                         </div>
 
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Password Confirmation{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <input
                                 type="password"
                                 onChange={(e) =>
@@ -166,11 +200,13 @@ export default function UserForm() {
                                     })
                                 }
                                 placeholder="Confirm password"
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Password Confirmation
-                            </label>
+                            {errors.password_confirmation && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.password_confirmation}
+                                </p>
+                            )}
                         </div>
 
                         <button className="w-full bg-cyan-800 text-white font-semibold py-2 rounded-md shadow hover:bg-cyan-900 hover:shadow-lg transition">

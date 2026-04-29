@@ -8,7 +8,7 @@ export default function ProjectsForm() {
     const navigate = useNavigate();
     const { setNotification } = useStateContext();
 
-    const [errors, setErrors] = useState(null);
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [project, setProject] = useState({
         id: null,
@@ -65,31 +65,41 @@ export default function ProjectsForm() {
         }
     };
 
+    // Error Message
+    function validate() {
+        const e = {};
+        if (!form.title.trim()) e.title = "Title is required.";
+        if (!form.description.trim())
+            e.description = "Description is required.";
+        if (form.price === "") e.price = "Cost is required.";
+        if (!form.start_date) e.start_date = "Start date is required.";
+        if (!form.end_date) e.end_date = "End date is required.";
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    }
+
     return (
-        <div className="overflow-y-auto">
+        <>
             {project.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6">
-                    Update Project: {formData.title}
+                <h2 className="p-6 w-full text-lg font-semibold">
+                    Update project: {formData.title}
                 </h2>
             )}
             {!project.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6">
-                    Add New Project
+                <h2 className="p-6 w-full text-lg font-semibold">
+                    Add new project
                 </h2>
             )}
-            <div className="w-full max-w-2xl mx-auto  p-6 bg-white rounded-xl shadow-lg">
+            <div className="bg-white rounded-xl border p-6 shadow-sm space-y-4 w-full max-w-2xl mx-auto">
                 {loading && <div className="text-center">Loading...</div>}
-                {errors && (
-                    <div className="px-4 py-3 mb-5 rounded shadow text-white bg-red-500 animate-slide-in">
-                        {Object.keys(errors).map((key) => (
-                            <p key={key}>{errors[key][0]}</p>
-                        ))}
-                    </div>
-                )}
                 {!loading && (
                     <form onSubmit={onSubmit} className="space-y-4">
                         {/* TITLE INPUT */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Title{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <input
                                 value={project.title}
                                 onChange={(e) =>
@@ -99,15 +109,21 @@ export default function ProjectsForm() {
                                     })
                                 }
                                 placeholder="Enter title..."
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Title
-                            </label>
+                            {errors.title && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.title}
+                                </p>
+                            )}
                         </div>
 
                         {/* DESCRIPTION INPUT */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Description{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <textarea
                                 value={project.description}
                                 onChange={(e) =>
@@ -118,41 +134,54 @@ export default function ProjectsForm() {
                                 }
                                 placeholder="Enter description..."
                                 rows={5}
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Description
-                            </label>
+                            {errors.description && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.description}
+                                </p>
+                            )}
                         </div>
 
                         {/* COST INPUT */}
-                        <div className="relative w-full">
-                            <span className="absolute left-3 top-8 -translate-y-1/2 text-gray-700 font-semibold pointer-events-none">
-                                ₱
-                            </span>
-
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={project.price}
-                                onChange={(e) =>
-                                    setProject({
-                                        ...project,
-                                        price: e.target.value,
-                                    })
-                                }
-                                placeholder="0.00"
-                                className="block w-full border border-gray-300 rounded-md pl-8 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                            />
-
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Client Cost
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Cost{" "}
+                                <span className="text-red-500 text-xs">*</span>
                             </label>
+                            <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500">
+                                <span className="px-3 py-2 bg-gray-100 text-gray-500 text-sm border-r">
+                                    ₱
+                                </span>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={project.price}
+                                    onChange={(e) =>
+                                        setProject({
+                                            ...project,
+                                            price: e.target.value,
+                                        })
+                                    }
+                                    placeholder="0.00"
+                                    className="w-full px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+                                />
+                            </div>
+                            {errors.price && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.price}
+                                </p>
+                            )}
                         </div>
 
                         {/* START DATE */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Start date{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <input
                                 type="date"
                                 value={project.start_date}
@@ -163,15 +192,21 @@ export default function ProjectsForm() {
                                     })
                                 }
                                 placeholder=" "
-                                className="block w-full border border-gray-300 rounded-md px-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Start Date
-                            </label>
+                            {errors.start_date && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.start_date}
+                                </p>
+                            )}
                         </div>
 
                         {/* END DATE */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                End date{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
                             <input
                                 type="date"
                                 value={project.end_date}
@@ -182,11 +217,13 @@ export default function ProjectsForm() {
                                     })
                                 }
                                 placeholder=" "
-                                className="block w-full border border-gray-300 rounded-md px-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                End Date
-                            </label>
+                            {errors.end_date && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.end_date}
+                                </p>
+                            )}
                         </div>
 
                         <button className="w-full bg-cyan-800 text-white font-semibold py-2 rounded-md shadow hover:bg-cyan-900 hover:shadow-lg transition">
@@ -195,6 +232,6 @@ export default function ProjectsForm() {
                     </form>
                 )}
             </div>
-        </div>
+        </>
     );
 }
