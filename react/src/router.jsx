@@ -16,6 +16,7 @@ import UserForm from "./views/UserForm.jsx";
 import UploadFiles from "./views/UploadFiles.jsx";
 import ReportModule from "./views/ReportModule.jsx";
 import Company from "./views/Company.jsx";
+import CompanyManagement from "./views/CompanyManagement.jsx";
 
 const router = createBrowserRouter([
     {
@@ -94,6 +95,11 @@ const router = createBrowserRouter([
                 path: "/report",
                 element: <ReportModule />,
                 handle: { title: "Report" },
+            },
+            {
+                path: "/company-management",
+                element: <CompanyManagement />,
+                handle: { title: "Edit Company" },
             },
         ],
     },

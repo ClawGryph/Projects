@@ -20,7 +20,7 @@ class CompanyController extends Controller
             'name' => 'required|string|max:50',
             'business_type' => 'nullable|string|max:100',
             'vat_type' => 'required|string|in:vat_registered,non_vat',
-            'annual_gross' => 'required|numeric'
+            'annual_gross' => 'required|numeric|min:0'
         ]);
 
         $company = Company::create($data);
@@ -30,6 +30,19 @@ class CompanyController extends Controller
 
     public function show(Company $company){
         return new CompanyResource($company);
+    }
+
+    public function update(Request $request, Company $company)
+    {
+        $validated = $request->validate([
+            'name'          => 'required|string|max:50',
+            'business_type' => 'nullable|string|max:100',
+            'vat_type'      => 'required|string|in:vat_registered,non_vat',
+            'annual_gross'  => 'required|numeric|min:0',
+        ]);
+
+        $company->update($validated);
+        return response()->json($company);
     }
 
     public function current()

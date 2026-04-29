@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::post('/manual-invoices', [ManualInvoiceController::class, 'save']);
     Route::post('/form-2307s', [Form2307Controller::class, 'store']);
     Route::put('/form-2307s/{form2307}', [Form2307Controller::class, 'update']);
+    Route::put('/companies/{company}', [CompanyController::class, 'update']);
 });
 
 // All roles can view

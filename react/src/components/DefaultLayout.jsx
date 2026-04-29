@@ -155,6 +155,19 @@ export default function DefaultLayout() {
                             />
                             Account Management
                         </NavLink>
+                        <NavLink
+                            to="/company-management"
+                            onClick={() => setOpenSidebar(false)}
+                            className={({ isActive }) =>
+                                `text-sm flex items-center py-2 px-2 rounded-lg transition-all ${isActive ? "bg-white text-cyan-900" : "text-white hover:bg-cyan-700"}`
+                            }
+                        >
+                            <FontAwesomeIcon
+                                icon={faUserTie}
+                                className="mr-2"
+                            />
+                            Company Management
+                        </NavLink>
                     </div>
                 )}
             </aside>
