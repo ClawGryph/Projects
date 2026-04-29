@@ -8,7 +8,7 @@ export default function ClientForm() {
     const navigate = useNavigate();
     const { setNotification } = useStateContext();
 
-    const [errors, setErrors] = useState(null);
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [client, setClient] = useState({
         id: null,
@@ -65,32 +65,42 @@ export default function ClientForm() {
         }
     };
 
+    // Error Message
+    function validate() {
+        const e = {};
+        if (!form.name.trim()) e.name = "Client name is required.";
+        if (!form.email.trim()) e.email = "Email is required.";
+        if (!form.phone_number) e.phone_number = "Phone number is required.";
+        if (!form.company_name) e.company_name = "Company name is required.";
+        if (!form.company_address)
+            e.company_address = "Company address is required.";
+        if (!form.company_type) e.company_type = "Company type is required.";
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    }
+
     return (
         <>
             {client.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6">
+                <h2 className="p-6 w-full text-lg font-semibold">
                     Update Client: {formData.name}
                 </h2>
             )}
             {!client.id && (
-                <h2 className="text-2xl font-bold text-gray-800 m-6">
-                    Add New Client
+                <h2 className="p-6 w-full text-lg font-semibold">
+                    Add new client
                 </h2>
             )}
 
-            <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg">
+            <div className="bg-white rounded-xl border p-6 shadow-sm space-y-4 w-full max-w-2xl mx-auto">
                 {loading && <div className="text-center">Loading...</div>}
-                {errors && (
-                    <div className="px-4 py-3 mb-5 rounded shadow text-white bg-red-500 animate-slide-in">
-                        {Object.keys(errors).map((key) => (
-                            <p key={key}>{errors[key][0]}</p>
-                        ))}
-                    </div>
-                )}
                 {!loading && (
                     <form onSubmit={onSubmit} className="space-y-4">
                         {/* FULL NAME INPUT */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Full Name
+                            </label>
                             <input
                                 value={client.name}
                                 onChange={(e) =>
@@ -100,15 +110,20 @@ export default function ClientForm() {
                                     })
                                 }
                                 placeholder="Enter full name"
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Name
-                            </label>
+                            {errors.name && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.name}
+                                </p>
+                            )}
                         </div>
 
                         {/* EMAIL INPUT */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Email
+                            </label>
                             <input
                                 type="email"
                                 value={client.email}
@@ -119,20 +134,22 @@ export default function ClientForm() {
                                     })
                                 }
                                 placeholder="xyz@example.com"
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Email
-                            </label>
+                            {errors.email && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.email}
+                                </p>
+                            )}
                         </div>
 
                         {/* PHONE NUMBER INPUT */}
-                        <div className="relative w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-cyan-500">
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm pointer-events-none z-10">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                                 Phone Number
                             </label>
-                            <div className="flex items-center pt-6">
-                                <span className="px-3 pb-2 text-gray-500 bg-gray-100 text-sm border-r self-stretch flex items-center rounded-l-md">
+                            <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500">
+                                <span className="px-3 py-2 bg-gray-100 text-gray-500 text-sm border-r">
                                     +63
                                 </span>
                                 <input
@@ -144,13 +161,21 @@ export default function ClientForm() {
                                         })
                                     }
                                     placeholder="9xxxxxxxxx"
-                                    className="block w-full pl-3 pr-3 pb-2 rounded-r-md focus:outline-none"
+                                    className="w-full px-3 py-2 text-sm outline-none"
                                 />
                             </div>
+                            {errors.phone_number && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.phone_number}
+                                </p>
+                            )}
                         </div>
 
                         {/* COMPANY NAME INPUT */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Company Name
+                            </label>
                             <input
                                 value={client.company_name}
                                 onChange={(e) =>
@@ -160,15 +185,20 @@ export default function ClientForm() {
                                     })
                                 }
                                 placeholder="Enter company name..."
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Company Name
-                            </label>
+                            {errors.company_name && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.company_name}
+                                </p>
+                            )}
                         </div>
 
                         {/* COMPANY ADDRESS INPUT */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Company Address
+                            </label>
                             <input
                                 value={client.company_address}
                                 onChange={(e) =>
@@ -178,15 +208,20 @@ export default function ClientForm() {
                                     })
                                 }
                                 placeholder="Enter company address..."
-                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             />
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Company Address
-                            </label>
+                            {errors.company_address && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.company_address}
+                                </p>
+                            )}
                         </div>
 
                         {/* COMPANY TYPE */}
-                        <div className="relative w-full">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Company Type
+                            </label>
                             <select
                                 value={client.company_type ?? ""}
                                 onChange={(e) =>
@@ -195,7 +230,7 @@ export default function ClientForm() {
                                         company_type: e.target.value,
                                     })
                                 }
-                                className="block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             >
                                 <option value="" disabled>
                                     Select Type
@@ -208,9 +243,11 @@ export default function ClientForm() {
                                 </option>
                                 <option value="Government">Government</option>
                             </select>
-                            <label className="absolute left-3 top-1 text-cyan-800 text-sm transition-all duration-200 pointer-events-none">
-                                Company Type
-                            </label>
+                            {errors.company_type && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.company_type}
+                                </p>
+                            )}
                         </div>
 
                         <button className="w-full bg-cyan-800 text-white font-semibold py-2 rounded-md shadow hover:bg-cyan-900 hover:shadow-lg transition">
