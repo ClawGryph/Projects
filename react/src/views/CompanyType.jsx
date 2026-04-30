@@ -101,7 +101,7 @@ export default function CompanyType() {
                         Manage the types of companies available for clients.
                     </p>
                 </div>
-                {!showInput && (
+                {!showInput && user?.role_name !== "viewer" && (
                     <button
                         onClick={() => setShowInput(true)}
                         className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
@@ -264,31 +264,45 @@ export default function CompanyType() {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditId(type.id);
-                                                            setEditName(
-                                                                type.name,
-                                                            );
-                                                        }}
-                                                        className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faPen}
-                                                        />
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            onDelete(type.id)
-                                                        }
-                                                        className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faTrash}
-                                                        />
-                                                        Delete
-                                                    </button>
+                                                    {user?.role_name !==
+                                                        "viewer" && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditId(
+                                                                        type.id,
+                                                                    );
+                                                                    setEditName(
+                                                                        type.name,
+                                                                    );
+                                                                }}
+                                                                className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={faPen}
+                                                                />
+                                                                Edit
+                                                            </button>
+                                                            {user?.role_name ===
+                                                                "super_admin" && (
+                                                                <button
+                                                                    onClick={() =>
+                                                                        onDelete(
+                                                                            type.id,
+                                                                        )
+                                                                    }
+                                                                    className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faTrash
+                                                                        }
+                                                                    />
+                                                                    Delete
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </>
                                             )}
                                         </div>

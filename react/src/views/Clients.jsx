@@ -179,7 +179,7 @@ export default function Clients() {
                                                 <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
                                                     <Link
                                                         to={"/clients/" + u.id}
-                                                        className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                                        className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
                                                     >
                                                         <FontAwesomeIcon
                                                             icon={faPen}
@@ -192,7 +192,7 @@ export default function Clients() {
                                                             onClick={() =>
                                                                 onDelete(u)
                                                             }
-                                                            className="inline-block px-2 py-1 text-xs bg-red-700 text-white font-semibold rounded-md shadow hover:bg-red-800 cursor-pointer"
+                                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
                                                         >
                                                             <FontAwesomeIcon
                                                                 icon={faTrash}
