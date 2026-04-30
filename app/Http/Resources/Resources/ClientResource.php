@@ -23,7 +23,8 @@ class ClientResource extends JsonResource
             'phone_number' => $this->phone_number,
             'company_name' => $this->company_name,
             'company_address' => $this->company_address,
-            'company_type' => $this->company_type,
+            'company_type_id' => $this->company_type_id,
+            'company_type' => $this->clientCompanyType?->name,
             'created_at'=> $this->created_at->format('Y-m-d H:i:s'),
         ];
     }

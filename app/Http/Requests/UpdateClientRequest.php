@@ -27,7 +27,7 @@ class UpdateClientRequest extends FormRequest
             'phone_number' => 'required|string|max:20',
             'company_name' => 'required|string|max:55',
             'company_address' => 'required|string|max:100',
-            'company_type' => 'required|in:Private Individual,Private Corp,Government',
+            'company_type_id' => 'required|exists:company_types,id',
         ];
     }
 }

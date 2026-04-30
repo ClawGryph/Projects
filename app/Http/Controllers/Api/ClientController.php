@@ -24,6 +24,7 @@ class ClientController extends Controller
         return ClientResource::collection(
             Client::query()
                 ->where('company_id', $this->company()->id)
+                ->with('clientCompanyType')
                 ->orderBy('id', 'desc')
                 ->paginate(10)
         );
@@ -37,7 +38,7 @@ class ClientController extends Controller
             'phone_number' => 'required',
             'company_name' => 'required',
             'company_address' => 'required',
-            'company_type' => 'required|in:Private Individual,Private Corp,Government',
+            'company_type_id' => 'required|exists:company_types,id',
         ]);
 
         $data['company_id'] = $this->company()->id;
@@ -54,7 +55,7 @@ class ClientController extends Controller
     {
         abort_if($client->company_id !== $this->company()->id, 403);
 
-        return new ClientResource($client);
+        return new ClientResource($client->load('clientCompanyType'));
     }
 
     /**

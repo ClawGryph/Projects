@@ -10,6 +10,7 @@ export default function ClientForm() {
 
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [companyTypes, setCompanyTypes] = useState([]);
     const [client, setClient] = useState({
         id: null,
         name: "",
@@ -17,10 +18,19 @@ export default function ClientForm() {
         phone_number: "",
         company_name: "",
         company_address: "",
-        company_type: "",
+        company_type_id: "",
     });
     const [formData, setFormData] = useState(null);
 
+    // Fetch company types
+    useEffect(() => {
+        axiosClient
+            .get("/company-types")
+            .then(({ data }) => setCompanyTypes(data))
+            .catch(() => {});
+    }, []);
+
+    // Fetch client if editing
     useEffect(() => {
         if (!id) return;
         setLoading(true);
@@ -229,11 +239,11 @@ export default function ClientForm() {
                                 <span className="text-red-500 text-xs">*</span>
                             </label>
                             <select
-                                value={client.company_type ?? ""}
+                                value={client.company_type_id ?? ""}
                                 onChange={(e) =>
                                     setClient({
                                         ...client,
-                                        company_type: e.target.value,
+                                        company_type_id: e.target.value,
                                     })
                                 }
                                 className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
@@ -241,13 +251,11 @@ export default function ClientForm() {
                                 <option value="" disabled>
                                     Select Type
                                 </option>
-                                <option value="Private Individual">
-                                    Private Individual
-                                </option>
-                                <option value="Private Corp">
-                                    Private Corp
-                                </option>
-                                <option value="Government">Government</option>
+                                {companyTypes.map((type) => (
+                                    <option key={type.id} value={type.id}>
+                                        {type.name}
+                                    </option>
+                                ))}
                             </select>
                             {errors.company_type && (
                                 <p className="text-xs text-red-500 mt-1">
