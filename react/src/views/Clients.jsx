@@ -5,6 +5,7 @@ import {
     faTrash,
     faPen,
     faDiagramProject,
+    faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
@@ -16,6 +17,10 @@ export default function Clients() {
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
 
+    // --- CLIENT DETAIL MODAL STATE ---
+    const [clientModalOpen, setClientModalOpen] = useState(false);
+    const [selectedClient, setSelectedClient] = useState(null);
+
     useEffect(() => {
         getClients();
     }, []);
@@ -24,7 +29,6 @@ export default function Clients() {
         if (!window.confirm("Are you sure you want to delete this client?")) {
             return;
         }
-
         axiosClient.delete(`/clients/${u.id}`).then(() => {
             setNotification("Client was successfully deleted");
             getClients();
@@ -33,7 +37,6 @@ export default function Clients() {
 
     const getClients = (page = 1) => {
         setLoading(true);
-
         axiosClient
             .get(`/clients?page=${page}`)
             .then(({ data }) => {
@@ -44,6 +47,16 @@ export default function Clients() {
             .catch(() => {
                 setLoading(false);
             });
+    };
+
+    const onViewClient = (u) => {
+        setSelectedClient(u);
+        setClientModalOpen(true);
+    };
+
+    const closeClientModal = () => {
+        setClientModalOpen(false);
+        setSelectedClient(null);
     };
 
     const tableHeaders = [
@@ -74,6 +87,7 @@ export default function Clients() {
                     </Link>
                 )}
             </div>
+
             <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
                 <div className="max-w-[1100px] w-full overflow-auto rounded-lg max-height">
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
@@ -119,9 +133,19 @@ export default function Clients() {
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {u.id}
                                             </td>
+
+                                            {/* CLICKABLE NAME */}
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {u.name}
+                                                <button
+                                                    onClick={() =>
+                                                        onViewClient(u)
+                                                    }
+                                                    className="text-cyan-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                                                >
+                                                    {u.name}
+                                                </button>
                                             </td>
+
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {u.email}
                                             </td>
@@ -147,27 +171,21 @@ export default function Clients() {
                                                 >
                                                     <FontAwesomeIcon
                                                         icon={faDiagramProject}
-                                                    />
+                                                    />{" "}
                                                     Projects
                                                 </Link>
                                             </td>
                                             {user?.role_name !== "viewer" && (
                                                 <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
-                                                    {user?.role_name !==
-                                                        "viewer" && (
-                                                        <Link
-                                                            to={
-                                                                "/clients/" +
-                                                                u.id
-                                                            }
-                                                            className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
-                                                        >
-                                                            <FontAwesomeIcon
-                                                                icon={faPen}
-                                                            />
-                                                            Edit
-                                                        </Link>
-                                                    )}
+                                                    <Link
+                                                        to={"/clients/" + u.id}
+                                                        className="inline-block px-2 py-1 text-xs bg-cyan-800 text-white font-semibold rounded-md shadow hover:bg-cyan-900"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={faPen}
+                                                        />{" "}
+                                                        Edit
+                                                    </Link>
                                                     {user?.role_name ===
                                                         "super_admin" && (
                                                         <button
@@ -178,7 +196,7 @@ export default function Clients() {
                                                         >
                                                             <FontAwesomeIcon
                                                                 icon={faTrash}
-                                                            />
+                                                            />{" "}
                                                             Delete
                                                         </button>
                                                     )}
@@ -199,6 +217,7 @@ export default function Clients() {
                             </tbody>
                         )}
                     </table>
+
                     <div className="flex justify-center items-center gap-2 mt-4">
                         {meta?.current_page > 1 && (
                             <button
@@ -210,13 +229,11 @@ export default function Clients() {
                                 Previous
                             </button>
                         )}
-
                         {meta?.current_page && (
                             <span className="text-sm text-gray-600">
                                 Page {meta.current_page} of {meta.last_page}
                             </span>
                         )}
-
                         {meta?.current_page < meta?.last_page && (
                             <button
                                 onClick={() =>
@@ -230,6 +247,101 @@ export default function Clients() {
                     </div>
                 </div>
             </div>
+
+            {/* --- CLIENT DETAILS MODAL --- */}
+            {clientModalOpen && selectedClient && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                    onClick={closeClientModal}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-start mb-5">
+                            <div>
+                                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+                                    Client Details
+                                </p>
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    {selectedClient.name}
+                                </h2>
+                            </div>
+                            <button
+                                onClick={closeClientModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            >
+                                <FontAwesomeIcon icon={faTimes} size="lg" />
+                            </button>
+                        </div>
+
+                        {/* Metric Cards */}
+                        <div className="grid grid-cols-2 gap-3 mb-5">
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Email
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800 break-all">
+                                    {selectedClient.email ?? "—"}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Phone
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {selectedClient.phone_number ?? "—"}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Company
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {selectedClient.company_name ?? "—"}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Company Type
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {selectedClient.company_type ?? "—"}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Additional Info */}
+                        <div className="border-t border-gray-100 pt-4">
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">
+                                Additional Info
+                            </p>
+                            <table className="w-full text-sm">
+                                <tbody>
+                                    <tr>
+                                        <td className="text-gray-400 py-1.5 w-1/2">
+                                            Client ID
+                                        </td>
+                                        <td className="text-gray-800 font-medium py-1.5">
+                                            #{selectedClient.id}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="text-gray-400 py-1.5">
+                                            Address
+                                        </td>
+                                        <td className="text-gray-800 font-medium py-1.5">
+                                            {selectedClient.company_address ??
+                                                "—"}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

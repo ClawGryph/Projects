@@ -613,6 +613,17 @@ export default function Projects() {
                             </div>
                         </div>
 
+                        {viewedProject.description && (
+                            <div className="bg-gray-50 rounded-lg p-3 mb-5">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Description
+                                </p>
+                                <p className="text-sm text-gray-800 leading-relaxed">
+                                    {viewedProject.description}
+                                </p>
+                            </div>
+                        )}
+
                         {/* Additional Info */}
                         <div className="border-t border-gray-100 pt-4">
                             <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">
