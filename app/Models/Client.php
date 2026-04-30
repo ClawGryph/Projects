@@ -13,7 +13,7 @@ class Client extends Model
         'phone_number',
         'company_name',
         'company_address',
-        'company_type',
+        'company_type_id',
     ];
 
     public function projects()
@@ -25,5 +25,9 @@ class Client extends Model
     public function clientsProjects()
     {
         return $this->hasMany(ClientsProject::class);
+    }
+
+    public function clientCompanyType() {
+        return $this->belongsTo(CompanyType::class, 'company_type_id');
     }
 }

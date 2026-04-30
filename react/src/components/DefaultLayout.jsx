@@ -292,7 +292,7 @@ export default function DefaultLayout() {
                                     </>
                                 )}
                                 <NavLink
-                                    to="/company-management"
+                                    to="/company-type"
                                     onClick={() => setOpenSidebar(false)}
                                     className={({ isActive }) =>
                                         `text-sm flex items-center py-3 pl-5 pr-4 transition-all border-l-2 ml-6 ${
@@ -306,7 +306,7 @@ export default function DefaultLayout() {
                                         icon={faUserTie}
                                         className="mr-3 text-xs"
                                     />
-                                    Company Management
+                                    Company Types
                                 </NavLink>
                             </div>
                         </div>

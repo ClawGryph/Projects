@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PaymentTransactionController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\UploadFileController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\CompanyTypeController;
 use App\Http\Resources\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:super_admin', 'company'])->group(function () {
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
+    Route::delete('/company-types/{companyType}', [CompanyTypeController::class, 'destroy']);
 });
 
 // Super Admin and Admin can edit
@@ -72,6 +74,8 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::put('/form-2307s/{form2307}', [Form2307Controller::class, 'update']);
     Route::put('/companies/{company}', [CompanyController::class, 'update']);
     Route::get('/projects/{project}/logs', [ProjectController::class, 'logs']);
+    Route::post('/company-types', [CompanyTypeController::class, 'store']);
+    Route::put('/company-types/{companyType}', [CompanyTypeController::class, 'update']);
 });
 
 // All roles can view
@@ -89,4 +93,5 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])-
     Route::get('/payment-schedules', [PaymentScheduleController::class, 'index']);
     Route::get('/projects/{project}/clients-projects', [ProjectController::class, 'payments']);
     Route::get('/official-receipts/{id}', [OfficialReceiptController::class, 'show']);
+    Route::get('/company-types', [CompanyTypeController::class, 'index']);
 });
