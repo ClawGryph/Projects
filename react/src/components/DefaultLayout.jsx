@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet, NavLink, useMatches } from "react-router-dom";
+import {
+    Navigate,
+    Outlet,
+    NavLink,
+    useMatches,
+    useLocation,
+} from "react-router-dom";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,6 +20,9 @@ import {
     faRightFromBracket,
     faFileArrowUp,
     faClipboardList,
+    faChevronDown,
+    faToolbox,
+    faShield,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function DefaultLayout() {
@@ -28,10 +37,25 @@ export default function DefaultLayout() {
     } = useStateContext();
     const [openSidebar, setOpenSidebar] = useState(false);
     const [loadingLogout, setLoadingLogout] = useState(false);
+    const [servicesOpen, setServicesOpen] = useState(false);
+    const [adminOpen, setAdminOpen] = useState(false);
     const matches = useMatches();
+    const location = useLocation();
+
+    // Auto-open Services dropdown if a child route is active
+    useEffect(() => {
+        if (location.pathname.startsWith("/projects")) {
+            setServicesOpen(true);
+        }
+        if (
+            location.pathname.startsWith("/users") ||
+            location.pathname.startsWith("/company-management")
+        ) {
+            setAdminOpen(true);
+        }
+    }, [location.pathname]);
 
     useEffect(() => {
-        // If access token exist get the users data
         if (token) {
             axiosClient.get("/user").then(({ data }) => {
                 setUser(data);
@@ -39,7 +63,6 @@ export default function DefaultLayout() {
         }
     }, [token]);
 
-    // Handles tab title name for browser
     useEffect(() => {
         const current = matches[matches.length - 1];
         const title = current?.handle?.title;
@@ -48,9 +71,7 @@ export default function DefaultLayout() {
             : "Client Management System";
     }, [matches]);
 
-    // If no token always go back to login page
     if (!token) return <Navigate to="/login" />;
-    // If no company always navigate to company page
     if (!selectedCompany) return <Navigate to="/company" />;
 
     const onLogout = (e) => {
@@ -61,11 +82,13 @@ export default function DefaultLayout() {
             .then(() => {
                 setUser({});
                 setToken(null);
-                setSelectedCompany(null); // ← reset company on logout
+                setSelectedCompany(null);
             })
             .catch(() => {})
             .finally(() => setLoadingLogout(false));
     };
+
+    const isServicesActive = location.pathname.startsWith("/projects");
 
     return (
         <div className="bg-gray-100 font-family-karla flex">
@@ -73,6 +96,7 @@ export default function DefaultLayout() {
                 className={`
                 fixed sm:relative z-40 bg-cyan-800 h-screen w-64 shadow-xl
                 transform transition-transform duration-300 flex flex-col
+                overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
                 ${openSidebar ? "translate-x-0" : "-translate-x-full"}
                 sm:translate-x-0
             `}
@@ -92,7 +116,8 @@ export default function DefaultLayout() {
                             `flex items-center py-4 pl-6 nav-item transition-all ${isActive ? "bg-cyan-900 text-white" : "text-white opacity-75 hover:opacity-100"}`
                         }
                     >
-                        <FontAwesomeIcon icon={faGauge} /> Dashboard
+                        <FontAwesomeIcon icon={faGauge} className="mr-3" />{" "}
+                        Dashboard
                     </NavLink>
                     <NavLink
                         to="/clients"
@@ -101,17 +126,60 @@ export default function DefaultLayout() {
                             `flex items-center py-4 pl-6 nav-item transition-all ${isActive ? "bg-cyan-900 text-white" : "text-white opacity-75 hover:opacity-100"}`
                         }
                     >
-                        <FontAwesomeIcon icon={faUser} /> Clients
+                        <FontAwesomeIcon icon={faUser} className="mr-3" />{" "}
+                        Clients
                     </NavLink>
-                    <NavLink
-                        to="/projects"
-                        onClick={() => setOpenSidebar(false)}
-                        className={({ isActive }) =>
-                            `flex items-center py-4 pl-6 nav-item transition-all ${isActive ? "bg-cyan-900 text-white" : "text-white opacity-75 hover:opacity-100"}`
-                        }
-                    >
-                        <FontAwesomeIcon icon={faDiagramProject} /> Projects
-                    </NavLink>
+
+                    {/* Services Dropdown */}
+                    <div>
+                        <button
+                            onClick={() => setServicesOpen((prev) => !prev)}
+                            className={`w-full flex items-center justify-between py-4 pl-6 pr-4 nav-item transition-all ${
+                                isServicesActive
+                                    ? "bg-cyan-900 text-white"
+                                    : "text-white opacity-75 hover:opacity-100"
+                            }`}
+                        >
+                            <span className="flex items-center gap-3">
+                                <FontAwesomeIcon icon={faToolbox} />
+                                Services
+                            </span>
+                            <FontAwesomeIcon
+                                icon={faChevronDown}
+                                className={`text-xs transition-transform duration-300 ${
+                                    servicesOpen ? "rotate-180" : "rotate-0"
+                                }`}
+                            />
+                        </button>
+
+                        {/* Dropdown Items */}
+                        <div
+                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                                servicesOpen ? "max-h-40" : "max-h-0"
+                            }`}
+                        >
+                            <div className="bg-cyan-950 bg-opacity-40">
+                                <NavLink
+                                    to="/projects"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faDiagramProject}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Projects
+                                </NavLink>
+                            </div>
+                        </div>
+                    </div>
+
                     <NavLink
                         to="/payments"
                         onClick={() => setOpenSidebar(false)}
@@ -119,7 +187,8 @@ export default function DefaultLayout() {
                             `flex items-center py-4 pl-6 nav-item transition-all ${isActive ? "bg-cyan-900 text-white" : "text-white opacity-75 hover:opacity-100"}`
                         }
                     >
-                        <FontAwesomeIcon icon={faMoneyBill} /> Payments
+                        <FontAwesomeIcon icon={faMoneyBill} className="mr-3" />{" "}
+                        Payments
                     </NavLink>
                     <NavLink
                         to="/upload"
@@ -128,7 +197,11 @@ export default function DefaultLayout() {
                             `flex items-center py-4 pl-6 nav-item transition-all ${isActive ? "bg-cyan-900 text-white" : "text-white opacity-75 hover:opacity-100"}`
                         }
                     >
-                        <FontAwesomeIcon icon={faFileArrowUp} /> Upload Files
+                        <FontAwesomeIcon
+                            icon={faFileArrowUp}
+                            className="mr-3"
+                        />{" "}
+                        Upload Files
                     </NavLink>
                     <NavLink
                         to="/report"
@@ -137,37 +210,106 @@ export default function DefaultLayout() {
                             `flex items-center py-4 pl-6 nav-item transition-all ${isActive ? "bg-cyan-900 text-white" : "text-white opacity-75 hover:opacity-100"}`
                         }
                     >
-                        <FontAwesomeIcon icon={faClipboardList} /> Report Module
+                        <FontAwesomeIcon
+                            icon={faClipboardList}
+                            className="mr-3"
+                        />{" "}
+                        Report Module
                     </NavLink>
                 </nav>
-                {user?.role_name === "super_admin" && (
-                    <div className="border-t border-cyan-700 p-4 bg-cyan-900 mt-auto">
-                        <NavLink
-                            to="/users"
-                            onClick={() => setOpenSidebar(false)}
-                            className={({ isActive }) =>
-                                `text-sm flex items-center py-2 px-2 rounded-lg transition-all ${isActive ? "bg-white text-cyan-900" : "text-white hover:bg-cyan-700"}`
-                            }
+                {user?.role_name !== "viewer" && (
+                    <div className="border-t border-cyan-700 bg-cyan-900">
+                        {/* Admin Dropdown */}
+                        <button
+                            onClick={() => setAdminOpen((prev) => !prev)}
+                            className={`w-full flex items-center justify-between py-4 pl-6 pr-4 transition-all ${
+                                location.pathname.startsWith("/users") ||
+                                location.pathname.startsWith(
+                                    "/company-management",
+                                )
+                                    ? "text-white"
+                                    : "text-white opacity-75 hover:opacity-100"
+                            }`}
                         >
+                            <span className="flex items-center gap-3 text-base font-semibold">
+                                <FontAwesomeIcon icon={faShield} />
+                                Admin
+                            </span>
                             <FontAwesomeIcon
-                                icon={faUserTie}
-                                className="mr-2"
+                                icon={faChevronDown}
+                                className={`text-xs transition-transform duration-300 ${
+                                    adminOpen ? "rotate-180" : "rotate-0"
+                                }`}
                             />
-                            Account Management
-                        </NavLink>
-                        <NavLink
-                            to="/company-management"
-                            onClick={() => setOpenSidebar(false)}
-                            className={({ isActive }) =>
-                                `text-sm flex items-center py-2 px-2 rounded-lg transition-all ${isActive ? "bg-white text-cyan-900" : "text-white hover:bg-cyan-700"}`
-                            }
+                        </button>
+
+                        <div
+                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                                adminOpen ? "max-h-100" : "max-h-0"
+                            }`}
                         >
-                            <FontAwesomeIcon
-                                icon={faUserTie}
-                                className="mr-2"
-                            />
-                            Company Management
-                        </NavLink>
+                            <div className="bg-cyan-950 bg-opacity-40 pb-2">
+                                {user?.role_name === "super_admin" && (
+                                    <>
+                                        <NavLink
+                                            to="/users"
+                                            onClick={() =>
+                                                setOpenSidebar(false)
+                                            }
+                                            className={({ isActive }) =>
+                                                `text-sm flex items-center py-3 pl-5 pr-4 transition-all border-l-2 ml-6 ${
+                                                    isActive
+                                                        ? "border-white text-white"
+                                                        : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                                }`
+                                            }
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faUserTie}
+                                                className="mr-3 text-xs"
+                                            />
+                                            Account Management
+                                        </NavLink>
+                                        <NavLink
+                                            to="/company-management"
+                                            onClick={() =>
+                                                setOpenSidebar(false)
+                                            }
+                                            className={({ isActive }) =>
+                                                `text-sm flex items-center py-3 pl-5 pr-4 transition-all border-l-2 ml-6 ${
+                                                    isActive
+                                                        ? "border-white text-white"
+                                                        : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                                }`
+                                            }
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faUserTie}
+                                                className="mr-3 text-xs"
+                                            />
+                                            Company Management
+                                        </NavLink>
+                                    </>
+                                )}
+                                <NavLink
+                                    to="/company-management"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `text-sm flex items-center py-3 pl-5 pr-4 transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faUserTie}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Company Management
+                                </NavLink>
+                            </div>
+                        </div>
                     </div>
                 )}
             </aside>
