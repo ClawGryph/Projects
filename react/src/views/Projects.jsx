@@ -106,6 +106,42 @@ export default function Projects() {
         setViewedProject(null);
     };
 
+    const getAutoStatus = (project) => {
+        // These statuses are manually set and should never be overridden by date logic
+        if (project.status === "complete" || project.status === "Hold") {
+            return project.status;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const startDate = project.adjusted_start_date
+            ? new Date(project.adjusted_start_date)
+            : project.start_date
+              ? new Date(project.start_date)
+              : null;
+
+        const rawEndDate = project.end_date ? new Date(project.end_date) : null;
+
+        // 1. Before start date → pending
+        if (startDate && today < startDate) return "pending";
+
+        // 2. Past raw end date but has an adjusted end date
+        if (rawEndDate && today > rawEndDate && project.adjusted_end_date) {
+            const adjEnd = new Date(project.adjusted_end_date);
+            if (today <= adjEnd) return "ongoing";
+            return "delay";
+        }
+
+        // 3. Past raw end date, no adjusted date → delay
+        if (rawEndDate && today > rawEndDate) return "delay";
+
+        // 4. Within the normal window → ongoing
+        if (startDate && today >= startDate) return "ongoing";
+
+        return project.status;
+    };
+
     const tableHeaders = [
         "ID",
         "Title",
@@ -280,7 +316,9 @@ export default function Projects() {
                                                         }`}
                                                     >
                                                         <StatusBadge
-                                                            status={p.status}
+                                                            status={getAutoStatus(
+                                                                p,
+                                                            )}
                                                             isEnded={p.isEnded}
                                                         />
                                                         {user?.role_name !==
@@ -591,7 +629,7 @@ export default function Projects() {
                                     Status
                                 </p>
                                 <StatusBadge
-                                    status={viewedProject.status}
+                                    status={getAutoStatus(viewedProject)}
                                     isEnded={viewedProject.isEnded}
                                 />
                             </div>

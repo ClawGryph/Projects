@@ -150,8 +150,8 @@ export default function StatusBadge({ status, isEnded = false }) {
             ),
         },
         hold: {
-            bg: "bg-black",
-            text: "text-white",
+            bg: "bg-yellow-100",
+            text: "text-yellow-700",
             label: "Hold",
             icon: (
                 <svg
