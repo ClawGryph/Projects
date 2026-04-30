@@ -221,6 +221,8 @@ export default function Projects() {
                                                         {[
                                                             "pending",
                                                             "ongoing",
+                                                            "Delay",
+                                                            "Hold",
                                                             "complete",
                                                         ].map((status) => (
                                                             <div

@@ -1,8 +1,8 @@
 export default function StatusBadge({ status, isEnded = false }) {
     const statusConfig = {
         complete: {
-            bg: "bg-green-100",
-            text: "text-green-700",
+            bg: "bg-blue-100",
+            text: "text-blue-700",
             label: "Completed",
             icon: (
                 <svg
@@ -19,15 +19,11 @@ export default function StatusBadge({ status, isEnded = false }) {
             ),
         },
         ongoing: {
-            bg: "bg-blue-100",
-            text: "text-blue-700",
+            bg: "bg-green-100",
+            text: "text-green-700",
             label: "Ongoing",
             icon: (
-                <svg
-                    className="w-3 h-3 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24">
                     <circle
                         className="opacity-25"
                         cx="12"
@@ -45,8 +41,8 @@ export default function StatusBadge({ status, isEnded = false }) {
             ),
         },
         pending: {
-            bg: "bg-yellow-100",
-            text: "text-yellow-700",
+            bg: "bg-gray-100",
+            text: "text-gray-700",
             label: "Pending",
             icon: (
                 <svg
@@ -153,10 +149,28 @@ export default function StatusBadge({ status, isEnded = false }) {
                 </svg>
             ),
         },
-        failed: {
+        hold: {
+            bg: "bg-black",
+            text: "text-white",
+            label: "Hold",
+            icon: (
+                <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                >
+                    <path
+                        fillRule="evenodd"
+                        d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                        clipRule="evenodd"
+                    />
+                </svg>
+            ),
+        },
+        delay: {
             bg: "bg-rose-100",
             text: "text-rose-700",
-            label: "Failed",
+            label: "Delay",
             icon: (
                 <svg
                     className="w-3 h-3"
