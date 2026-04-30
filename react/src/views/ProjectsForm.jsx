@@ -9,6 +9,7 @@ export default function ProjectsForm() {
     const { setNotification } = useStateContext();
 
     const [errors, setErrors] = useState({});
+    const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [project, setProject] = useState({
         id: null,
@@ -16,6 +17,9 @@ export default function ProjectsForm() {
         description: "",
         start_date: "",
         end_date: "",
+        adjusted_start_date: "",
+        adjusted_end_date: "",
+        cr_no: "",
         payment_type: "",
         price: "",
     });
@@ -32,6 +36,11 @@ export default function ProjectsForm() {
                 setFormData(data);
             })
             .catch(() => setLoading(false));
+
+        // fetch logs
+        axiosClient
+            .get(`/projects/${id}/logs`)
+            .then(({ data }) => setLogs(data));
     }, [id]);
 
     const onSubmit = (e) => {
@@ -78,6 +87,13 @@ export default function ProjectsForm() {
         return Object.keys(e).length === 0;
     }
 
+    const FIELD_LABELS = {
+        start_date: "Start Date",
+        end_date: "End Date",
+        adjusted_start_date: "Adjusted Start Date",
+        adjusted_end_date: "Adjusted End Date",
+    };
+
     return (
         <>
             {project.id && (
@@ -90,6 +106,7 @@ export default function ProjectsForm() {
                     Add new project
                 </h2>
             )}
+
             <div className="bg-white rounded-xl border p-6 shadow-sm space-y-4 w-full max-w-2xl mx-auto">
                 {loading && <div className="text-center">Loading...</div>}
                 {!loading && (
@@ -226,12 +243,176 @@ export default function ProjectsForm() {
                             )}
                         </div>
 
+                        {/* ADJUSTED DATES & CR NO. — edit mode only */}
+                        {project.id && (
+                            <>
+                                {/* Section Divider */}
+                                <div className="border-t pt-4">
+                                    <h3 className="text-xs font-semibold text-cyan-800 uppercase tracking-wider mb-4">
+                                        Adjustments & Reference
+                                    </h3>
+
+                                    {/* ADJUSTED START DATE */}
+                                    <div className="space-y-4 rounded-xl p-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                                Adjusted Start Date
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={
+                                                    project.adjusted_start_date ??
+                                                    ""
+                                                }
+                                                onChange={(e) =>
+                                                    setProject({
+                                                        ...project,
+                                                        adjusted_start_date:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                            />
+                                            {errors.adjusted_start_date && (
+                                                <p className="text-xs text-red-500 mt-1">
+                                                    {errors.adjusted_start_date}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* ADJUSTED END DATE */}
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                                Adjusted End Date
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={
+                                                    project.adjusted_end_date ??
+                                                    ""
+                                                }
+                                                onChange={(e) =>
+                                                    setProject({
+                                                        ...project,
+                                                        adjusted_end_date:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                            />
+                                            {errors.adjusted_end_date && (
+                                                <p className="text-xs text-red-500 mt-1">
+                                                    {errors.adjusted_end_date}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* CR NO. */}
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                                CR No.{" "}
+                                                <span className="text-red-500 text-xs">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={project.cr_no ?? ""}
+                                                onChange={(e) =>
+                                                    setProject({
+                                                        ...project,
+                                                        cr_no: e.target.value,
+                                                    })
+                                                }
+                                                placeholder="Enter CR number..."
+                                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                            />
+                                            {errors.cr_no && (
+                                                <p className="text-xs text-red-500 mt-1">
+                                                    {errors.cr_no}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
                         <button className="w-full bg-cyan-800 text-white font-semibold py-2 rounded-md shadow hover:bg-cyan-900 hover:shadow-lg transition">
                             Save
                         </button>
                     </form>
                 )}
             </div>
+
+            {/* RIGHT - PROJECT LOGS */}
+            {project.id && logs.length > 0 && (
+                <div className="flex-1 p-5">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        Adjusted date logs
+                    </h3>
+                    <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Timestamp
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        User
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Field
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Previous
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        New
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        CR No.
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {logs.map((log) => (
+                                    <tr
+                                        key={log.id}
+                                        className="hover:bg-gray-50"
+                                    >
+                                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                                            {new Date(
+                                                log.created_at,
+                                            ).toLocaleString()}
+                                        </td>
+                                        <td className="px-4 py-3 font-medium text-gray-700">
+                                            {log.user?.name}
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600">
+                                            {FIELD_LABELS[log.field] ??
+                                                log.field}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className="bg-red-50 text-red-600 border border-red-100 rounded px-2 py-0.5 text-xs">
+                                                {log.old_value ?? "—"}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className="bg-green-50 text-green-700 border border-green-100 rounded px-2 py-0.5 text-xs">
+                                                {log.new_value ?? "—"}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600">
+                                            {log.cr_no ?? "—"}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

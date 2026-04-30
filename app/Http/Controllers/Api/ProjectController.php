@@ -7,7 +7,9 @@ use App\Http\Requests\UpdateProjectRequest;
 use App\Http\Resources\Resources\ClientsProjectResource;
 use App\Http\Resources\Resources\ProjectResource;
 use App\Models\Project;
+use App\Models\ProjectLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class ProjectController extends Controller
 {
@@ -61,6 +63,23 @@ class ProjectController extends Controller
         abort_if($project->company_id !== $this->company()->id, 403);
 
         $data = $request->validated();
+        $watchedFields = ['start_date', 'end_date', 'adjusted_start_date', 'adjusted_end_date'];
+        foreach ($watchedFields as $field) {
+            $old = $project->$field?->toDateString();
+            $new = isset($data[$field]) && $data[$field] ? Carbon::parse($data[$field])->toDateString() : null;
+
+            if ($old != $new) {
+                ProjectLog::create([
+                    'project_id' => $project->id,
+                    'user_id'    => $request->user()->id,
+                    'field'      => $field,
+                    'old_value'  => $old,
+                    'new_value'  => $new,
+                    'cr_no'      => $data['cr_no'] ?? null,
+                ]);
+            }
+        }
+
         $project->update($data);
 
         return new ProjectResource($project);
@@ -98,17 +117,27 @@ class ProjectController extends Controller
     public function payments(Project $project)
     {
         abort_if($project->company_id !== $this->company()->id, 403);
-        
+
         return ClientsProjectResource::collection(
-        $project->clientsProjects()
-            ->with([
-                'project',
-                'client',
-                'payments.paymentSchedules',
-                'payments.paymentTransactions'
-            ])
-            ->get()
-    );
+            $project->clientsProjects()
+                ->with([
+                    'project',
+                    'client',
+                    'payments.paymentSchedules',
+                    'payments.paymentTransactions'
+                ])
+                ->get()
+        );
+    }
+
+    public function logs(Project $project)
+    {
+        abort_if($project->company_id !== $this->company()->id, 403);
+
+        return $project->logs()
+            ->with('user:id,name')
+            ->latest()
+            ->get();
     }
 
 }

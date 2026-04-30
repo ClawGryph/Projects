@@ -16,6 +16,9 @@ class Project extends Model
         'description',
         'start_date',
         'end_date',
+        'adjusted_start_date',
+        'adjusted_end_date',
+        'cr_no',
         'price',
         'status',
         'created_at'
@@ -24,6 +27,8 @@ class Project extends Model
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'adjusted_start_date' => 'date',
+        'adjusted_end_date'   => 'date',
     ];
 
     public function clients()
@@ -49,4 +54,8 @@ class Project extends Model
         );
     }
 
+    public function logs()
+    {
+        return $this->hasMany(ProjectLog::class);
+    }
 }
