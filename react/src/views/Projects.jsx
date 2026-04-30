@@ -25,6 +25,8 @@ export default function Projects() {
     const [selectedProject, setSelectedProject] = useState(null);
     const [payments, setPayments] = useState([]);
     const [paymentsLoading, setPaymentsLoading] = useState(false);
+    const [projectModalOpen, setProjectModalOpen] = useState(false);
+    const [viewedProject, setViewedProject] = useState(null);
 
     useEffect(() => {
         getProjects();
@@ -93,6 +95,17 @@ export default function Projects() {
         return () => window.removeEventListener("click", close);
     }, []);
 
+    // View Project Modal
+    const onViewProject = (p) => {
+        setViewedProject(p);
+        setProjectModalOpen(true);
+    };
+
+    const closeProjectModal = () => {
+        setProjectModalOpen(false);
+        setViewedProject(null);
+    };
+
     const tableHeaders = [
         "ID",
         "Title",
@@ -100,7 +113,7 @@ export default function Projects() {
         "Start Date",
         "End Date",
         "Status",
-        "View",
+        "Payment View",
         "Actions",
     ];
 
@@ -167,7 +180,14 @@ export default function Projects() {
                                                 {p.id}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.title}
+                                                <button
+                                                    onClick={() =>
+                                                        onViewProject(p)
+                                                    }
+                                                    className="text-cyan-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                                                >
+                                                    {p.title}
+                                                </button>
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 ₱{" "}
@@ -176,10 +196,14 @@ export default function Projects() {
                                                 ).format(p.price)}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.start_date}
+                                                {p.adjusted_start_date
+                                                    ? p.adjusted_start_date
+                                                    : p.start_date}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.end_date}
+                                                {p.adjusted_end_date
+                                                    ? p.adjusted_end_date
+                                                    : p.end_date}
                                             </td>
 
                                             <td className="border-b border-gray-200 px-4 py-2 relative">
@@ -515,6 +539,122 @@ export default function Projects() {
                                 No payments found for this project.
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* --- PROJECT DETAILS MODAL --- */}
+            {projectModalOpen && viewedProject && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                    onClick={closeProjectModal}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex justify-between items-start mb-5">
+                            <div>
+                                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+                                    Project Details
+                                </p>
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    {viewedProject.title}
+                                </h2>
+                            </div>
+                            <button
+                                onClick={closeProjectModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            >
+                                <FontAwesomeIcon icon={faTimes} size="lg" />
+                            </button>
+                        </div>
+
+                        {/* Metric Cards */}
+                        <div className="grid grid-cols-2 gap-3 mb-5">
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Project Cost
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    ₱{" "}
+                                    {new Intl.NumberFormat("en-PH").format(
+                                        viewedProject.price,
+                                    )}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Status
+                                </p>
+                                <StatusBadge
+                                    status={viewedProject.status}
+                                    isEnded={viewedProject.isEnded}
+                                />
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Start Date
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {viewedProject.start_date ?? "—"}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    End Date
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {viewedProject.end_date ?? "—"}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Additional Info */}
+                        <div className="border-t border-gray-100 pt-4">
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">
+                                Additional Info
+                            </p>
+                            <table className="w-full text-sm">
+                                <tbody>
+                                    <tr>
+                                        <td className="text-gray-400 py-1.5 w-1/2">
+                                            Project ID
+                                        </td>
+                                        <td className="text-gray-800 font-medium py-1.5">
+                                            #{viewedProject.id}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="text-gray-400 py-1.5">
+                                            Adjusted Start
+                                        </td>
+                                        <td className="text-gray-800 font-medium py-1.5">
+                                            {viewedProject.adjusted_start_date ??
+                                                "—"}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="text-gray-400 py-1.5">
+                                            Adjusted End
+                                        </td>
+                                        <td className="text-gray-800 font-medium py-1.5">
+                                            {viewedProject.adjusted_end_date ??
+                                                "—"}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="text-gray-400 py-1.5">
+                                            CR NO
+                                        </td>
+                                        <td className="text-gray-800 font-medium py-1.5">
+                                            {viewedProject.cr_no ?? "—"}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
