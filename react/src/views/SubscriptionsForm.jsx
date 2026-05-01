@@ -39,6 +39,11 @@ export default function SubscriptionsForm() {
                 setFormData(data);
             })
             .catch(() => setLoading(false));
+
+        // fetch logs
+        axiosClient
+            .get(`/subscriptions/${id}/logs`)
+            .then(({ data }) => setLogs(data));
     }, [id]);
 
     const onSubmit = (e) => {
@@ -78,6 +83,13 @@ export default function SubscriptionsForm() {
         if (days <= 10) return "weekly";
         if (days <= 35) return "monthly";
         return "yearly";
+    };
+
+    const FIELD_LABELS = {
+        start_date: "Start Date",
+        end_date: "End Date",
+        adjusted_start_date: "Adjusted Start Date",
+        adjusted_end_date: "Adjusted End Date",
     };
 
     return (
@@ -374,6 +386,75 @@ export default function SubscriptionsForm() {
                     </form>
                 )}
             </div>
+
+            {/* RIGHT - subscription LOGS */}
+            {subscription.id && logs.length > 0 && (
+                <div className="flex-1 p-5">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        Adjusted coverage date logs
+                    </h3>
+                    <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Timestamp
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        User
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Field
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Previous
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        New
+                                    </th>
+                                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                                        CR No.
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {logs.map((log) => (
+                                    <tr
+                                        key={log.id}
+                                        className="hover:bg-gray-50"
+                                    >
+                                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                                            {new Date(
+                                                log.created_at,
+                                            ).toLocaleString()}
+                                        </td>
+                                        <td className="px-4 py-3 font-medium text-gray-700">
+                                            {log.user?.name}
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600">
+                                            {FIELD_LABELS[log.field] ??
+                                                log.field}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className="bg-red-50 text-red-600 border border-red-100 rounded px-2 py-0.5 text-xs">
+                                                {log.old_value ?? "—"}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className="bg-green-50 text-green-700 border border-green-100 rounded px-2 py-0.5 text-xs">
+                                                {log.new_value ?? "—"}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600">
+                                            {log.cr_no ?? "—"}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

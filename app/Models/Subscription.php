@@ -23,11 +23,16 @@ class Subscription extends Model
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'adjusted_start_date' => 'date',
-        'adjusted_end_date'   => 'date',
+        'start_coverage' => 'date',
+        'end_coverage' => 'date',
+        'adjusted_start_coverage' => 'date',
+        'adjusted_end_coverage'   => 'date',
     ];
+
+    public function logs()
+    {
+        return $this->hasMany(SubscriptionLog::class);
+    }
 
     public function getAutoStatusAttribute(): string
     {
@@ -37,8 +42,8 @@ class Subscription extends Model
         }
 
         $today = now()->startOfDay();
-        $start = $this->adjusted_start_date ?? $this->start_date;
-        $end = $this->adjusted_end_date ?? $this->end_date;
+        $start = $this->adjusted_start_coverage ?? $this->start_coverage;
+        $end = $this->adjusted_end_coverage ?? $this->end_coverage;
 
         // Past end date and not complete → delay
         if ($end && $today->gt($end) && $this->status !== 'complete') {

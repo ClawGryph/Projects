@@ -79,6 +79,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::post('/manual-invoices', [ManualInvoiceController::class, 'save']);
     Route::post('/form-2307s', [Form2307Controller::class, 'store']);
     Route::get('/projects/{project}/logs', [ProjectController::class, 'logs']);
+    Route::get('/subscriptions/{subscription}/logs', [SubscriptionController::class, 'logs']);
     Route::post('/company-types', [CompanyTypeController::class, 'store']);
 });
 
