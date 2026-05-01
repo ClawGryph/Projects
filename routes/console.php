@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PaymentSchedule;
+use App\Models\Project;
 use App\Models\Subscription;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Inspiring;
