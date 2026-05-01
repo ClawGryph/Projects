@@ -4,6 +4,7 @@ const StateContext = createContext({
     user: null,
     client: null,
     project: null,
+    subscription: null,
     token: null,
     notification: null,
     payment: null,
@@ -13,6 +14,7 @@ const StateContext = createContext({
     setToken: () => {},
     setNotification: () => {},
     setProject: () => {},
+    setSubscription: () => {},
     setPayment: () => {},
     setSelectedCompany: () => {},
 });
@@ -21,6 +23,7 @@ export const ContextProvider = ({ children }) => {
     const [user, setUser] = useState({});
     const [client, setClient] = useState({});
     const [project, setProject] = useState({});
+    const [subscription, setSubscription] = useState({});
     const [payment, setPayment] = useState({});
     const [notification, _setNotification] = useState("");
     const [token, _setToken] = useState(localStorage.getItem("ACCESS_TOKEN"));
@@ -72,6 +75,8 @@ export const ContextProvider = ({ children }) => {
                 setNotification,
                 project,
                 setProject,
+                subscription,
+                setSubscription,
                 payment,
                 setPayment,
                 selectedCompany,

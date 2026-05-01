@@ -18,6 +18,8 @@ import ReportModule from "./views/ReportModule.jsx";
 import Company from "./views/Company.jsx";
 import CompanyManagement from "./views/CompanyManagement.jsx";
 import CompanyType from "./views/CompanyType.jsx";
+import Subsciptions from "./views/Subscriptions.jsx";
+import SubscriptionsForm from "./views/SubscriptionsForm.jsx";
 
 const router = createBrowserRouter([
     {
@@ -81,6 +83,21 @@ const router = createBrowserRouter([
                 path: "/projects/:id",
                 element: <ProjectsForm key="projectUpdate" />,
                 handle: { title: "Edit Project" },
+            },
+            {
+                path: "/subscriptions",
+                element: <Subsciptions />,
+                handle: { title: "Subscriptions" },
+            },
+            {
+                path: "/subscriptions/new",
+                element: <SubscriptionsForm key="subscriptionCreate" />,
+                handle: { title: "Create Subscription" },
+            },
+            {
+                path: "/subscriptions/:id",
+                element: <SubscriptionsForm key="subscriptionUpdate" />,
+                handle: { title: "Edit Subscription" },
             },
             {
                 path: "/payments",

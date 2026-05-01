@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateSubscriptionRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'title'                    => 'required|string|max:50',
+            'description'              => 'required|string|max:1000',
+            'start_coverage'           => 'required|date',
+            'end_coverage'             => 'required|date|after_or_equal:start_date',
+            'cost'                     => 'required|numeric|min:0|decimal:0,2',
+            'type'                     => 'required|string|in:weekly,monthly,yearly',
+            'adjusted_start_coverage'  => 'nullable|date|after_or_equal:end_date',
+            'adjusted_end_coverage'    => [
+                                            'nullable',
+                                            'date',
+                                            'after_or_equal:end_date',
+                                            Rule::when(
+                                                request('adjusted_start_date'),
+                                                ['after_or_equal:adjusted_start_date']
+                                            ),
+                                        ],
+                'cr_no'                => [
+                                            request('adjusted_start_date') || request('adjusted_end_date')
+                                                ? 'required'
+                                                : 'nullable',
+                                            'string'
+                                        ],
+        ];
+    }
+}

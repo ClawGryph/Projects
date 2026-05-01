@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\UploadFileController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CompanyTypeController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Resources\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:super_admin', 'company'])->group(function () {
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
+    Route::delete('/subscriptions/{subscription}', [SubscriptionController::class, 'destroy']);
     Route::delete('/company-types/{companyType}', [CompanyTypeController::class, 'destroy']);
 });
 
@@ -47,13 +49,18 @@ Route::middleware(['auth:sanctum', 'role:super_admin', 'company'])->group(functi
 Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(function () {
     Route::put('/clients/{client}', [ClientController::class, 'update']);
     Route::put('/projects/{project}', [ProjectController::class, 'update']);
+    Route::put('/subscriptions/{subscription}', [SubscriptionController::class, 'update']);
     Route::put('/payments/{payment}', [PaymentController::class, 'update']);
+    Route::put('/company-types/{companyType}', [CompanyTypeController::class, 'update']);
+    Route::put('/form-2307s/{form2307}', [Form2307Controller::class, 'update']);
+    Route::put('/companies/{company}', [CompanyController::class, 'update']);
 });
 
 // Super Admin and Admin only
 Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(function () {
     Route::post('/clients', [ClientController::class, 'store']);
     Route::post('/projects', [ProjectController::class, 'store']);
+    Route::post('/subscriptions', [SubscriptionController::class, 'store']);
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::post('/official-receipts', [OfficialReceiptController::class, 'store']);
     Route::post('/clients/{client}/projects', [ClientsProjectController::class, 'assignProject']);
@@ -71,11 +78,8 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::get('/manual-invoices', [ManualInvoiceController::class, 'show']);
     Route::post('/manual-invoices', [ManualInvoiceController::class, 'save']);
     Route::post('/form-2307s', [Form2307Controller::class, 'store']);
-    Route::put('/form-2307s/{form2307}', [Form2307Controller::class, 'update']);
-    Route::put('/companies/{company}', [CompanyController::class, 'update']);
     Route::get('/projects/{project}/logs', [ProjectController::class, 'logs']);
     Route::post('/company-types', [CompanyTypeController::class, 'store']);
-    Route::put('/company-types/{companyType}', [CompanyTypeController::class, 'update']);
 });
 
 // All roles can view
@@ -85,6 +89,8 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])-
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::get('/projects/{project}', [ProjectController::class, 'show']);
+    Route::get('/subscriptions', [SubscriptionController::class, 'index']);
+    Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'show']);
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::get('/payments/{payment}', [PaymentController::class, 'show']);
     Route::get('/transactions', [PaymentTransactionController::class, 'index']);

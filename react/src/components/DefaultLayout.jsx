@@ -23,6 +23,7 @@ import {
     faChevronDown,
     faToolbox,
     faShield,
+    faRepeat,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function DefaultLayout() {
@@ -175,6 +176,23 @@ export default function DefaultLayout() {
                                         className="mr-3 text-xs"
                                     />
                                     Projects
+                                </NavLink>
+                                <NavLink
+                                    to="/subscriptions"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faRepeat}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Subscription
                                 </NavLink>
                             </div>
                         </div>
