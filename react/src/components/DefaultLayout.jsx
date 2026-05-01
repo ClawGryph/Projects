@@ -89,7 +89,9 @@ export default function DefaultLayout() {
             .finally(() => setLoadingLogout(false));
     };
 
-    const isServicesActive = location.pathname.startsWith("/projects");
+    const isServicesActive =
+        location.pathname.startsWith("/projects") ||
+        location.pathname.startsWith("/subscriptions");
 
     return (
         <div className="bg-gray-100 font-family-karla flex">
