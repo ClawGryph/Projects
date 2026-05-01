@@ -77,47 +77,6 @@ export default function Subsciptions() {
         return () => window.removeEventListener("click", close);
     }, []);
 
-    const parseLocalDate = (str) => {
-        if (!str) return null;
-        const [year, month, day] = str.split("-").map(Number);
-        return new Date(year, month - 1, day); // local midnight, no UTC shift
-    };
-
-    const getAutoStatus = (subscription) => {
-        if (
-            subscription.status === "complete" ||
-            subscription.status === "Hold"
-        ) {
-            return subscription.status;
-        }
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const startDate = subscription.adjusted_start_coverage
-            ? parseLocalDate(subscription.adjusted_start_coverage)
-            : parseLocalDate(subscription.start_coverage);
-
-        const rawEndDate = parseLocalDate(subscription.end_coverage);
-
-        if (startDate && today < startDate) return "pending";
-
-        if (
-            rawEndDate &&
-            today > rawEndDate &&
-            subscription.adjusted_end_coverage
-        ) {
-            const adjEnd = parseLocalDate(subscription.adjusted_end_coverage);
-            if (today <= adjEnd) return "ongoing";
-            return "delay";
-        }
-
-        if (rawEndDate && today > rawEndDate) return "delay";
-        if (startDate && today >= startDate) return "ongoing";
-
-        return subscription.status;
-    };
-
     const tableHeaders = [
         "ID",
         "Title",
@@ -295,9 +254,9 @@ export default function Subsciptions() {
                                                         }`}
                                                     >
                                                         <StatusBadge
-                                                            status={getAutoStatus(
-                                                                s,
-                                                            )}
+                                                            status={
+                                                                s.auto_status
+                                                            }
                                                             isEnded={s.isEnded}
                                                         />
                                                         {user?.role_name !==
@@ -454,7 +413,7 @@ export default function Subsciptions() {
                                     Status
                                 </p>
                                 <StatusBadge
-                                    status={getAutoStatus(viewedSubscription)}
+                                    status={viewedSubscription.auto_status}
                                     isEnded={viewedSubscription.isEnded}
                                 />
                             </div>

@@ -61,6 +61,7 @@ class Project extends Model
 
     public function getAutoStatusAttribute(): string
     {
+        // These are always manually locked
         if (in_array($this->status, ['complete', 'hold'])) {
             return $this->status;
         }
@@ -69,10 +70,18 @@ class Project extends Model
         $start = $this->adjusted_start_date ?? $this->start_date;
         $end = $this->adjusted_end_date ?? $this->end_date;
 
+        // Past end date and not complete → delay
+        if ($end && $today->gt($end) && $this->status !== 'complete') {
+            return 'delay';
+        }
+
+        // Before start date → pending
         if ($start && $today->lt($start)) return 'pending';
-        if ($end && $today->gt($end)) return 'delay';
+
+        // Within the window → ongoing
         if ($start && $today->gte($start)) return 'ongoing';
 
+        // Fallback to whatever is manually stored
         return $this->status ?? 'pending';
     }
 }

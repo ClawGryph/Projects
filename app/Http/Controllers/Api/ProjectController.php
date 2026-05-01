@@ -35,13 +35,15 @@ class ProjectController extends Controller
             'description' => 'required|max:200',
             'start_date' => 'required',
             'end_date' => 'required',
-            'price' => 'required',
-            'status' => 'nullable|string|in:pending,ongoing,complete,hold,delay'
+            'price' => 'required'
         ]);
 
         $data['company_id'] = $this->company()->id;
 
         $project = Project::create($data);
+
+        // Set initial status based on dates
+        $project->update(['status' => $project->auto_status]);
 
         return new ProjectResource($project);
     }

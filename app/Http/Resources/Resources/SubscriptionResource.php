@@ -30,7 +30,8 @@ class SubscriptionResource extends JsonResource
             'status' => $this->status,
             'type' => $this->type,
             'isEnded' => $this->end_date && $this->end_date <= now(),
-            'created_at' => $this->created_at
+            'created_at' => $this->created_at,
+            'auto_status' => $this->auto_status,
         ];
     }
 }

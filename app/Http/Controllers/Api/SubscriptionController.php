@@ -31,15 +31,17 @@ class SubscriptionController extends Controller
             'end_coverage' => 'required',
             'cost' => 'required',
             'type' => 'required|string|in:weekly,monthly,yearly',
-            'status' => 'nullable|string|in:pending,ongoing,complete,hold,delay'
         ]);
 
         $data['company_id'] = $this->company()->id;
         $data['subscription_id'] = $this->generateSubscriptionId();
 
-        $project = Subscription::create($data);
+        $subscription = Subscription::create($data);
 
-        return new SubscriptionResource($project);
+        // Set initial status based on dates
+        $subscription->update(['status' => $subscription->auto_status]);
+
+        return new SubscriptionResource($subscription);
     }
 
     /**
