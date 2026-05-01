@@ -58,4 +58,21 @@ class Project extends Model
     {
         return $this->hasMany(ProjectLog::class);
     }
+
+    public function getAutoStatusAttribute(): string
+    {
+        if (in_array($this->status, ['complete', 'hold'])) {
+            return $this->status;
+        }
+
+        $today = now()->startOfDay();
+        $start = $this->adjusted_start_date ?? $this->start_date;
+        $end = $this->adjusted_end_date ?? $this->end_date;
+
+        if ($start && $today->lt($start)) return 'pending';
+        if ($end && $today->gt($end)) return 'delay';
+        if ($start && $today->gte($start)) return 'ongoing';
+
+        return $this->status ?? 'pending';
+    }
 }

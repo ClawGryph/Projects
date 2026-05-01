@@ -36,7 +36,7 @@ class ProjectController extends Controller
             'start_date' => 'required',
             'end_date' => 'required',
             'price' => 'required',
-            'status' => 'nullable|string|in:pending,ongoing,complete'
+            'status' => 'nullable|string|in:pending,ongoing,complete,hold,delay'
         ]);
 
         $data['company_id'] = $this->company()->id;
@@ -69,6 +69,14 @@ class ProjectController extends Controller
             $new = isset($data[$field]) && $data[$field] ? Carbon::parse($data[$field])->toDateString() : null;
 
             if ($old != $new) {
+                // If adjusted date is being set for the first time, use the original date as old_value
+                if ($field === 'adjusted_start_date' && !$old) {
+                    $old = $project->start_date?->toDateString();
+                }
+                if ($field === 'adjusted_end_date' && !$old) {
+                    $old = $project->end_date?->toDateString();
+                }
+
                 ProjectLog::create([
                     'project_id' => $project->id,
                     'user_id'    => $request->user()->id,
@@ -102,7 +110,7 @@ class ProjectController extends Controller
         abort_if($project->company_id !== $this->company()->id, 403);
 
         $request->validate([
-            'status' => 'required|string|in:pending,ongoing,complete'
+            'status' => 'required|string|in:pending,ongoing,complete,hold,delay'
         ]);
 
         $project->update([
@@ -139,5 +147,4 @@ class ProjectController extends Controller
             ->latest()
             ->get();
     }
-
 }
