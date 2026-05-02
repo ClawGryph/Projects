@@ -20,10 +20,19 @@ class PaymentTransactionResource extends JsonResource
             'client' => [
                 'name' => $this->paymentSchedule?->payment?->clientsProject?->client?->name,
             ],
-            'project' => [
-                'id'    => $this->paymentSchedule?->payment?->clientsProject?->project?->id,
-                'title' => $this->paymentSchedule?->payment?->clientsProject?->project?->title,
-            ],
+            'project' => $this->paymentSchedule?->payment?->clientsProject?->project
+    ? [
+        'id'    => $this->paymentSchedule->payment->clientsProject->project->id,
+        'title' => $this->paymentSchedule->payment->clientsProject->project->title,
+    ]
+    : null,
+
+'subscription' => $this->paymentSchedule?->payment?->clientsProject?->subscription
+    ? [
+        'id'    => $this->paymentSchedule->payment->clientsProject->subscription->id,
+        'title' => $this->paymentSchedule->payment->clientsProject->subscription->title,
+    ]
+    : null,
             'payment' => [
                 'payment_type'   => $this->paymentSchedule?->payment?->payment_type,
                 'recurring_type' => $this->paymentSchedule?->payment?->recurring_type,

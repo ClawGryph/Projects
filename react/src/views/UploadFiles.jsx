@@ -12,9 +12,11 @@ export default function UploadFiles() {
     const [uploadTransaction, setUploadTransaction] = useState(null);
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
-    const [selectedProject, setSelectedProject] = useState("");
+    const [selectedServiceType, setSelectedServiceType] = useState("");
+    const [selectedServiceName, setSelectedServiceName] = useState("");
     const [selectedOrStatus, setSelectedOrStatus] = useState("");
     const [selected2307Status, setSelected2307Status] = useState("");
+    const [subscriptions, setSubscriptions] = useState([]);
 
     const getTransactions = () => {
         setLoading(true);
@@ -40,6 +42,12 @@ export default function UploadFiles() {
         });
     }, []);
 
+    useEffect(() => {
+        axiosClient.get("/subscriptions").then(({ data }) => {
+            setSubscriptions(data.data);
+        });
+    }, []);
+
     const filteredTransactions = transactions.filter((t) => {
         const or = t.official_receipt;
         const orFileStatus = or?.or_file_url ? "uploaded" : "pending";
@@ -47,15 +55,30 @@ export default function UploadFiles() {
             ? "uploaded"
             : "pending";
 
-        const matchesProject =
-            !selectedProject ||
-            String(t.project?.id) === String(selectedProject);
         const matchesOrStatus =
             !selectedOrStatus || orFileStatus === selectedOrStatus;
         const matches2307 =
             !selected2307Status || form2307FileStatus === selected2307Status;
 
-        return matchesProject && matchesOrStatus && matches2307;
+        const isProject = !!t.project;
+        const matchesServiceType =
+            !selectedServiceType ||
+            (selectedServiceType === "project" && isProject) ||
+            (selectedServiceType === "subscription" && !isProject);
+
+        const matchesServiceName =
+            !selectedServiceName ||
+            (selectedServiceType === "project" &&
+                String(t.project?.id) === String(selectedServiceName)) ||
+            (selectedServiceType === "subscription" &&
+                String(t.subscription?.id) === String(selectedServiceName));
+
+        return (
+            matchesOrStatus &&
+            matches2307 &&
+            matchesServiceType &&
+            matchesServiceName
+        );
     });
 
     // Format strings by converting underscores to spaces and capetalize each word
@@ -71,7 +94,8 @@ export default function UploadFiles() {
     const tableHeaders = [
         { key: "Paid Date" },
         { key: "Client Name" },
-        { key: "Project Name" },
+        { key: "Service" },
+        { key: "Service Name" },
         { key: "Payment Details" },
         { key: "S.I / ACK No." },
         {
@@ -144,32 +168,67 @@ export default function UploadFiles() {
                     Upload Files
                 </h1>
                 <div className="flex flex-wrap items-center gap-4">
-                    {/* Project Filter */}
+                    {/* Service Type Filter */}
                     <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Project:
+                            Service:
                         </label>
                         <select
-                            value={selectedProject}
-                            onChange={(e) => setSelectedProject(e.target.value)}
+                            value={selectedServiceType}
+                            onChange={(e) => {
+                                setSelectedServiceType(e.target.value);
+                                setSelectedServiceName("");
+                            }}
                             className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                         >
-                            <option value="">All Projects</option>
-                            {projects.map((proj) => (
-                                <option key={proj.id} value={proj.id}>
-                                    {proj.title}
-                                </option>
-                            ))}
+                            <option value="">All Services</option>
+                            <option value="project">Project</option>
+                            <option value="subscription">Subscription</option>
+                        </select>
+                    </div>
+
+                    {/* Service Name Filter */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Service Name:
+                        </label>
+                        <select
+                            value={selectedServiceName}
+                            onChange={(e) =>
+                                setSelectedServiceName(e.target.value)
+                            }
+                            disabled={!selectedServiceType}
+                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                        >
+                            <option value="">
+                                {selectedServiceType
+                                    ? "All Names"
+                                    : "Select a service type first"}
+                            </option>
+                            {selectedServiceType === "project" &&
+                                projects.map((proj) => (
+                                    <option key={proj.id} value={proj.id}>
+                                        {proj.title}
+                                    </option>
+                                ))}
+                            {selectedServiceType === "subscription" &&
+                                subscriptions.map((sub) => (
+                                    <option key={sub.id} value={sub.id}>
+                                        {sub.title}
+                                    </option>
+                                ))}
                         </select>
                     </div>
 
                     {/* Clear Button */}
-                    {(selectedProject ||
+                    {(selectedServiceType ||
+                        selectedServiceName ||
                         selectedOrStatus ||
                         selected2307Status) && (
                         <button
                             onClick={() => {
-                                setSelectedProject("");
+                                setSelectedServiceType("");
+                                setSelectedServiceName("");
                                 setSelectedOrStatus("");
                                 setSelected2307Status("");
                             }}
@@ -256,9 +315,24 @@ export default function UploadFiles() {
                                                     {t.client?.name ?? "-"}
                                                 </td>
 
-                                                {/* Project Name */}
+                                                {/* Service column */}
                                                 <td className="border-b border-gray-200 px-4 py-2">
-                                                    {t.project?.title ?? "-"}
+                                                    {t.project?.id ? (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 mr-1">
+                                                            Project
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 mr-1">
+                                                            Subscription
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                {/* Service Name column */}
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {t.project?.title ??
+                                                        t.subscription?.title ??
+                                                        "—"}
                                                 </td>
 
                                                 {/* Payment Details */}

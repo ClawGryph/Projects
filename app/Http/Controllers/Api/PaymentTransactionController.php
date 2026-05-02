@@ -20,6 +20,7 @@ class PaymentTransactionController extends Controller
             PaymentTransaction::with([
                 'paymentSchedule.payment.clientsProject.client',
                 'paymentSchedule.payment.clientsProject.project',
+                'paymentSchedule.payment.clientsProject.subscription',
                 'officialReceipt.form2307',
             ])->latest()->where('company_id', $this->company()->id)->get()
         );
