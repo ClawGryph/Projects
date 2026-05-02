@@ -67,7 +67,6 @@ export default function Clients() {
         "Company",
         "Address",
         "Company Type",
-        "Projects",
         "Actions",
     ];
 
@@ -160,20 +159,6 @@ export default function Clients() {
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 {u.company_type}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                <Link
-                                                    to={
-                                                        "/clients/project/" +
-                                                        u.id
-                                                    }
-                                                    className="border-b border-gray-200 inline-block px-2 py-1 text-xs text-[#0d1b2a] border-solid border border-cyan-800 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white"
-                                                >
-                                                    <FontAwesomeIcon
-                                                        icon={faDiagramProject}
-                                                    />{" "}
-                                                    Projects
-                                                </Link>
                                             </td>
                                             {user?.role_name !== "viewer" && (
                                                 <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">

@@ -11,6 +11,7 @@ class ClientsProject extends Model
     protected $fillable = [
         'client_id',
         'project_id',
+        'subscription_id',
         'final_price',
         'vat_type',
     ];
@@ -23,6 +24,11 @@ class ClientsProject extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function subscription()
+    {
+        return $this->belongsTo(Subscription::class);
     }
 
     public function payments()

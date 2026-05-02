@@ -17,6 +17,7 @@ export default function InvoiceModal({
     const project = payment.clientsProject?.project ?? {};
     const paymentInfo = payment.clientsProject?.payment ?? {};
     const vatType = payment.clientsProject?.vat_type ?? "vat_exempt";
+    const invoiceNumber = payment.clientsProject?.invoice_number;
     const isVatExclusive = vatType === "vat_exclusive";
     const isVatInclusive = vatType === "vat_inclusive";
     const isVatable = isVatExclusive || isVatInclusive;
@@ -26,9 +27,6 @@ export default function InvoiceModal({
     // Formats number into a two digit string
     const formattedIndex =
         scheduleIndex != null ? String(scheduleIndex).padStart(2, "0") : "??";
-
-    // Generate formatted invoice number
-    const invoiceNumber = `C${client.id ?? "?"}P${project.id ?? "?"}-${formattedIndex}`;
 
     // Format date
     const formatDate = (dateStr) => {

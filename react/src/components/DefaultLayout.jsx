@@ -24,6 +24,7 @@ import {
     faToolbox,
     faShield,
     faRepeat,
+    faLink,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function DefaultLayout() {
@@ -91,7 +92,8 @@ export default function DefaultLayout() {
 
     const isServicesActive =
         location.pathname.startsWith("/projects") ||
-        location.pathname.startsWith("/subscriptions");
+        location.pathname.startsWith("/subscriptions") ||
+        location.pathname.startsWith("/assign");
 
     return (
         <div className="bg-gray-100 font-family-karla flex">
@@ -195,6 +197,23 @@ export default function DefaultLayout() {
                                         className="mr-3 text-xs"
                                     />
                                     Subscription
+                                </NavLink>
+                                <NavLink
+                                    to="/assign"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faLink}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Assign
                                 </NavLink>
                             </div>
                         </div>

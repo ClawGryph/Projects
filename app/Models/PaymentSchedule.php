@@ -11,7 +11,10 @@ class PaymentSchedule extends Model
         'due_date',
         'payment_rate',
         'expected_amount',
-        'status'
+        'status',
+        'invoice_number',
+        'is_or_issued',
+        'is_form2307_issued'
     ];
 
     protected $casts = [

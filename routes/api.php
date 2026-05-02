@@ -63,7 +63,8 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::post('/subscriptions', [SubscriptionController::class, 'store']);
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::post('/official-receipts', [OfficialReceiptController::class, 'store']);
-    Route::post('/clients/{client}/projects', [ClientsProjectController::class, 'assignProject']);
+    Route::post('/clients/{client}/assign', [ClientsProjectController::class, 'assignProject']);
+    Route::patch('/clients/{client}/assign/{clientsProject}', [ClientsProjectController::class, 'updateAssignment']);
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
     Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);
     Route::put('/payment-schedules/{schedule}/status', [PaymentScheduleController::class, 'updateStatus']);
@@ -95,7 +96,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])-
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::get('/payments/{payment}', [PaymentController::class, 'show']);
     Route::get('/transactions', [PaymentTransactionController::class, 'index']);
-    Route::get('/client-projects', [ClientsProjectController::class, 'projectsWithClients']);
+    Route::get('/clients-projects', [ClientsProjectController::class, 'projectsWithClients']);
     Route::get('/clients/{client}/projects', [ClientsProjectController::class, 'index']);
     Route::get('/payment-schedules', [PaymentScheduleController::class, 'index']);
     Route::get('/projects/{project}/clients-projects', [ProjectController::class, 'payments']);

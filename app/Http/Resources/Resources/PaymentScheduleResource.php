@@ -20,6 +20,9 @@ class PaymentScheduleResource extends JsonResource
             'payment_rate' => $this->payment_rate,
             'expected_amount' => $this->expected_amount,
             'status' => $this->status,
+            'invoice_number' => $this->invoice_number,
+            'is_or_issued' => $this->is_or_issued,
+            'is_form2307_issued' => $this->is_form2307_issued,
 
             'clientsProject' => $this->clientsProject ? [
                 'id' => $this->clientsProject->id,

@@ -9,7 +9,7 @@ import NotFound from "./views/NotFound.jsx";
 import ClientForm from "./views/ClientForm.jsx";
 import Projects from "./views/Projects.jsx";
 import ProjectsForm from "./views/ProjectsForm.jsx";
-import ClientsProject from "./views/ClientsProject.jsx";
+// import ClientsProject from "./views/ClientsProject.jsx";
 import Payments from "./views/Payments.jsx";
 import Users from "./views/Users.jsx";
 import UserForm from "./views/UserForm.jsx";
@@ -20,6 +20,7 @@ import CompanyManagement from "./views/CompanyManagement.jsx";
 import CompanyType from "./views/CompanyType.jsx";
 import Subsciptions from "./views/Subscriptions.jsx";
 import SubscriptionsForm from "./views/SubscriptionsForm.jsx";
+import Assign from "./views/Assign.jsx";
 
 const router = createBrowserRouter([
     {
@@ -55,10 +56,10 @@ const router = createBrowserRouter([
                 element: <Clients />,
                 handle: { title: "Client" },
             },
-            {
-                path: "/clients/project/:id",
-                element: <ClientsProject />,
-            },
+            // {
+            //     path: "/clients/project/:id",
+            //     element: <ClientsProject />,
+            // },
             {
                 path: "/clients/new",
                 element: <ClientForm key="clientCreate" />,
@@ -98,6 +99,11 @@ const router = createBrowserRouter([
                 path: "/subscriptions/:id",
                 element: <SubscriptionsForm key="subscriptionUpdate" />,
                 handle: { title: "Edit Subscription" },
+            },
+            {
+                path: "/assign",
+                element: <Assign />,
+                handle: { title: "Assign Service" },
             },
             {
                 path: "/payments",

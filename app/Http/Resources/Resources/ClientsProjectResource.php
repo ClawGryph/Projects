@@ -31,6 +31,7 @@ class ClientsProjectResource extends JsonResource
                     'payment_rate' => $schedule->payment_rate,
                     'expected_amount' => $schedule->expected_amount,
                     'status' => $schedule->status,
+                    'invoice_number'  => $schedule->invoice_number,
                 ];
             })
             ->sortBy(fn($s) => $s['due_date'] ?? '9999-99-99')
@@ -51,6 +52,18 @@ class ClientsProjectResource extends JsonResource
                 'start_date' => $this->project->start_date ? Carbon::parse($this->project->start_date)->format('Y-m-d') : null,
                 'end_date' => $this->project->end_date ? Carbon::parse($this->project->end_date)->format('Y-m-d') : null,
                 'created_at' => $this->project->created_at,
+            ] : null,
+
+            'subscription' => $this->subscription ? [
+                'id' => $this->subscription->id,
+                'title' => $this->subscription->title,
+                'description' => $this->subscription->description,
+                'cost' => $this->subscription->cost,
+                'status' => $this->subscription->status,
+                'type' => $this->subscription->type,
+                'start_coverage' => $this->subscription->start_coverage ? Carbon::parse($this->subscription->start_coverage)->format('Y-m-d') : null,
+                'end_coverage' => $this->subscription->end_coverage ? Carbon::parse($this->subscription->end_coverage)->format('Y-m-d') : null,
+                'created_at' => $this->subscription->created_at,
             ] : null,
 
             'payment' => $payment ? [
