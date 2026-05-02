@@ -120,7 +120,10 @@ export default function OfficialReceiptModal({
     const clientName = payment?.clientsProject?.client?.name ?? "";
     const clientAddress =
         payment?.clientsProject?.client?.company_address ?? "";
-    const projectName = payment?.clientsProject?.project?.title ?? "";
+    const projectName =
+        payment?.clientsProject?.project?.title ??
+        payment?.clientsProject?.subscription?.title ??
+        "";
 
     const [form, setForm] = useState({
         service_invoice_number: "",
@@ -146,6 +149,7 @@ export default function OfficialReceiptModal({
     const panDebounceRef = useRef(null);
     const bsDebounceRef = useRef(null);
 
+    const invoiceNumber = payment.invoice_number;
     const vatType = payment?.clientsProject?.vat_type ?? "vat_exempt";
     const isVatExclusive = vatType === "vat_exclusive";
     const isVatInclusive = vatType === "vat_inclusive";
@@ -251,7 +255,7 @@ export default function OfficialReceiptModal({
 
     // Determines withholding tax rate based on client type and companies annual gross
     const getWithholdingRate = () => {
-        if (clientType === "Private Corp") {
+        if (clientType === "Private Corporation") {
             return annualGross >= 3_000_000 ? 0.02 : 0.01;
         }
         if (clientType === "Government") return 0.01;
@@ -285,18 +289,6 @@ export default function OfficialReceiptModal({
         if (!form.amount || isNaN(form.amount))
             newErrors.amount = "Valid amount is required.";
         return newErrors;
-    };
-
-    const generateInvoiceNumber = (payment, scheduleIndex) => {
-        const clientId = payment?.clientsProject?.client?.id ?? "?";
-        const projectId = payment?.clientsProject?.project?.id ?? "?";
-
-        const formattedIndex =
-            scheduleIndex != null
-                ? String(scheduleIndex).padStart(2, "0")
-                : "??";
-
-        return `C${clientId}P${projectId}-${formattedIndex}`; //Formatted invoice number
     };
 
     // ── Block save if any checker is still running / found a conflict ──────
@@ -396,8 +388,6 @@ export default function OfficialReceiptModal({
             !!errors.payment_acknowledgement_number,
         );
     };
-
-    const invoiceNumber = generateInvoiceNumber(payment, scheduleIndex);
 
     const isSaveBlocked =
         saving ||

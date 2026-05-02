@@ -18,19 +18,11 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
     const client = payment.clientsProject?.client ?? {};
     const project = payment.clientsProject?.project ?? {};
     const paymentInfo = payment.clientsProject?.payment ?? {};
+    const invoiceNumber = payment.invoice_number;
     const vatType = payment.clientsProject?.vat_type ?? "vat_exempt";
     const isVatExclusive = vatType === "vat_exclusive";
     const isVatInclusive = vatType === "vat_inclusive";
     const isVatable = isVatExclusive || isVatInclusive;
-
-    // All locked — derived from schedule, never editable
-    const getInvoiceNumber = () => {
-        const idx =
-            payment.schedule_index != null
-                ? String(payment.schedule_index).padStart(2, "0")
-                : "??";
-        return `C${client.id ?? "?"}P${project.id ?? "?"}-${idx}`; // Formatted invoice number
-    };
 
     // Payment term label
     const getTerms = () => {
@@ -51,7 +43,6 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
         return "";
     };
 
-    const invoiceNumber = getInvoiceNumber();
     const terms = getTerms();
     const dueDate = payment.due_date ?? "";
     const billName = client.name ?? "";

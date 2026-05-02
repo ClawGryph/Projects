@@ -14,10 +14,13 @@ export default function InvoiceModal({
     if (!payment) return null;
 
     const client = payment.clientsProject?.client ?? {};
-    const project = payment.clientsProject?.project ?? {};
+    const project =
+        payment.clientsProject?.project ??
+        payment.clientsProject?.subscription ??
+        {};
     const paymentInfo = payment.clientsProject?.payment ?? {};
     const vatType = payment.clientsProject?.vat_type ?? "vat_exempt";
-    const invoiceNumber = payment.clientsProject?.invoice_number;
+    const invoiceNumber = payment.invoice_number;
     const isVatExclusive = vatType === "vat_exclusive";
     const isVatInclusive = vatType === "vat_inclusive";
     const isVatable = isVatExclusive || isVatInclusive;
@@ -80,7 +83,7 @@ export default function InvoiceModal({
 
     // Determines withholding tax rate based on client type and companies annual gross
     const getWithholdingRate = () => {
-        if (clientType === "Private Corp") {
+        if (clientType === "Private Corporation") {
             return annualGross >= 3_000_000 ? 0.02 : 0.01;
         }
         if (clientType === "Government") {
@@ -124,6 +127,9 @@ export default function InvoiceModal({
             setDownloading(false);
         }
     };
+
+    console.log("clientType:", clientType);
+    console.log("annualGross:", annualGross);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

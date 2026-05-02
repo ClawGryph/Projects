@@ -19,6 +19,7 @@ export default function Payments() {
     const [company, setCompany] = useState(null);
     const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [projects, setProjects] = useState([]);
+    const [subscriptions, setSubscriptions] = useState([]);
     const [invoicePayment, setInvoicePayment] = useState(null);
     const [orPayment, setOrPayment] = useState(null);
     const [manualInvoicePayment, setManualInvoicePayment] = useState(null);
@@ -27,7 +28,8 @@ export default function Payments() {
     const { setNotification, user } = useStateContext();
     const [editingId, setEditingId] = useState(null);
     const [selectedMonth, setSelectedMonth] = useState("");
-    const [selectedProject, setSelectedProject] = useState("");
+    const [selectedServiceType, setSelectedServiceType] = useState("");
+    const [selectedServiceName, setSelectedServiceName] = useState("");
     const [selectedStatus, setSelectedStatus] = useState("");
     const [selected2307Status, setSelected2307Status] = useState("");
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
@@ -38,7 +40,6 @@ export default function Payments() {
             .get("/payment-schedules", {
                 params: {
                     month: selectedMonth || undefined,
-                    project_id: selectedProject || undefined,
                 },
             })
             .then(({ data }) => {
@@ -61,11 +62,18 @@ export default function Payments() {
 
     useEffect(() => {
         getPaymentSchedules();
-    }, [selectedMonth, selectedProject]);
+    }, [selectedMonth]);
 
     useEffect(() => {
         axiosClient.get("/projects").then(({ data }) => {
             setProjects(data.data);
+        });
+    }, []);
+
+    // fetch subscriptions
+    useEffect(() => {
+        axiosClient.get("/subscriptions").then(({ data }) => {
+            setSubscriptions(data.data);
         });
     }, []);
 
@@ -159,19 +167,34 @@ export default function Payments() {
     // Filter payment schedules by status and 2307 issuance
     const filteredSchedules = paymentSchedules.filter((p) => {
         const isPaid = p.status === "paid";
+        const form2307Status = p.is_form2307_issued ? "issued" : "pending";
 
-        // Check if 2307 has been issued (only relevant for paid payments)
-        const form2307Status = p.transaction?.officialReceipt?.form2307
-            ? "issued"
-            : "pending";
-
-        // Apply filters
         const matchesStatus = !selectedStatus || p.status === selectedStatus;
         const matches2307 =
             !selected2307Status ||
             (isPaid && form2307Status === selected2307Status);
 
-        return matchesStatus && matches2307;
+        const isProject = !!p.clientsProject?.project;
+        const matchesServiceType =
+            !selectedServiceType ||
+            (selectedServiceType === "project" && isProject) ||
+            (selectedServiceType === "subscription" && !isProject);
+
+        const matchesServiceName =
+            !selectedServiceName ||
+            (selectedServiceType === "project" &&
+                String(p.clientsProject?.project?.id) ===
+                    String(selectedServiceName)) ||
+            (selectedServiceType === "subscription" &&
+                String(p.clientsProject?.subscription?.id) ===
+                    String(selectedServiceName));
+
+        return (
+            matchesStatus &&
+            matches2307 &&
+            matchesServiceType &&
+            matchesServiceName
+        );
     });
 
     // Format strings by converting underscores to spaces and capetalize each word
@@ -198,28 +221,31 @@ export default function Payments() {
         ];
 
         const rows = paymentSchedules.map((p) => {
+            const isProject = !!p.clientsProject?.project;
+            const serviceName = isProject
+                ? p.clientsProject?.project?.title
+                : p.clientsProject?.subscription?.title;
+            const serviceType = isProject ? "Project" : "Subscription";
+
             const paymentType =
                 p.clientsProject?.payment?.payment_type === "recurring"
                     ? p.clientsProject?.payment?.recurring_type
                     : p.clientsProject?.payment?.payment_type;
 
             const isPaid = p.status === "paid";
-            const SIOrACKNo =
-                p.transaction?.officialReceipt?.service_invoice_number ||
-                p.transaction?.officialReceipt
-                    ?.payment_acknowledgement_number ||
-                "";
-
-            const form2307Status = isPaid
-                ? p.transaction?.officialReceipt?.form2307
-                    ? "issued"
-                    : "pending"
+            const SIOrACKNo = p.is_or_issued
+                ? p.transaction?.officialReceipt?.service_invoice_number ||
+                  p.transaction?.officialReceipt
+                      ?.payment_acknowledgement_number ||
+                  ""
                 : "";
+
+            const form2307Status = p.is_form2307_issued ? "issued" : "pending";
 
             return [
                 p.id,
                 p.clientsProject?.client?.name ?? "",
-                p.clientsProject?.project?.title ?? "",
+                `${serviceType}: ${serviceName ?? ""}`,
                 p.expected_amount,
                 formatPaymentType(paymentType),
                 p.due_date ?? "",
@@ -247,10 +273,15 @@ export default function Payments() {
         const filename = [
             "payments",
             selectedMonth || null,
-            selectedProject
-                ? projects.find((p) => String(p.id) === String(selectedProject))
-                      ?.title
-                : null,
+            selectedServiceName && selectedServiceType === "project"
+                ? projects.find(
+                      (p) => String(p.id) === String(selectedServiceName),
+                  )?.title
+                : selectedServiceName && selectedServiceType === "subscription"
+                  ? subscriptions.find(
+                        (s) => String(s.id) === String(selectedServiceName),
+                    )?.title
+                  : null,
         ]
             .filter(Boolean)
             .join("_")
@@ -267,7 +298,8 @@ export default function Payments() {
     const tableHeaders = [
         { key: "Due Date" },
         { key: "Client Name" },
-        { key: "Project Name" },
+        { key: "Service" },
+        { key: "Service Name" },
         { key: "Payment Details" },
         {
             key: "Status",
@@ -336,22 +368,55 @@ export default function Payments() {
                     Payments
                 </h1>
                 <div className="flex flex-wrap items-center gap-4">
-                    {/* Project Filter */}
+                    {/* Service Type Filter */}
                     <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Project:
+                            Service:
                         </label>
                         <select
-                            value={selectedProject}
-                            onChange={(e) => setSelectedProject(e.target.value)}
+                            value={selectedServiceType}
+                            onChange={(e) => {
+                                setSelectedServiceType(e.target.value);
+                                setSelectedServiceName(""); // reset name when type changes
+                            }}
                             className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                         >
-                            <option value="">All Projects</option>
-                            {projects.map((proj) => (
-                                <option key={proj.id} value={proj.id}>
-                                    {proj.title}
-                                </option>
-                            ))}
+                            <option value="">All Services</option>
+                            <option value="project">Project</option>
+                            <option value="subscription">Subscription</option>
+                        </select>
+                    </div>
+
+                    {/* Service Name Filter */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Service Name:
+                        </label>
+                        <select
+                            value={selectedServiceName}
+                            onChange={(e) =>
+                                setSelectedServiceName(e.target.value)
+                            }
+                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                            disabled={!selectedServiceType}
+                        >
+                            <option value="">
+                                {selectedServiceType
+                                    ? "All Names"
+                                    : "Select a service type first"}
+                            </option>
+                            {selectedServiceType === "project" &&
+                                projects.map((proj) => (
+                                    <option key={proj.id} value={proj.id}>
+                                        {proj.title}
+                                    </option>
+                                ))}
+                            {selectedServiceType === "subscription" &&
+                                subscriptions.map((sub) => (
+                                    <option key={sub.id} value={sub.id}>
+                                        {sub.title}
+                                    </option>
+                                ))}
                         </select>
                     </div>
 
@@ -373,11 +438,14 @@ export default function Payments() {
                     </div>
 
                     {/* Clear Button */}
-                    {(selectedMonth || selectedProject) && (
+                    {(selectedMonth ||
+                        selectedServiceType ||
+                        selectedServiceName) && (
                         <button
                             onClick={() => {
                                 setSelectedMonth("");
-                                setSelectedProject("");
+                                setSelectedServiceType("");
+                                setSelectedServiceName("");
                                 setSelectedStatus("");
                                 setSelected2307Status("");
                             }}
@@ -444,12 +512,15 @@ export default function Payments() {
                                         const isPaid = p.status === "paid";
                                         const officialReceipt =
                                             p.transaction?.officialReceipt;
-                                        const SIOrACKNo =
-                                            officialReceipt?.service_invoice_number ||
-                                            officialReceipt?.payment_acknowledgement_number ||
-                                            "";
+                                        const SIOrACKNo = p.is_or_issued
+                                            ? p.transaction?.officialReceipt
+                                                  ?.service_invoice_number ||
+                                              p.transaction?.officialReceipt
+                                                  ?.payment_acknowledgement_number ||
+                                              ""
+                                            : "";
                                         const form2307Status =
-                                            officialReceipt?.form2307
+                                            p.is_form2307_issued
                                                 ? "issued"
                                                 : "pending";
 
@@ -468,10 +539,24 @@ export default function Payments() {
                                                     }
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
-                                                    {
+                                                    {p.clientsProject
+                                                        ?.project ? (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 mr-1">
+                                                            Project
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 mr-1">
+                                                            Subscription
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {p.clientsProject?.project
+                                                        ?.title ??
                                                         p.clientsProject
-                                                            ?.project?.title
-                                                    }
+                                                            ?.subscription
+                                                            ?.title ??
+                                                        "—"}
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <div className="font-semibold">
@@ -519,7 +604,6 @@ export default function Payments() {
                                                                 "pending",
                                                                 "paid",
                                                                 "overdue",
-                                                                "ended",
                                                             ].map((status) => (
                                                                 <div
                                                                     key={status}
@@ -552,22 +636,16 @@ export default function Payments() {
                                                                 e.stopPropagation();
                                                                 const rect =
                                                                     e.currentTarget.getBoundingClientRect();
-                                                                const dropdownHeight = 140;
-                                                                const spaceBelow =
-                                                                    window.innerHeight -
-                                                                    rect.bottom;
-
                                                                 setDropdownPos({
                                                                     top:
-                                                                        spaceBelow <
-                                                                        dropdownHeight
-                                                                            ? rect.top -
-                                                                              dropdownHeight // open upward
-                                                                            : rect.bottom, // open downward
+                                                                        rect.bottom +
+                                                                        window.scrollY -
+                                                                        30,
                                                                     left:
                                                                         rect.left +
                                                                         rect.width /
-                                                                            2,
+                                                                            2 +
+                                                                        window.scrollX,
                                                                 });
                                                                 user?.role_name !==
                                                                     "viewer" &&
@@ -787,7 +865,7 @@ export default function Payments() {
                                                                     )}
 
                                                                     {isPaid &&
-                                                                        SIOrACKNo && (
+                                                                        !!p.is_or_issued && (
                                                                             <button
                                                                                 onClick={() => {
                                                                                     setForm2307Payment(
@@ -805,10 +883,7 @@ export default function Payments() {
                                                                                     }
                                                                                     className="h-3 w-3"
                                                                                 />
-                                                                                {p
-                                                                                    .transaction
-                                                                                    ?.officialReceipt
-                                                                                    ?.form2307
+                                                                                {p.is_form2307_issued
                                                                                     ? "Edit 2307"
                                                                                     : "Issue 2307"}
                                                                             </button>

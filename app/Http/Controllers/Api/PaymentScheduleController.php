@@ -19,6 +19,7 @@ class PaymentScheduleController extends Controller
         $query = PaymentSchedule::with([
             'clientsProject',
             'clientsProject.client',
+            'clientsProject.client.clientCompanyType',
             'clientsProject.project',
             'clientsProject.payments',
             'transaction.officialReceipt.form2307',

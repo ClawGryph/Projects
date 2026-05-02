@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Resources\OfficialReceiptResource;
 use App\Models\OfficialReceipt;
+use App\Models\PaymentTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -40,7 +41,9 @@ class OfficialReceiptController extends Controller
         ]);
 
         $or = OfficialReceipt::create($validated);
-
+        PaymentTransaction::find($validated['payment_transaction_id'])
+        ->paymentSchedule
+        ->update(['is_or_issued' => true]);
         return new OfficialReceiptResource($or->load('form2307'));
     }
 
@@ -61,6 +64,10 @@ class OfficialReceiptController extends Controller
 
         $or = OfficialReceipt::findOrFail($id);
         $or->update($validated);
+
+       PaymentTransaction::find($or->payment_transaction_id)
+        ->paymentSchedule
+        ->update(['is_or_issued' => true]);
 
         return new OfficialReceiptResource($or->load('form2307'));
     }

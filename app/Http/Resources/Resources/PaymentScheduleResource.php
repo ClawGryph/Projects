@@ -32,7 +32,7 @@ class PaymentScheduleResource extends JsonResource
                 'client' => $this->clientsProject->client ? [
                     'id' => $this->clientsProject->client->id,
                     'name' => $this->clientsProject->client->name,
-                    'company_type' => $this->clientsProject->client->company_type,
+                    'company_type' => $this->clientsProject->client->clientCompanyType?->name,
                     'company_name' => $this->clientsProject->client->company_name,
                     'company_address' => $this->clientsProject->client->company_address,
                 ] : null,
@@ -42,6 +42,14 @@ class PaymentScheduleResource extends JsonResource
                     'title' => $this->clientsProject->project->title,
                     'start_date' => $this->clientsProject->project->start_date,
                     'end_date' => $this->clientsProject->project->end_date,
+                ] : null,
+
+                'subscription' => $this->clientsProject->subscription ? [
+                    'id' => $this->clientsProject->subscription->id,
+                    'title' => $this->clientsProject->subscription->title,
+                    'type' => $this->clientsProject->subscription->type,
+                    'start_coverage' => $this->clientsProject->subscription->start_coverage,
+                    'end_coverage' => $this->clientsProject->subscription->end_coverage,
                 ] : null,
 
                 'payment' => $this->clientsProject && $this->clientsProject->payments->first()

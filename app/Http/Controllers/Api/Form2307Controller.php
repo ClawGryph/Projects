@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Form2307;
+use App\Models\OfficialReceipt;
+use App\Models\PaymentTransaction;
 use Illuminate\Http\Request;
 
 class Form2307Controller extends Controller
@@ -32,6 +34,11 @@ class Form2307Controller extends Controller
             ]);
 
             $form2307 = Form2307::create($validated);
+
+            $or = OfficialReceipt::find($validated['official_receipt_id']);
+            PaymentTransaction::find($or->payment_transaction_id)
+            ->paymentSchedule
+            ->update(['is_form2307_issued' => true]);
 
             return response()->json($form2307, 201);
         } catch (\Exception $e) {
@@ -62,6 +69,11 @@ class Form2307Controller extends Controller
             ]);
 
             $form2307->update($validated);
+
+            $or = OfficialReceipt::find($form2307->official_receipt_id);
+            PaymentTransaction::find($or->payment_transaction_id)
+            ->paymentSchedule
+            ->update(['is_form2307_issued' => true]);
 
             return response()->json($form2307);
         } catch (\Exception $e) {
