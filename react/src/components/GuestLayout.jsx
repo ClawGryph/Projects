@@ -13,9 +13,9 @@ export default function GuestLayout() {
         const title = current?.handle?.title;
 
         if (title) {
-            document.title = `${title} | Client Management System`;
+            document.title = `${title} | Invoicing System`;
         } else {
-            document.title = "Client Management System";
+            document.title = "Invoicing System";
         }
     }, [matches]);
 

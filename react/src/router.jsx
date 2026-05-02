@@ -9,7 +9,6 @@ import NotFound from "./views/NotFound.jsx";
 import ClientForm from "./views/ClientForm.jsx";
 import Projects from "./views/Projects.jsx";
 import ProjectsForm from "./views/ProjectsForm.jsx";
-// import ClientsProject from "./views/ClientsProject.jsx";
 import Payments from "./views/Payments.jsx";
 import Users from "./views/Users.jsx";
 import UserForm from "./views/UserForm.jsx";
@@ -56,10 +55,6 @@ const router = createBrowserRouter([
                 element: <Clients />,
                 handle: { title: "Client" },
             },
-            // {
-            //     path: "/clients/project/:id",
-            //     element: <ClientsProject />,
-            // },
             {
                 path: "/clients/new",
                 element: <ClientForm key="clientCreate" />,

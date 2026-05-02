@@ -69,8 +69,8 @@ export default function DefaultLayout() {
         const current = matches[matches.length - 1];
         const title = current?.handle?.title;
         document.title = title
-            ? `${title} | Client Management System`
-            : "Client Management System";
+            ? `${title} | Invoicing System`
+            : "Invoicing System";
     }, [matches]);
 
     if (!token) return <Navigate to="/login" />;
