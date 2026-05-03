@@ -95,7 +95,7 @@ export default function Payments() {
                 const annualGross = parseFloat(company?.annual_gross) || 0;
 
                 const getWithholdingRate = () => {
-                    if (clientType === "Private Corp")
+                    if (clientType === "Private Corporation")
                         return annualGross >= 3_000_000 ? 0.02 : 0.01;
                     if (clientType === "Government") return 0.01;
                     return 0;
@@ -107,7 +107,7 @@ export default function Payments() {
                 const withholdingTax = withholdingBase * withholdingRate;
                 const netAmount = total - withholdingTax;
 
-                payload.amount_paid = netAmount;
+                payload.amount_paid = total;
                 payload.wh_tax = withholdingTax;
             }
 

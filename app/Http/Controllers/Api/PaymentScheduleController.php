@@ -68,19 +68,24 @@ class PaymentScheduleController extends Controller
         $request->validate([
             'status' => 'required|in:pending,paid,overdue,ended',
             'amount_paid'     => 'nullable|numeric',
-            'withholding_tax' => 'nullable|numeric',
+            'wh_tax'      => 'nullable|numeric',
         ]);
 
         $schedule->status = $request->status;
         $schedule->save();
 
         if ($request->status === 'paid' && !$schedule->transaction()->exists()) {
+            $grossAmount = $request->amount_paid ?? $schedule->total_amount;
+            $whTax       = $request->wh_tax ?? 0;
+            $netAmount   = $grossAmount - $whTax;
+
             $schedule->paymentTransactions()->create([
-                'company_id'  => $this->company()->id,
-                'amount_paid' => $request->amount_paid ?? $schedule->expected_amount,
-                'wh_tax'      => $request->wh_tax ?? 0,
-                'paid_at'     => now(),
-            ]);
+        'company_id'   => $this->company()->id,
+        'gross_amount' => $grossAmount,
+        'wh_tax'       => $whTax,
+        'net_amount'   => $netAmount,  // gross - wh_tax
+        'paid_at'      => now(),
+    ]);
         }
 
         return response()->json([
