@@ -16,7 +16,10 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
     if (!payment) return null;
 
     const client = payment.clientsProject?.client ?? {};
-    const project = payment.clientsProject?.project ?? {};
+    const project =
+        payment.clientsProject?.project ??
+        payment.clientsProject?.subscription ??
+        {};
     const paymentInfo = payment.clientsProject?.payment ?? {};
     const invoiceNumber = payment.invoice_number;
     const vatType = payment.clientsProject?.vat_type ?? "vat_exempt";
@@ -54,7 +57,7 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
 
     // Determines withholding tax rate based on client type and companies annual gross
     const getWithholdingRate = () => {
-        if (clientType === "Private Corp") {
+        if (clientType === "Private Corporation") {
             return annualGross >= 3_000_000 ? 0.02 : 0.01;
         }
         if (clientType === "Government") {
@@ -116,7 +119,14 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                 bill_name: billName,
                 bill_company: billCompany,
                 bill_address: billAddress,
-                line_items: lineItems.map(({ id, ...rest }) => rest),
+                line_items: lineItems.map(({ id, ...rest }) => ({
+                    ...rest,
+                    vat_amount: isVatExclusive
+                        ? (parseFloat(rest.qty) || 0) *
+                          (parseFloat(rest.unitPrice) || 0) *
+                          0.12
+                        : 0,
+                })),
             })
             .then(() => setSaveStatus("saved"))
             .catch(() => setSaveStatus("error"))
@@ -156,8 +166,19 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
         0,
     );
 
+    const firstItemSubtotal = (() => {
+        const first = lineItems[0];
+        return (
+            (parseFloat(first?.qty) || 0) * (parseFloat(first?.unitPrice) || 0)
+        );
+    })();
+
     // Calculates vat amount (12%)
-    const vatAmount = isVatExclusive || isVatInclusive ? subtotal * 0.12 : 0;
+    const vatAmount = isVatExclusive
+        ? subtotal * 0.12 // all items
+        : isVatInclusive
+          ? firstItemSubtotal * 0.12 // first item only
+          : 0;
     const total = subtotal + vatAmount;
 
     // Private Corp → based on subtotal (excluding VAT)
@@ -606,12 +627,6 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                                 {billAddress}
                                             </>
                                         )}
-                                        {billType && (
-                                            <>
-                                                <br />
-                                                {billType}
-                                            </>
-                                        )}
                                     </p>
                                 </div>
                                 <div>
@@ -878,8 +893,8 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                                         }}
                                                     >
                                                         {isVatInclusive
-                                                            ? "VAT Inclusive (12%)"
-                                                            : "VAT Exclusive (12%)"}
+                                                            ? "VAT Inclusive (12%) — first item"
+                                                            : "VAT Exclusive (12%) — all items"}
                                                     </td>
                                                     <td
                                                         style={{
