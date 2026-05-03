@@ -67,6 +67,10 @@ class ClientsProjectController extends Controller
             'recurring_rate'                       => 'nullable|numeric',
             'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive',
             'final_price'                          => 'required|numeric|min:0',
+            'adjusted_start_coverage'              => 'nullable|date',
+            'adjusted_end_coverage'                => 'nullable|date',
+            'cr_no'                                => 'nullable|string',
+            'is_renewal'                           => 'nullable|boolean',
         ]);
 
         // Ensure project belongs to this company
@@ -78,23 +82,25 @@ class ClientsProjectController extends Controller
                     403
                 );
 
-        $exists = ClientsProject::where('client_id', $clientId)
-                    ->when(
-                        isset($data['project_id']),
-                        fn($q) => $q->where('project_id', $data['project_id']),
-                        fn($q) => $q->whereNull('project_id')
-                    )
-                    ->when(
-                        isset($data['subscription_id']),
-                        fn($q) => $q->where('subscription_id', $data['subscription_id']),
-                        fn($q) => $q->whereNull('subscription_id')
-                    )
-                    ->exists();
+                if (empty($data['is_renewal'])) {
+                $exists = ClientsProject::where('client_id', $clientId)
+                            ->when(
+                                isset($data['project_id']),
+                                fn($q) => $q->where('project_id', $data['project_id']),
+                                fn($q) => $q->whereNull('project_id')
+                            )
+                            ->when(
+                                isset($data['subscription_id']),
+                                fn($q) => $q->where('subscription_id', $data['subscription_id']),
+                                fn($q) => $q->whereNull('subscription_id')
+                            )
+                            ->exists();
 
-        if ($exists) {
-            return response()->json([
-                'message' => 'This service is already assigned to this client.'
-            ], 422);
+                if ($exists) {
+                    return response()->json([
+                        'message' => 'This service is already assigned to this client.'
+                    ], 422);
+                }
         }
 
         $clientsProject = ClientsProject::create([
@@ -152,7 +158,12 @@ class ClientsProjectController extends Controller
         }
 
         if ($data['payment_type'] === 'recurring' && isset($data['subscription_id']) && $data['subscription_id']) {
-            $invoiceNumber = "C{$clientId}{$serviceSegment}-001";
+            $existingSchedulesCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientId, $data) {
+                $q->where('client_id', $clientId)
+                ->where('subscription_id', $data['subscription_id']);
+            })->count();
+            $formattedIndex = str_pad($existingSchedulesCount + 1, 3, '0', STR_PAD_LEFT);
+            $invoiceNumber = "C{$clientId}{$serviceSegment}-{$formattedIndex}";
             PaymentSchedule::create([
                 'payment_id'         => $payment->id,
                 'due_date'           => $startDate->format('Y-m-d'),
@@ -163,7 +174,65 @@ class ClientsProjectController extends Controller
                 'is_form2307_issued' => false,
                 'invoice_number'     => $invoiceNumber,
             ]);
+
+        // ── If renewing, update adjusted coverage dates on the subscription ──
+            if (!empty($data['is_renewal'])) {
+
+            // ── Capture old values BEFORE updating ──
+            $oldStart = $subscription->adjusted_start_coverage
+                ? Carbon::parse($subscription->adjusted_start_coverage)->toDateString()
+                : $subscription->start_coverage?->toDateString();
+
+            $oldEnd = $subscription->adjusted_end_coverage
+                ? Carbon::parse($subscription->adjusted_end_coverage)->toDateString()
+                : $subscription->end_coverage?->toDateString();
+
+            // Update adjusted coverage dates on the subscription
+            $subscription->update([
+                'adjusted_start_coverage' => !empty($data['adjusted_start_coverage'])
+                    ? Carbon::parse($data['adjusted_start_coverage'])->toDateString()
+                    : $subscription->adjusted_start_coverage,
+                'adjusted_end_coverage' => !empty($data['adjusted_end_coverage'])
+                    ? Carbon::parse($data['adjusted_end_coverage'])->toDateString()
+                    : $subscription->adjusted_end_coverage,
+            ]);
+
+            // Log the changes
+            $oldValues = [
+                'adjusted_start_coverage' => $oldStart,
+                'adjusted_end_coverage'   => $oldEnd,
+            ];
+
+            foreach (['adjusted_start_coverage', 'adjusted_end_coverage'] as $field) {
+                if (empty($data[$field])) continue;
+
+                $old = $oldValues[$field];
+                $new = Carbon::parse($data[$field])->toDateString();
+
+                if ($old !== $new) {
+                    \App\Models\SubscriptionLog::create([
+                        'subscription_id' => $subscription->id,
+                        'user_id'         => $request->user()->id,
+                        'field'           => $field,
+                        'old_value'       => $old,
+                        'new_value'       => $new,
+                        'cr_no'           => $data['cr_no'] ?? null,
+                    ]);
+                }
+            }
+
+            // Increment number_of_cycles on the previous payment
+            $previousClientProject = ClientsProject::where('client_id', $clientId)
+                ->where('subscription_id', $data['subscription_id'])
+                ->where('id', '!=', $clientsProject->id)
+                ->latest('id')
+                ->first();
+
+            if ($previousClientProject) {
+                $previousClientProject->payments()->latest('id')->first()?->increment('number_of_cycles');
+            }
         }
+}
 
         return response()->json([
             'message' => 'Project assigned with payment successfully'

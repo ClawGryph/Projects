@@ -10,7 +10,9 @@ class PaymentTransaction extends Model
     protected $fillable = [
         'company_id',
         'payment_schedule_id',
-        'amount_paid',
+        'net_amount',
+        'gross_amount',
+        'vat_amount',
         'wh_tax',
         'paid_at'
     ];

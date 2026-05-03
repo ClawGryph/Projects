@@ -41,6 +41,7 @@ export default function PaymentModal({
     onSuccess,
     mode,
     editData,
+    renewData,
 }) {
     const { setNotification } = useStateContext();
 
@@ -76,6 +77,10 @@ export default function PaymentModal({
 
     const isProject = mode === "project";
     const isEditing = !!editData;
+
+    const [adjustedStartCoverage, setAdjustedStartCoverage] = useState("");
+    const [adjustedEndCoverage, setAdjustedEndCoverage] = useState("");
+    const [crNo, setCrNo] = useState("");
 
     // ── Fetch on open ────────────────────────────────────────────────────
     useEffect(() => {
@@ -126,6 +131,16 @@ export default function PaymentModal({
                         );
                     }
                 }
+
+                if (renewData && !editData) {
+                    const service = renewData.subscription;
+                    setClientInput(renewData.client?.name ?? "");
+                    setSelectedClient(renewData.client ?? null);
+                    setSelectedService(String(service?.id ?? ""));
+                    setPaymentType("recurring");
+                    setVatType(renewData.vat_type ?? "vat_exempt");
+                    setRecurringType(service?.type ?? "");
+                }
             })
             .catch(() => {});
     }, [isOpen, mode]);
@@ -158,6 +173,33 @@ export default function PaymentModal({
         }
     }, [selectedService, paymentType]);
 
+    // ── Auto-fill adjusted coverage dates on renew ───────────────────
+    useEffect(() => {
+        if (!renewData || editData) return;
+        if (adjustedStartCoverage || adjustedEndCoverage) return; // don't overwrite if already set
+
+        const prevEndDate = renewData.subscription?.end_coverage;
+        if (!prevEndDate || !recurringType) return;
+
+        const start = new Date(prevEndDate);
+        start.setDate(start.getDate() + 1); // start the day after the last coverage ends
+
+        const end = new Date(start);
+        if (recurringType === "weekly") {
+            end.setDate(end.getDate() + 6);
+        } else if (recurringType === "monthly") {
+            end.setMonth(end.getMonth() + 1);
+            end.setDate(end.getDate() - 1);
+        } else if (recurringType === "yearly") {
+            end.setFullYear(end.getFullYear() + 1);
+            end.setDate(end.getDate() - 1);
+        }
+
+        const fmt = (d) => d.toLocaleDateString("en-CA"); // YYYY-MM-DD
+        setAdjustedStartCoverage(fmt(start));
+        setAdjustedEndCoverage(fmt(end));
+    }, [renewData, recurringType]);
+
     // ── Helpers ──────────────────────────────────────────────────────────
     const resetForm = () => {
         setClientInput("");
@@ -173,6 +215,9 @@ export default function PaymentModal({
         setRecurringCycles("");
         setRecurringRate("");
         setErrors(null);
+        setAdjustedStartCoverage("");
+        setAdjustedEndCoverage("");
+        setCrNo("");
     };
 
     const handleClose = () => {
@@ -346,6 +391,12 @@ export default function PaymentModal({
                     start_date: today,
                     final_price: displayPrice,
                     vat_type: vatType,
+                    ...(renewData && {
+                        is_renewal: true,
+                        adjusted_start_coverage: adjustedStartCoverage || null,
+                        adjusted_end_coverage: adjustedEndCoverage || null,
+                        cr_no: crNo || null,
+                    }),
                 };
 
         axiosClient[method](endpoint, payload)
@@ -386,13 +437,15 @@ export default function PaymentModal({
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <h2 className="text-lg font-bold text-gray-900">
-                        {isEditing
-                            ? isProject
-                                ? "Edit Project"
-                                : "Edit Subscription"
-                            : isProject
-                              ? "Assign Project"
-                              : "Assign Subscription"}
+                        {renewData && !editData
+                            ? "Renew Subscription"
+                            : isEditing
+                              ? isProject
+                                  ? "Edit Project"
+                                  : "Edit Subscription"
+                              : isProject
+                                ? "Assign Project"
+                                : "Assign Subscription"}
                     </h2>
                     <button
                         onClick={handleClose}
@@ -421,13 +474,14 @@ export default function PaymentModal({
                                 value={clientInput}
                                 onChange={(e) =>
                                     !isEditing &&
+                                    !renewData &&
                                     handleClientInput(e.target.value)
                                 }
-                                readOnly={isEditing}
+                                readOnly={isEditing || !!renewData}
                                 placeholder="Enter client..."
                                 className={
                                     inputCls +
-                                    (isEditing
+                                    (isEditing || renewData
                                         ? " bg-gray-50 cursor-not-allowed"
                                         : "")
                                 }
@@ -466,12 +520,14 @@ export default function PaymentModal({
                         <select
                             value={selectedService}
                             onChange={(e) =>
-                                !isEditing && setSelectedService(e.target.value)
+                                !isEditing &&
+                                !renewData &&
+                                setSelectedService(e.target.value)
                             }
-                            disabled={isEditing}
+                            disabled={isEditing || !!renewData}
                             className={
                                 selectCls +
-                                (isEditing
+                                (isEditing || renewData
                                     ? " bg-gray-50 cursor-not-allowed"
                                     : "")
                             }
@@ -494,16 +550,16 @@ export default function PaymentModal({
                         <select
                             value={paymentType}
                             onChange={(e) => {
-                                if (isEditing) return;
+                                if (isEditing || renewData) return;
                                 setPaymentType(e.target.value);
                                 if (isProject) setRecurringType("");
                                 setInstallmentMonths("");
                                 setInstallmentSchedule([]);
                             }}
-                            disabled={isEditing}
+                            disabled={isEditing || !!renewData}
                             className={
                                 selectCls +
-                                (isEditing
+                                (isEditing || renewData
                                     ? " bg-gray-50 cursor-not-allowed"
                                     : "")
                             }
@@ -601,6 +657,61 @@ export default function PaymentModal({
                                 </select>
                             </FloatField>
                         </>
+                    )}
+
+                    {/* ── ADJUSTED COVERAGE (renew only) ───────────────── */}
+                    {renewData && !editData && (
+                        <div className="border-t pt-4 mt-2">
+                            <h3 className="text-xs font-semibold text-cyan-800 uppercase tracking-wider mb-4">
+                                Adjustments & Reference
+                            </h3>
+                            <div className="space-y-4 rounded-xl p-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                        Adjusted Start Coverage
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={adjustedStartCoverage}
+                                        onChange={(e) =>
+                                            setAdjustedStartCoverage(
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                        Adjusted End Coverage
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={adjustedEndCoverage}
+                                        onChange={(e) =>
+                                            setAdjustedEndCoverage(
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                        CR No.
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={crNo}
+                                        onChange={(e) =>
+                                            setCrNo(e.target.value)
+                                        }
+                                        placeholder="Enter CR number..."
+                                        className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     {/* ── INSTALLMENT FIELDS (project only) ─────────── */}
@@ -886,11 +997,13 @@ export default function PaymentModal({
                         onClick={handleSubmit}
                         className="px-4 py-2 text-sm rounded-md bg-sky-500 hover:bg-sky-600 text-white font-medium transition-colors cursor-pointer"
                     >
-                        {isEditing
-                            ? "Save Changes"
-                            : isProject
-                              ? "Assign Project"
-                              : "Assign Subscription"}
+                        {renewData && !editData
+                            ? "Renew Subscription"
+                            : isEditing
+                              ? "Save Changes"
+                              : isProject
+                                ? "Assign Project"
+                                : "Assign Subscription"}
                     </button>
                 </div>
             </div>

@@ -72,7 +72,10 @@ function DrillDown({ quarter, rows, onClose }) {
                                     Client
                                 </th>
                                 <th className="text-left py-1 pr-3 font-medium">
-                                    Project
+                                    Type
+                                </th>
+                                <th className="text-left py-1 pr-3 font-medium">
+                                    Service
                                 </th>
                                 <th className="text-left py-1 pr-3 font-medium">
                                     Due Date
@@ -103,8 +106,21 @@ function DrillDown({ quarter, rows, onClose }) {
                                     <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300">
                                         {s.clientsProject?.client?.name ?? "—"}
                                     </td>
+                                    <td className="py-1.5 pr-3">
+                                        {s.clientsProject?.project ? (
+                                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                                Project
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                                                Subscription
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300 max-w-[160px] truncate">
                                         {s.clientsProject?.project?.title ??
+                                            s.clientsProject?.subscription
+                                                ?.title ??
                                             "—"}
                                     </td>
                                     <td className="py-1.5 pr-3 text-gray-500">
@@ -124,7 +140,7 @@ function DrillDown({ quarter, rows, onClose }) {
                                         {php(s.transaction?.amount_paid)}
                                     </td>
                                     <td className="py-1.5 pr-3 text-center">
-                                        {s.transaction?.officialReceipt ? (
+                                        {!!s.is_or_issued ? (
                                             <span className="text-emerald-600 dark:text-emerald-400">
                                                 ✓
                                             </span>
@@ -135,8 +151,7 @@ function DrillDown({ quarter, rows, onClose }) {
                                         )}
                                     </td>
                                     <td className="py-1.5 text-center">
-                                        {s.transaction?.officialReceipt
-                                            ?.form2307 ? (
+                                        {!!s.is_form2307_issued ? (
                                             <span className="text-emerald-600 dark:text-emerald-400">
                                                 ✓
                                             </span>
@@ -162,10 +177,11 @@ export default function ReportModule() {
     const [loading, setLoading] = useState(false);
     const [expandedQ, setExpandedQ] = useState(null);
     const [filters, setFilters] = useState({
-        year: String(new Date().getFullYear()), // default to current year
+        year: String(new Date().getFullYear()), //Default to current year
         quarter: "All",
         client: "All",
-        project: "All",
+        serviceType: "All",
+        service: "All",
     });
 
     useEffect(() => {
@@ -216,14 +232,25 @@ export default function ReportModule() {
             ),
         [paidSchedules],
     );
-    const allProjects = useMemo(
+    const allServices = useMemo(
         () =>
             unique(
                 paidSchedules
-                    .map((s) => s.clientsProject?.project?.title)
+                    .filter((s) => {
+                        if (filters.serviceType === "project")
+                            return !!s.clientsProject?.project;
+                        if (filters.serviceType === "subscription")
+                            return !!s.clientsProject?.subscription;
+                        return true;
+                    })
+                    .map(
+                        (s) =>
+                            s.clientsProject?.project?.title ??
+                            s.clientsProject?.subscription?.title,
+                    )
                     .filter(Boolean),
             ),
-        [paidSchedules],
+        [paidSchedules, filters.serviceType],
     );
 
     // Filtered paid schedules
@@ -246,9 +273,17 @@ export default function ReportModule() {
                     s.clientsProject?.client?.name !== filters.client
                 )
                     return false;
+                const isProject = !!s.clientsProject?.project;
+                if (filters.serviceType === "project" && !isProject)
+                    return false;
+                if (filters.serviceType === "subscription" && isProject)
+                    return false;
+                const serviceName =
+                    s.clientsProject?.project?.title ??
+                    s.clientsProject?.subscription?.title;
                 if (
-                    filters.project !== "All" &&
-                    s.clientsProject?.project?.title !== filters.project
+                    filters.service !== "All" &&
+                    serviceName !== filters.service
                 )
                     return false;
                 return true;
@@ -280,12 +315,15 @@ export default function ReportModule() {
             year: String(new Date().getFullYear()),
             quarter: "All",
             client: "All",
-            project: "All",
+            serviceType: "All",
+            service: "All",
         });
 
     const hasActiveFilter =
         filters.year !== String(new Date().getFullYear()) ||
-        ["quarter", "client", "project"].some((k) => filters[k] !== "All");
+        ["quarter", "client", "serviceType", "service"].some(
+            (k) => filters[k] !== "All",
+        );
 
     const toggleQ = (q) => setExpandedQ((prev) => (prev === q ? null : q));
 
@@ -328,9 +366,14 @@ export default function ReportModule() {
                                 opts: ["All", ...allClients],
                             },
                             {
-                                key: "project",
-                                label: "Project",
-                                opts: ["All", ...allProjects],
+                                key: "serviceType",
+                                label: "Type",
+                                opts: ["All", "project", "subscription"],
+                            },
+                            {
+                                key: "service",
+                                label: "Service",
+                                opts: ["All", ...allServices],
                             },
                         ].map(({ key, label, opts }) => (
                             <label
@@ -342,7 +385,11 @@ export default function ReportModule() {
                                 </span>
                                 <select
                                     value={filters[key]}
-                                    onChange={(e) => set(key, e.target.value)}
+                                    onChange={(e) => {
+                                        set(key, e.target.value);
+                                        if (key === "serviceType")
+                                            set("service", "All");
+                                    }}
                                     className="border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                                 >
                                     {opts.map((o) => (
@@ -429,15 +476,10 @@ export default function ReportModule() {
                                                 0,
                                             );
                                             const withOR = rows.filter(
-                                                (r) =>
-                                                    r.transaction
-                                                        ?.officialReceipt,
+                                                (r) => !!r.is_or_issued,
                                             ).length;
                                             const with2307 = rows.filter(
-                                                (r) =>
-                                                    r.transaction
-                                                        ?.officialReceipt
-                                                        ?.form2307,
+                                                (r) => !!r.is_form2307_issued,
                                             ).length;
                                             const isExpanded = expandedQ === q;
 
@@ -531,9 +573,7 @@ export default function ReportModule() {
                                             <td className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
                                                 {
                                                     filtered.filter(
-                                                        (s) =>
-                                                            s.transaction
-                                                                ?.officialReceipt,
+                                                        (s) => !!s.is_or_issued,
                                                     ).length
                                                 }
                                                 /{filtered.length}
@@ -542,9 +582,7 @@ export default function ReportModule() {
                                                 {
                                                     filtered.filter(
                                                         (s) =>
-                                                            s.transaction
-                                                                ?.officialReceipt
-                                                                ?.form2307,
+                                                            !!s.is_form2307_issued,
                                                     ).length
                                                 }
                                                 /{filtered.length}

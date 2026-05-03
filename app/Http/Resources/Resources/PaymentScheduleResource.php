@@ -18,7 +18,9 @@ class PaymentScheduleResource extends JsonResource
             'total_schedules'  => $this->total_schedules,
             'due_date' => $this->due_date ? $this->due_date->format('Y-m-d') : null,
             'payment_rate' => $this->payment_rate,
-            'expected_amount' => $this->expected_amount,
+            'base_amount' => $this->base_amount,
+            'total_amount' => $this->total_amount,
+            'vat_amount' => $this->vat_amount,
             'status' => $this->status,
             'invoice_number' => $this->invoice_number,
             'is_or_issued' => $this->is_or_issued,
@@ -64,7 +66,9 @@ class PaymentScheduleResource extends JsonResource
 
             'transaction' => $this->transaction ? [
                 'id'          => $this->transaction->id,
-                'amount_paid' => $this->transaction->amount_paid,
+                'net_amount' => $this->transaction->net_amount,
+                'gross_amount' => $this->gross_amount,
+                'vat_amount' => $this->vat_amount,
                 'wh_tax'      => $this->transaction->wh_tax,
                 'paid_at'     => $this->transaction->paid_at,
                 'officialReceipt' => $this->transaction->officialReceipt ? [
@@ -73,8 +77,9 @@ class PaymentScheduleResource extends JsonResource
                     'service_invoice_number' => $this->transaction->officialReceipt->service_invoice_number,
                     'payment_acknowledgement_number' => $this->transaction->officialReceipt->payment_acknowledgement_number,
                     'billing_statement_number' => $this->transaction->officialReceipt->billing_statement_number,
-                    'amount'                 => $this->transaction->officialReceipt->amount,
+                    'base_amount'                 => $this->transaction->officialReceipt->base_amount,
                     'vat_amount'             => $this->transaction->officialReceipt->vat_amount,
+                    'wh_tax'                 => $this->transaction->officialReceipt->wh_tax,
                     'other'                  => $this->transaction->officialReceipt->other,
                     'other_label'            => $this->transaction->officialReceipt->other_label,
                     'total_amount'           => $this->transaction->officialReceipt->total_amount,

@@ -6,6 +6,7 @@ import {
     faPen,
     faDiagramProject,
     faTimes,
+    faRotateRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
@@ -23,6 +24,7 @@ export default function Assign() {
     const [serviceModalOpen, setServiceModalOpen] = useState(false);
     const [selectedService, setSelectedService] = useState(null);
     const [editData, setEditData] = useState(null);
+    const [renewData, setRenewData] = useState(null);
 
     useEffect(() => {
         getAssigns();
@@ -69,6 +71,12 @@ export default function Assign() {
         const isProject = a.project !== null;
         setEditData(a);
         setModalMode(isProject ? "project" : "subscription");
+        setModalOpen(true);
+    };
+
+    const openRenewModal = (a) => {
+        setRenewData(a);
+        setModalMode("subscription");
         setModalOpen(true);
     };
 
@@ -280,6 +288,28 @@ export default function Assign() {
                                                             />{" "}
                                                             Edit
                                                         </button>
+
+                                                        {!isProject &&
+                                                            a.payment_schedules?.at(
+                                                                -1,
+                                                            )?.status ===
+                                                                "paid" && (
+                                                                <button
+                                                                    onClick={() =>
+                                                                        openRenewModal(
+                                                                            a,
+                                                                        )
+                                                                    }
+                                                                    className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faRotateRight
+                                                                        }
+                                                                    />{" "}
+                                                                    Renew
+                                                                </button>
+                                                            )}
                                                     </td>
                                                 )}
                                             </tr>
@@ -306,10 +336,12 @@ export default function Assign() {
                 onClose={() => {
                     setModalOpen(false);
                     setEditData(null);
+                    setRenewData(null);
                 }}
                 onSuccess={() => getAssigns()}
                 mode={modalMode}
                 editData={editData}
+                renewData={renewData}
             />
 
             {serviceModalOpen &&

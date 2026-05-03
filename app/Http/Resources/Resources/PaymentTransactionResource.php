@@ -14,7 +14,9 @@ class PaymentTransactionResource extends JsonResource
         return [
             'company_id' => $this->company_id,
             'id'          => $this->id,
-            'amount_paid' => $this->amount_paid,
+            'net_amount' => $this->net_amount,
+            'gross_amount' => $this->gross_amount,
+            'vat_amount' => $this->vat_amount,
             'wh_tax'      => $this->wh_tax,
             'paid_at'     => $this->paid_at->format('Y-m-d'),
             'client' => [
@@ -36,7 +38,7 @@ class PaymentTransactionResource extends JsonResource
             'payment' => [
                 'payment_type'   => $this->paymentSchedule?->payment?->payment_type,
                 'recurring_type' => $this->paymentSchedule?->payment?->recurring_type,
-                'expected_amount'=> $this->paymentSchedule?->expected_amount,
+                'total_amount'=> $this->paymentSchedule?->total_amount,
             ],
             'official_receipt' => $this->officialReceipt ? [
                 'id'                             => $this->officialReceipt->id,
