@@ -65,12 +65,8 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
 
     const withholdingRate = getWithholdingRate();
 
-    // Calculates subtotal base on payment amount and vat type
-    const getDefaultSubtotal = () => {
-        const amount = parseFloat(payment.expected_amount) || 0;
-        if (isVatInclusive || isVatExclusive) return amount / 1.12;
-        return amount; // vat_exempt
-    };
+    // subtotal base on payment amount and vat type
+    const getDefaultSubtotal = () => parseFloat(payment.base_amount) || 0;
 
     // Only line items are editable
     const [lineItems, setLineItems] = useState([
@@ -773,11 +769,7 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                                         textAlign: "right",
                                                     }}
                                                 >
-                                                    {formatPHP(
-                                                        isVatInclusive
-                                                            ? up * 1.12
-                                                            : up,
-                                                    )}
+                                                    {formatPHP(up)}
                                                 </td>
                                                 <td
                                                     style={{
@@ -787,11 +779,7 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                                         textAlign: "right",
                                                     }}
                                                 >
-                                                    {formatPHP(
-                                                        isVatInclusive
-                                                            ? up * 1.12
-                                                            : up,
-                                                    )}
+                                                    {formatPHP(up * qty)}
                                                 </td>
                                             </tr>
                                         );
