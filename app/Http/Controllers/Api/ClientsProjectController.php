@@ -21,9 +21,51 @@ class ClientsProjectController extends Controller
         return app('company');
     }
 
+    /**
+     * Calculate base_amount, vat_amount, and total_amount for a single schedule row.
+     *
+     * vat_exclusive — price does NOT yet include VAT, add 12% on top:
+     *   base   = price
+     *   vat    = price × 0.12
+     *   total  = price × 1.12
+     *
+     * vat_inclusive — price ALREADY contains 12% VAT, back-calculate:
+     *   base   = price ÷ 1.12
+     *   vat    = price − (price ÷ 1.12)
+     *   total  = price          (unchanged)
+     *
+     * vat_exempt — no VAT at all:
+     *   base   = price
+     *   vat    = 0
+     *   total  = price
+     *
+     * @return array{base_amount: float, vat_amount: float, total_amount: float}
+     */
+    private function calcVat(float $price, string $vatType): array
+    {
+        return match ($vatType) {
+            'vat_exclusive' => [
+                'base_amount'  => $price,
+                'vat_amount'   => round($price * 0.12, 2),
+                'total_amount' => round($price * 1.12, 2),
+            ],
+            'vat_inclusive' => [
+                'base_amount'  => round($price / 1.12, 2),
+                'vat_amount'   => round($price - ($price / 1.12), 2),
+                'total_amount' => $price,
+            ],
+            default => [          // vat_exempt
+                'base_amount'  => $price,
+                'vat_amount'   => 0,
+                'total_amount' => $price,
+            ],
+        };
+    }
+
+    // -------------------------------------------------------------------------
+
     public function index(Client $client)
     {
-        // Ensure client belongs to this company
         abort_if($client->company_id !== $this->company()->id, 403);
 
         $clientProjects = ClientsProject::with([
@@ -50,7 +92,6 @@ class ClientsProjectController extends Controller
 
     public function assignProject(Request $request, $clientId)
     {
-        // Ensure client belongs to this company
         $client = Client::findOrFail($clientId);
         abort_if($client->company_id !== $this->company()->id, 403);
 
@@ -73,48 +114,48 @@ class ClientsProjectController extends Controller
             'is_renewal'                           => 'nullable|boolean',
         ]);
 
-        // Ensure project belongs to this company
-        $project = isset($data['project_id']) ? Project::findOrFail($data['project_id']) : null;
+        $project      = isset($data['project_id'])      ? Project::findOrFail($data['project_id'])           : null;
         $subscription = isset($data['subscription_id']) ? Subscription::findOrFail($data['subscription_id']) : null;
+
         abort_if(
-                    ($project && $project->company_id !== $this->company()->id) ||
-                    ($subscription && $subscription->company_id !== $this->company()->id),
-                    403
-                );
+            ($project      && $project->company_id      !== $this->company()->id) ||
+            ($subscription && $subscription->company_id !== $this->company()->id),
+            403
+        );
 
-                if (empty($data['is_renewal'])) {
-                $exists = ClientsProject::where('client_id', $clientId)
-                            ->when(
-                                isset($data['project_id']),
-                                fn($q) => $q->where('project_id', $data['project_id']),
-                                fn($q) => $q->whereNull('project_id')
-                            )
-                            ->when(
-                                isset($data['subscription_id']),
-                                fn($q) => $q->where('subscription_id', $data['subscription_id']),
-                                fn($q) => $q->whereNull('subscription_id')
-                            )
-                            ->exists();
+        if (empty($data['is_renewal'])) {
+            $exists = ClientsProject::where('client_id', $clientId)
+                ->when(isset($data['project_id']),
+                    fn($q) => $q->where('project_id', $data['project_id']),
+                    fn($q) => $q->whereNull('project_id')
+                )
+                ->when(isset($data['subscription_id']),
+                    fn($q) => $q->where('subscription_id', $data['subscription_id']),
+                    fn($q) => $q->whereNull('subscription_id')
+                )
+                ->exists();
 
-                if ($exists) {
-                    return response()->json([
-                        'message' => 'This service is already assigned to this client.'
-                    ], 422);
-                }
+            if ($exists) {
+                return response()->json([
+                    'message' => 'This service is already assigned to this client.'
+                ], 422);
+            }
         }
 
         $clientsProject = ClientsProject::create([
-            'client_id'   => $clientId,
-            'project_id'      => $data['project_id'] ?? null,
+            'client_id'       => $clientId,
+            'project_id'      => $data['project_id']      ?? null,
             'subscription_id' => $data['subscription_id'] ?? null,
-            'final_price' => $data['final_price'],
-            'vat_type'    => $data['vat_type'],
+            'final_price'     => $data['final_price'],
+            'vat_type'        => $data['vat_type'],
         ]);
 
-        $startDate = Carbon::parse($data['start_date']);
+        $startDate      = Carbon::parse($data['start_date']);
+        $vatType        = $data['vat_type'];
+        $finalPrice     = (float) $data['final_price'];
         $serviceSegment = isset($data['project_id']) && $data['project_id']
-                            ? "P{$data['project_id']}"
-                            : "S{$data['subscription_id']}";
+            ? "P{$data['project_id']}"
+            : "S{$data['subscription_id']}";
 
         $payment = Payment::create([
             'clients_project_id' => $clientsProject->id,
@@ -126,113 +167,171 @@ class ClientsProjectController extends Controller
             'fixed_rate'         => null,
         ]);
 
+        // ── ONE-TIME ─────────────────────────────────────────────────────────
         if ($data['payment_type'] === 'one_time') {
-            $invoiceNumber = "C{$clientId}{$serviceSegment}-001";
-            PaymentSchedule::create([
-                'payment_id'      => $payment->id,
-                'due_date'        => $startDate->format('Y-m-d'),
-                'payment_rate'    => 0,
-                'expected_amount' => $data['final_price'],
-                'status'          => 'pending',
-                'is_or_issued'    => false,
-                'is_form2307_issued'    => false,
-                'invoice_number'  => $invoiceNumber
-            ]);
-        }
+            $vat = $this->calcVat($finalPrice, $vatType);
 
-        if ($data['payment_type'] === 'installment' && !empty($data['installment_schedule'])) {
-            foreach ($data['installment_schedule'] as $index => $schedule) {
-                $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-                $invoiceNumber = "C{$clientId}{$serviceSegment}-{$formattedIndex}";
-                PaymentSchedule::create([
-                    'payment_id'      => $payment->id,
-                    'due_date'        => $schedule['due_date'],
-                    'payment_rate'    => $schedule['payment_rate'],
-                    'expected_amount' => ($schedule['payment_rate'] / 100) * $data['final_price'],
-                    'status'          => 'pending',
-                    'is_or_issued'    => false,
-                    'is_form2307_issued'    => false,
-                    'invoice_number'  => $invoiceNumber,
-                ]);
-            }
-        }
-
-        if ($data['payment_type'] === 'recurring' && isset($data['subscription_id']) && $data['subscription_id']) {
-            $existingSchedulesCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientId, $data) {
-                $q->where('client_id', $clientId)
-                ->where('subscription_id', $data['subscription_id']);
-            })->count();
-            $formattedIndex = str_pad($existingSchedulesCount + 1, 3, '0', STR_PAD_LEFT);
-            $invoiceNumber = "C{$clientId}{$serviceSegment}-{$formattedIndex}";
             PaymentSchedule::create([
                 'payment_id'         => $payment->id,
                 'due_date'           => $startDate->format('Y-m-d'),
                 'payment_rate'       => 0,
-                'expected_amount'    => $data['final_price'],
+                'base_amount'        => $vat['base_amount'],
+                'vat_amount'         => $vat['vat_amount'],
+                'total_amount'       => $vat['total_amount'],
                 'status'             => 'pending',
                 'is_or_issued'       => false,
                 'is_form2307_issued' => false,
-                'invoice_number'     => $invoiceNumber,
+                'invoice_number'     => "C{$clientId}{$serviceSegment}-001",
             ]);
+        }
 
-        // ── If renewing, update adjusted coverage dates on the subscription ──
-            if (!empty($data['is_renewal'])) {
+        // ── INSTALLMENT ───────────────────────────────────────────────────────
+        // Each installment slice gets its own VAT breakdown proportional to its payment_rate.
+        if ($data['payment_type'] === 'installment' && !empty($data['installment_schedule'])) {
+            foreach ($data['installment_schedule'] as $index => $schedule) {
+                $slicePrice     = ($schedule['payment_rate'] / 100) * $finalPrice;
+                $vat            = $this->calcVat($slicePrice, $vatType);
+                $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
 
-            // ── Capture old values BEFORE updating ──
-            $oldStart = $subscription->adjusted_start_coverage
-                ? Carbon::parse($subscription->adjusted_start_coverage)->toDateString()
-                : $subscription->start_coverage?->toDateString();
-
-            $oldEnd = $subscription->adjusted_end_coverage
-                ? Carbon::parse($subscription->adjusted_end_coverage)->toDateString()
-                : $subscription->end_coverage?->toDateString();
-
-            // Update adjusted coverage dates on the subscription
-            $subscription->update([
-                'adjusted_start_coverage' => !empty($data['adjusted_start_coverage'])
-                    ? Carbon::parse($data['adjusted_start_coverage'])->toDateString()
-                    : $subscription->adjusted_start_coverage,
-                'adjusted_end_coverage' => !empty($data['adjusted_end_coverage'])
-                    ? Carbon::parse($data['adjusted_end_coverage'])->toDateString()
-                    : $subscription->adjusted_end_coverage,
-            ]);
-
-            // Log the changes
-            $oldValues = [
-                'adjusted_start_coverage' => $oldStart,
-                'adjusted_end_coverage'   => $oldEnd,
-            ];
-
-            foreach (['adjusted_start_coverage', 'adjusted_end_coverage'] as $field) {
-                if (empty($data[$field])) continue;
-
-                $old = $oldValues[$field];
-                $new = Carbon::parse($data[$field])->toDateString();
-
-                if ($old !== $new) {
-                    \App\Models\SubscriptionLog::create([
-                        'subscription_id' => $subscription->id,
-                        'user_id'         => $request->user()->id,
-                        'field'           => $field,
-                        'old_value'       => $old,
-                        'new_value'       => $new,
-                        'cr_no'           => $data['cr_no'] ?? null,
-                    ]);
-                }
-            }
-
-            // Increment number_of_cycles on the previous payment
-            $previousClientProject = ClientsProject::where('client_id', $clientId)
-                ->where('subscription_id', $data['subscription_id'])
-                ->where('id', '!=', $clientsProject->id)
-                ->latest('id')
-                ->first();
-
-            if ($previousClientProject) {
-                $previousClientProject->payments()->latest('id')->first()?->increment('number_of_cycles');
+                PaymentSchedule::create([
+                    'payment_id'         => $payment->id,
+                    'due_date'           => $schedule['due_date'],
+                    'payment_rate'       => $schedule['payment_rate'],
+                    'base_amount'        => $vat['base_amount'],
+                    'vat_amount'         => $vat['vat_amount'],
+                    'total_amount'       => $vat['total_amount'],
+                    'status'             => 'pending',
+                    'is_or_issued'       => false,
+                    'is_form2307_issued' => false,
+                    'invoice_number'     => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
+                ]);
             }
         }
-}
+
+        // ── RECURRING ─────────────────────────────────────────────────────────
+        if ($data['payment_type'] === 'recurring' && isset($data['subscription_id']) && $data['subscription_id']) {
+
+            $existingSchedulesCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientId, $data) {
+                $q->where('client_id', $clientId)
+                  ->where('subscription_id', $data['subscription_id']);
+            })->count();
+
+            // Closure to keep schedule creation DRY
+            $makeSchedule = function (string $dueDate, string $invoiceNumber) use ($payment, $finalPrice, $vatType): void {
+                $vat = $this->calcVat($finalPrice, $vatType);
+                PaymentSchedule::create([
+                    'payment_id'         => $payment->id,
+                    'due_date'           => $dueDate,
+                    'payment_rate'       => 0,
+                    'base_amount'        => $vat['base_amount'],
+                    'vat_amount'         => $vat['vat_amount'],
+                    'total_amount'       => $vat['total_amount'],
+                    'status'             => 'pending',
+                    'is_or_issued'       => false,
+                    'is_form2307_issued' => false,
+                    'invoice_number'     => $invoiceNumber,
+                ]);
+            };
+
+            if (empty($data['is_renewal'])) {
+                // ── FIRST-TIME: create 2 schedules ────────────────────────────
+
+                $subStartCoverage = $subscription->start_coverage
+                    ? Carbon::parse($subscription->start_coverage)
+                    : $startDate;
+
+                $subEndCoverage = $subscription->end_coverage
+                    ? Carbon::parse($subscription->end_coverage)
+                    : null;
+
+                // 1st schedule — due on start_coverage
+                $makeSchedule(
+                    $subStartCoverage->format('Y-m-d'),
+                    "C{$clientId}{$serviceSegment}-" . str_pad($existingSchedulesCount + 1, 3, '0', STR_PAD_LEFT)
+                );
+
+                // 2nd schedule — due the day after end_coverage
+                if ($subEndCoverage) {
+                    $makeSchedule(
+                        $subEndCoverage->copy()->addDay()->format('Y-m-d'),
+                        "C{$clientId}{$serviceSegment}-" . str_pad($existingSchedulesCount + 2, 3, '0', STR_PAD_LEFT)
+                    );
+                }
+
+            } else {
+                // ── RENEWAL: advance coverage window, create next schedule ─────
+
+                $prevAdjustedEnd = $subscription->adjusted_end_coverage
+                    ? Carbon::parse($subscription->adjusted_end_coverage)
+                    : ($subscription->end_coverage ? Carbon::parse($subscription->end_coverage) : null);
+
+                $newAdjustedStart = $prevAdjustedEnd
+                    ? $prevAdjustedEnd->copy()->addDay()
+                    : $startDate;
+
+                $recurringType  = $data['recurring_type'] ?? $subscription->recurring_type ?? null;
+                $newAdjustedEnd = match ($recurringType) {
+                    'weekly'  => $newAdjustedStart->copy()->addWeek()->subDay(),
+                    'monthly' => $newAdjustedStart->copy()->addMonth()->subDay(),
+                    'yearly'  => $newAdjustedStart->copy()->addYear()->subDay(),
+                    default   => $newAdjustedStart->copy()->addMonth()->subDay(),
+                };
+
+                // Capture old values before updating
+                $oldStart = $subscription->adjusted_start_coverage
+                    ? Carbon::parse($subscription->adjusted_start_coverage)->toDateString()
+                    : $subscription->start_coverage?->toDateString();
+
+                $oldEnd = $subscription->adjusted_end_coverage
+                    ? Carbon::parse($subscription->adjusted_end_coverage)->toDateString()
+                    : $subscription->end_coverage?->toDateString();
+
+                $subscription->update([
+                    'adjusted_start_coverage' => $newAdjustedStart->toDateString(),
+                    'adjusted_end_coverage'   => $newAdjustedEnd->toDateString(),
+                ]);
+
+                // Log changes
+                $newValues = [
+                    'adjusted_start_coverage' => $newAdjustedStart->toDateString(),
+                    'adjusted_end_coverage'   => $newAdjustedEnd->toDateString(),
+                ];
+                $oldValues = [
+                    'adjusted_start_coverage' => $oldStart,
+                    'adjusted_end_coverage'   => $oldEnd,
+                ];
+
+                foreach (['adjusted_start_coverage', 'adjusted_end_coverage'] as $field) {
+                    if ($oldValues[$field] !== $newValues[$field]) {
+                        \App\Models\SubscriptionLog::create([
+                            'subscription_id' => $subscription->id,
+                            'user_id'         => $request->user()->id,
+                            'field'           => $field,
+                            'old_value'       => $oldValues[$field],
+                            'new_value'       => $newValues[$field],
+                            'cr_no'           => $data['cr_no'] ?? null,
+                        ]);
+                    }
+                }
+
+                // Next schedule — due on new adjusted_start_coverage
+                $makeSchedule(
+                    $newAdjustedStart->format('Y-m-d'),
+                    "C{$clientId}{$serviceSegment}-" . str_pad($existingSchedulesCount + 1, 3, '0', STR_PAD_LEFT)
+                );
+
+                // Increment number_of_cycles on the previous payment
+                $previousClientProject = ClientsProject::where('client_id', $clientId)
+                    ->where('subscription_id', $data['subscription_id'])
+                    ->where('id', '!=', $clientsProject->id)
+                    ->latest('id')
+                    ->first();
+
+                if ($previousClientProject) {
+                    $previousClientProject->payments()->latest('id')->first()?->increment('number_of_cycles');
+                }
+            }
+        }
 
         return response()->json([
             'message' => 'Project assigned with payment successfully'
@@ -240,92 +339,101 @@ class ClientsProjectController extends Controller
     }
 
     public function updateAssignment(Request $request, $clientId, $clientsProjectId)
-{
-    $client = Client::findOrFail($clientId);
-    abort_if($client->company_id !== $this->company()->id, 403);
+    {
+        $client = Client::findOrFail($clientId);
+        abort_if($client->company_id !== $this->company()->id, 403);
 
-    $clientsProject = ClientsProject::findOrFail($clientsProjectId);
-    abort_if($clientsProject->client_id != $clientId, 403);
+        $clientsProject = ClientsProject::findOrFail($clientsProjectId);
+        abort_if($clientsProject->client_id != $clientId, 403);
 
-    $data = $request->validate([
-        'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive',
-        'final_price'                          => 'required|numeric|min:0',
-        'installment_schedule'                 => 'nullable|array',
-        'installment_schedule.*.id'            => 'nullable|exists:payment_schedules,id',
-        'installment_schedule.*.due_date'      => 'required_with:installment_schedule|date',
-        'installment_schedule.*.payment_rate'  => 'required_with:installment_schedule|numeric',
-        'number_of_cycles'                     => 'nullable|integer|min:1',
-    ]);
+        $data = $request->validate([
+            'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive',
+            'final_price'                          => 'required|numeric|min:0',
+            'installment_schedule'                 => 'nullable|array',
+            'installment_schedule.*.id'            => 'nullable|exists:payment_schedules,id',
+            'installment_schedule.*.due_date'      => 'required_with:installment_schedule|date',
+            'installment_schedule.*.payment_rate'  => 'required_with:installment_schedule|numeric',
+            'number_of_cycles'                     => 'nullable|integer|min:1',
+        ]);
 
-    $payment = $clientsProject->payments()->first();
-    abort_if(!$payment, 404);
+        $payment = $clientsProject->payments()->first();
+        abort_if(!$payment, 404);
 
-    // Update vat_type and final_price on clients_project
-    $clientsProject->update([
-        'vat_type'    => $data['vat_type'],
-        'final_price' => $data['final_price'],
-    ]);
+        $vatType    = $data['vat_type'];
+        $finalPrice = (float) $data['final_price'];
 
-    if ($payment->payment_type === 'installment' && !empty($data['installment_schedule'])) {
-        $existingSchedules = $payment->paymentSchedules()->orderBy('due_date', 'asc')->get();
-        $paidCount = $existingSchedules->where('status', 'paid')->count();
-        $newCount = count($data['installment_schedule']);
+        $clientsProject->update([
+            'vat_type'    => $vatType,
+            'final_price' => $finalPrice,
+        ]);
 
-        // Block if trying to decrease below existing count
-        if ($newCount < $existingSchedules->count()) {
-            return response()->json([
-                'message' => 'Cannot decrease the number of installment months.'
-            ], 422);
-        }
+        // ── INSTALLMENT ───────────────────────────────────────────────────────
+        if ($payment->payment_type === 'installment' && !empty($data['installment_schedule'])) {
+            $existingSchedules = $payment->paymentSchedules()->orderBy('due_date', 'asc')->get();
+            $newCount          = count($data['installment_schedule']);
 
-        $serviceSegment = $clientsProject->project_id
-            ? "P{$clientsProject->project_id}"
-            : "S{$clientsProject->subscription_id}";
+            if ($newCount < $existingSchedules->count()) {
+                return response()->json([
+                    'message' => 'Cannot decrease the number of installment months.'
+                ], 422);
+            }
 
-        foreach ($data['installment_schedule'] as $index => $scheduleData) {
-            $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+            $serviceSegment = $clientsProject->project_id
+                ? "P{$clientsProject->project_id}"
+                : "S{$clientsProject->subscription_id}";
 
-            if (isset($scheduleData['id'])) {
-                // Existing schedule — only update if pending
-                $schedule = PaymentSchedule::find($scheduleData['id']);
-                if ($schedule && $schedule->status === 'pending') {
-                    $schedule->update([
-                        'due_date'        => $scheduleData['due_date'],
-                        'payment_rate'    => $scheduleData['payment_rate'],
-                        'expected_amount' => ($scheduleData['payment_rate'] / 100) * $data['final_price'],
+            foreach ($data['installment_schedule'] as $index => $scheduleData) {
+                $slicePrice     = ($scheduleData['payment_rate'] / 100) * $finalPrice;
+                $vat            = $this->calcVat($slicePrice, $vatType);
+                $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+
+                if (isset($scheduleData['id'])) {
+                    $schedule = PaymentSchedule::find($scheduleData['id']);
+                    if ($schedule && $schedule->status === 'pending') {
+                        $schedule->update([
+                            'due_date'     => $scheduleData['due_date'],
+                            'payment_rate' => $scheduleData['payment_rate'],
+                            'base_amount'  => $vat['base_amount'],
+                            'vat_amount'   => $vat['vat_amount'],
+                            'total_amount' => $vat['total_amount'],
+                        ]);
+                    }
+                } else {
+                    PaymentSchedule::create([
+                        'payment_id'         => $payment->id,
+                        'due_date'           => $scheduleData['due_date'],
+                        'payment_rate'       => $scheduleData['payment_rate'],
+                        'base_amount'        => $vat['base_amount'],
+                        'vat_amount'         => $vat['vat_amount'],
+                        'total_amount'       => $vat['total_amount'],
+                        'status'             => 'pending',
+                        'is_or_issued'       => false,
+                        'is_form2307_issued' => false,
+                        'invoice_number'     => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
                     ]);
                 }
-            } else {
-                // New schedule row — create it
-                $invoiceNumber = "C{$clientId}{$serviceSegment}-{$formattedIndex}";
-                PaymentSchedule::create([
-                    'payment_id'         => $payment->id,
-                    'due_date'           => $scheduleData['due_date'],
-                    'payment_rate'       => $scheduleData['payment_rate'],
-                    'expected_amount'    => ($scheduleData['payment_rate'] / 100) * $data['final_price'],
-                    'status'             => 'pending',
-                    'is_or_issued'       => false,
-                    'is_form2307_issued' => false,
-                    'invoice_number'     => $invoiceNumber,
-                ]);
             }
+
+            $payment->update(['number_of_cycles' => $newCount]);
         }
 
-        // Update number_of_cycles on payment
-        $payment->update(['number_of_cycles' => $newCount]);
-    }
+        // ── ONE-TIME & RECURRING — recalculate all pending schedules ──────────
+        if (in_array($payment->payment_type, ['one_time', 'recurring'])) {
+            $vat = $this->calcVat($finalPrice, $vatType);
 
-    // For one_time — just recalculate pending schedule expected_amount
-    if ($payment->payment_type === 'one_time') {
-        $payment->paymentSchedules()
-            ->where('status', 'pending')
-            ->update(['expected_amount' => $data['final_price']]);
-    }
+            $payment->paymentSchedules()
+                ->where('status', 'pending')
+                ->update([
+                    'base_amount'  => $vat['base_amount'],
+                    'vat_amount'   => $vat['vat_amount'],
+                    'total_amount' => $vat['total_amount'],
+                ]);
+        }
 
-    return response()->json([
-        'message' => 'Assignment updated successfully.'
-    ]);
-}
+        return response()->json([
+            'message' => 'Assignment updated successfully.'
+        ]);
+    }
 
     public function projectsWithClients()
     {
@@ -338,7 +446,6 @@ class ClientsProjectController extends Controller
             },
             'payments.paymentTransactions',
         ])
-            // Scope through project → company_id
             ->where(function ($q) {
                 $q->whereHas('project', function ($q) {
                     $q->where('company_id', $this->company()->id);

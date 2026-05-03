@@ -61,18 +61,9 @@ export default function InvoiceModal({
         return "-";
     };
 
-    const expectedAmount = parseFloat(payment.expected_amount) || 0;
-    // Calculates amount before VAT
-    const subtotal =
-        isVatInclusive || isVatExclusive
-            ? expectedAmount / 1.12
-            : expectedAmount;
-
-    // Calculates vat amount (12%)
-    const vatAmount = isVatInclusive || isVatExclusive ? subtotal * 0.12 : 0;
-
-    // Calculates the sum of amount before vat and vat amount
-    const total = subtotal + vatAmount;
+    const subtotal = parseFloat(payment.base_amount) || 0;
+    const vatAmount = parseFloat(payment.vat_amount) || 0;
+    const total = parseFloat(payment.total_amount) || 0;
 
     // Converts numbers into philippine peso format with proper decimal places
     const formatPHP = (val) =>
@@ -480,11 +471,7 @@ export default function InvoiceModal({
                                             textAlign: "center",
                                         }}
                                     >
-                                        {formatPHP(
-                                            isVatInclusive
-                                                ? expectedAmount
-                                                : subtotal,
-                                        )}
+                                        {formatPHP(subtotal)}
                                     </td>
                                     <td
                                         style={{
@@ -493,11 +480,7 @@ export default function InvoiceModal({
                                             textAlign: "center",
                                         }}
                                     >
-                                        {formatPHP(
-                                            isVatInclusive
-                                                ? expectedAmount
-                                                : subtotal,
-                                        )}
+                                        {formatPHP(subtotal)}
                                     </td>
                                 </tr>
                                 {[...Array(3)].map((_, i) => (

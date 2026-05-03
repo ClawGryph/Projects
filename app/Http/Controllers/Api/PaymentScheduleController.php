@@ -17,14 +17,12 @@ class PaymentScheduleController extends Controller
     public function index(Request $request)
     {
         $query = PaymentSchedule::with([
-            'clientsProject',
-            'clientsProject.client',
-            'clientsProject.client.clientCompanyType',
-            'clientsProject.project',
-            'clientsProject.payments',
+            'payment.clientsProject.client.clientCompanyType',
+            'payment.clientsProject.project',
+            'payment.clientsProject.subscription',
+            'payment.clientsProject.payments',
             'transaction.officialReceipt.form2307',
         ])
-        // Scope through payment → company_id
         ->whereHas('payment', function ($q) {
             $q->where('company_id', $this->company()->id);
         });

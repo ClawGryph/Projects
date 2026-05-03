@@ -11,6 +11,8 @@ class PaymentScheduleResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $clientsProject = $this->payment?->clientsProject;
+
         return [
             'id' => $this->id,
             'payment_id'     => $this->payment_id,
@@ -26,7 +28,7 @@ class PaymentScheduleResource extends JsonResource
             'is_or_issued' => $this->is_or_issued,
             'is_form2307_issued' => $this->is_form2307_issued,
 
-            'clientsProject' => $this->clientsProject ? [
+            'clientsProject' => $clientsProject ? [
                 'id' => $this->clientsProject->id,
                 'vat_type' => $this->clientsProject->vat_type,
                 'final_price' => $this->clientsProject->final_price,

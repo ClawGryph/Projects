@@ -50,15 +50,8 @@ class PaymentSchedule extends Model
         );
     }
 
-    public function clientsProject()
+    public function getClientsProjectAttribute()
     {
-        return $this->hasOneThrough(
-            ClientsProject::class,
-            Payment::class,
-            'id',                  // Foreign key on Payment? (payment_id? check below)
-            'id',                  // Foreign key on ClientsProject table (id)
-            'payment_id',          // Local key on PaymentSchedule (payment_id)
-            'clients_project_id'   // Local key on Payment (clients_project_id)
-        );
+        return $this->payment?->clientsProject;
     }
 }
