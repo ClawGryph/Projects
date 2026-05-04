@@ -146,8 +146,18 @@ export default function Payments() {
                     getPaymentSchedules();
                     setNotification("Payment status updated");
                 })
-                .catch(() => {
-                    setNotification("Failed to update payment status");
+                .catch((err) => {
+                    const response = err.response;
+                    if (!response) return;
+                    if (response.status === 422) {
+                        // Show the message from the backend directly
+                        setNotification(
+                            response.data.message ??
+                                "Failed to update payment status",
+                        );
+                    } else {
+                        setNotification("Failed to update payment status");
+                    }
                 });
         };
 

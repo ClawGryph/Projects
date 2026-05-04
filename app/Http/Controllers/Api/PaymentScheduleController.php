@@ -71,6 +71,37 @@ class PaymentScheduleController extends Controller
             'wh_tax'      => 'nullable|numeric',
         ]);
 
+        // ── SUBSCRIPTION COVERAGE DATE VALIDATION ─────────────────────────────
+        if ($request->status === 'paid') {
+            $clientsProject = $schedule->payment->clientsProject;
+            $subscription   = $clientsProject?->subscription;
+
+            if ($subscription) {
+                $paidCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
+                    $q->where('client_id', $clientsProject->client_id)
+                    ->where('subscription_id', $clientsProject->subscription_id);
+                })
+                ->where('status', 'paid')
+                ->count();
+
+                $isFirstPayment = $paidCount === 0;
+
+                if ($isFirstPayment) {
+                    if (!$subscription->start_coverage || !$subscription->end_coverage) {
+                        return response()->json([
+                            'message' => 'Cannot mark as paid. This subscription is missing start and end coverage dates.',
+                        ], 422);
+                    }
+                } else {
+                    if (!$subscription->adjusted_start_coverage || !$subscription->adjusted_end_coverage) {
+                        return response()->json([
+                            'message' => 'Cannot mark as paid. This subscription is missing adjusted coverage dates. Please renew the subscription first.',
+                        ], 422);
+                    }
+                }
+            }
+        }
+
         $schedule->status = $request->status;
         $schedule->save();
 
@@ -122,14 +153,21 @@ class PaymentScheduleController extends Controller
                 ->exists();
 
                 if (!$hasNextSchedule) {
-                    $recurringType  = $schedule->payment->recurring_type ?? 'monthly';
-                    $currentDueDate = \Illuminate\Support\Carbon::parse($schedule->due_date);
+                    $endCoverage = $subscription->adjusted_end_coverage
+                        ? \Illuminate\Support\Carbon::parse($subscription->adjusted_end_coverage)
+                        : ($subscription->end_coverage
+                            ? \Illuminate\Support\Carbon::parse($subscription->end_coverage)
+                            : null);
 
-                    $nextDueDate = match ($recurringType) {
-                        'weekly' => $currentDueDate->copy()->addWeek(),
-                        'yearly' => $currentDueDate->copy()->addYear(),
-                        default  => $currentDueDate->copy()->addMonth(),
-                    };
+                    $recurringType = $schedule->payment->recurring_type ?? 'monthly';
+
+                    $nextDueDate = $endCoverage
+                        ? $endCoverage->copy()->addDay()
+                        : match ($recurringType) {
+                            'weekly' => \Illuminate\Support\Carbon::parse($schedule->due_date)->addWeek(),
+                            'yearly' => \Illuminate\Support\Carbon::parse($schedule->due_date)->addYear(),
+                            default  => \Illuminate\Support\Carbon::parse($schedule->due_date)->addMonth(),
+                        };
 
                     $existingCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
                         $q->where('client_id', $clientsProject->client_id)
@@ -154,7 +192,7 @@ class PaymentScheduleController extends Controller
                     ]);
                 }
             }
-        }  // ← closes if paid
+        }
 
         return response()->json([
             'message'  => 'Payment schedule status updated successfully',
