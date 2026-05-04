@@ -23,6 +23,7 @@ export default function Payments() {
     const [invoicePayment, setInvoicePayment] = useState(null);
     const [orPayment, setOrPayment] = useState(null);
     const [manualInvoicePayment, setManualInvoicePayment] = useState(null);
+    const [manualInvoiceTotals, setManualInvoiceTotals] = useState({});
     const [form2307Payment, setForm2307Payment] = useState(null);
     const [loading, setLoading] = useState(false);
     const { setNotification, user } = useStateContext();
@@ -38,13 +39,41 @@ export default function Payments() {
         setLoading(true);
         axiosClient
             .get("/payment-schedules", {
-                params: {
-                    month: selectedMonth || undefined,
-                },
+                params: { month: selectedMonth || undefined },
             })
             .then(({ data }) => {
-                setPaymentSchedules(data.data);
+                const schedules = data.data;
+                setPaymentSchedules(schedules);
                 setLoading(false);
+
+                // Fetch manual invoices for all schedules
+                const requests = schedules.map((p) =>
+                    axiosClient
+                        .get("/manual-invoices", {
+                            params: { schedule_id: p.id },
+                        })
+                        .then(({ data }) => {
+                            const items = data.data?.line_items ?? [];
+                            const total = items.reduce((sum, item) => {
+                                if (!item.is_additional) return sum;
+                                return (
+                                    sum +
+                                    (parseFloat(item.amount) || 0) +
+                                    (parseFloat(item.vat_amount) || 0)
+                                );
+                            }, 0);
+                            return { id: p.id, total };
+                        })
+                        .catch(() => ({ id: p.id, total: 0 })),
+                );
+
+                Promise.all(requests).then((results) => {
+                    const totalsMap = {};
+                    results.forEach(({ id, total }) => {
+                        totalsMap[id] = total;
+                    });
+                    setManualInvoiceTotals(totalsMap);
+                });
             })
             .catch((err) => {
                 console.error(err);
@@ -544,11 +573,37 @@ export default function Payments() {
                                                         ₱
                                                         {new Intl.NumberFormat(
                                                             "en-PH",
+                                                            {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            },
                                                         ).format(
-                                                            p.total_amount,
+                                                            parseFloat(
+                                                                (
+                                                                    (parseFloat(
+                                                                        p.total_amount,
+                                                                    ) || 0) +
+                                                                    (manualInvoiceTotals[
+                                                                        p.id
+                                                                    ] || 0)
+                                                                ).toFixed(2),
+                                                            ),
                                                         )}
                                                     </div>
-
+                                                    {manualInvoiceTotals[p.id] >
+                                                        0 && (
+                                                        <div className="text-xs text-cyan-600">
+                                                            +₱
+                                                            {new Intl.NumberFormat(
+                                                                "en-PH",
+                                                            ).format(
+                                                                manualInvoiceTotals[
+                                                                    p.id
+                                                                ],
+                                                            )}{" "}
+                                                            additional
+                                                        </div>
+                                                    )}
                                                     <div className="text-xs text-gray-500">
                                                         {formatPaymentType(
                                                             p.clientsProject

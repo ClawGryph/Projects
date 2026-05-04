@@ -78,25 +78,22 @@ class PaymentScheduleController extends Controller
             $baseGross = $request->amount_paid ?? $schedule->total_amount;
             $whTax     = $request->wh_tax ?? 0;
 
-            $manualInvoice = \App\Models\ManualInvoice::where('payment_schedule_id', $schedule->id)->first();
+            $manualInvoice   = ManualInvoice::where('payment_schedule_id', $schedule->id)->first();
             $additionalTotal = 0;
-            $additionalBase = 0;  // ← track base separately for wh_tax
+            $additionalBase  = 0;
 
             if ($manualInvoice && !empty($manualInvoice->line_items)) {
                 foreach ($manualInvoice->line_items as $item) {
                     if (!empty($item['is_additional'])) {
-                        $additionalBase  += (float) ($item['amount'] ?? 0);       // ← base only
+                        $additionalBase  += (float) ($item['amount'] ?? 0);
                         $additionalTotal += (float) ($item['amount'] ?? 0);
                         $additionalTotal += (float) ($item['vat_amount'] ?? 0);
                     }
                 }
             }
 
-            // Recompute wh_tax to include additional items' base
-            // wh_tax from request was computed on schedule base_amount only
-            // We need to add the withholding on additional items too
             $withholdingRate = $whTax > 0
-                ? $whTax / ($schedule->base_amount ?: 1)  // back-calculate rate
+                ? $whTax / ($schedule->base_amount ?: 1)
                 : 0;
             $whTax = $whTax + ($additionalBase * $withholdingRate);
 
@@ -110,7 +107,54 @@ class PaymentScheduleController extends Controller
                 'net_amount'   => $netAmount,
                 'paid_at'      => now(),
             ]);
-        }
+
+            // ── AUTO-CREATE NEXT SCHEDULE FOR SUBSCRIPTIONS ───────────────────
+            $clientsProject = $schedule->payment->clientsProject;
+            $subscription   = $clientsProject?->subscription;
+
+            if ($subscription) {
+                $hasNextSchedule = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
+                    $q->where('client_id', $clientsProject->client_id)
+                    ->where('subscription_id', $clientsProject->subscription_id);
+                })
+                ->where('status', 'pending')
+                ->where('due_date', '>', $schedule->due_date)
+                ->exists();
+
+                if (!$hasNextSchedule) {
+                    $recurringType  = $schedule->payment->recurring_type ?? 'monthly';
+                    $currentDueDate = \Illuminate\Support\Carbon::parse($schedule->due_date);
+
+                    $nextDueDate = match ($recurringType) {
+                        'weekly' => $currentDueDate->copy()->addWeek(),
+                        'yearly' => $currentDueDate->copy()->addYear(),
+                        default  => $currentDueDate->copy()->addMonth(),
+                    };
+
+                    $existingCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
+                        $q->where('client_id', $clientsProject->client_id)
+                        ->where('subscription_id', $clientsProject->subscription_id);
+                    })->count();
+
+                    $clientId       = $clientsProject->client_id;
+                    $serviceSegment = "S{$clientsProject->subscription_id}";
+                    $invoiceNumber  = "C{$clientId}{$serviceSegment}-" . str_pad($existingCount + 1, 3, '0', STR_PAD_LEFT);
+
+                    PaymentSchedule::create([
+                        'payment_id'         => $schedule->payment_id,
+                        'due_date'           => $nextDueDate->format('Y-m-d'),
+                        'payment_rate'       => 0,
+                        'base_amount'        => $schedule->base_amount,
+                        'vat_amount'         => $schedule->vat_amount,
+                        'total_amount'       => $schedule->total_amount,
+                        'status'             => 'pending',
+                        'is_or_issued'       => false,
+                        'is_form2307_issued' => false,
+                        'invoice_number'     => $invoiceNumber,
+                    ]);
+                }
+            }
+        }  // ← closes if paid
 
         return response()->json([
             'message'  => 'Payment schedule status updated successfully',

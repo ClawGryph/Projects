@@ -240,23 +240,12 @@ class ClientsProjectController extends Controller
                     ? Carbon::parse($subscription->start_coverage)
                     : $startDate;
 
-                $subEndCoverage = $subscription->end_coverage
-                    ? Carbon::parse($subscription->end_coverage)
-                    : null;
 
                 // 1st schedule — due on start_coverage
                 $makeSchedule(
                     $subStartCoverage->format('Y-m-d'),
                     "C{$clientId}{$serviceSegment}-" . str_pad($existingSchedulesCount + 1, 3, '0', STR_PAD_LEFT)
                 );
-
-                // 2nd schedule — due the day after end_coverage
-                if ($subEndCoverage) {
-                    $makeSchedule(
-                        $subEndCoverage->copy()->addDay()->format('Y-m-d'),
-                        "C{$clientId}{$serviceSegment}-" . str_pad($existingSchedulesCount + 2, 3, '0', STR_PAD_LEFT)
-                    );
-                }
 
             } else {
                 // ── RENEWAL: advance coverage window, create next schedule ─────
