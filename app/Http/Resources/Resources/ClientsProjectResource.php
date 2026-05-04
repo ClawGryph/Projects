@@ -63,6 +63,8 @@ class ClientsProjectResource extends JsonResource
                 'type' => $this->subscription->type,
                 'start_coverage' => $this->subscription->start_coverage ? Carbon::parse($this->subscription->start_coverage)->format('Y-m-d') : null,
                 'end_coverage' => $this->subscription->end_coverage ? Carbon::parse($this->subscription->end_coverage)->format('Y-m-d') : null,
+                'adjusted_start_coverage' => $this->subscription->adjusted_start_coverage ? Carbon::parse($this->subscription->adjusted_start_coverage)->format('Y-m-d') : null,
+                'adjusted_end_coverage' => $this->subscription->adjusted_end_coverage ? Carbon::parse($this->subscription->adjusted_end_coverage)->format('Y-m-d') : null,
                 'created_at' => $this->subscription->created_at,
             ] : null,
 

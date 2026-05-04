@@ -7,6 +7,7 @@ import {
     faDiagramProject,
     faTimes,
     faRotateRight,
+    faLock,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
@@ -30,7 +31,7 @@ export default function Assign() {
         getAssigns();
     }, []);
 
-    const getAssigns = (page = 1) => {
+    const getAssigns = (page = 1, refreshRenewId = null) => {
         setLoading(true);
         axiosClient
             .get(`/clients-projects?page=${page}`)
@@ -38,6 +39,14 @@ export default function Assign() {
                 setLoading(false);
                 setAssigns(data.data);
                 setMeta(data.meta);
+
+                // Refresh renewData with updated subscription coverage dates
+                if (refreshRenewId) {
+                    const updated = data.data.find(
+                        (a) => a.id === refreshRenewId,
+                    );
+                    if (updated) setRenewData(updated);
+                }
             })
             .catch(() => setLoading(false));
     };
@@ -290,26 +299,94 @@ export default function Assign() {
                                                         </button>
 
                                                         {!isProject &&
-                                                            a.payment_schedules?.at(
-                                                                -1,
-                                                            )?.status ===
-                                                                "paid" && (
-                                                                <button
-                                                                    onClick={() =>
-                                                                        openRenewModal(
-                                                                            a,
-                                                                        )
-                                                                    }
-                                                                    className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                                >
-                                                                    <FontAwesomeIcon
-                                                                        icon={
-                                                                            faRotateRight
+                                                            (() => {
+                                                                const secondToLast =
+                                                                    a.payment_schedules?.at(
+                                                                        -2,
+                                                                    );
+                                                                const isPaid =
+                                                                    a
+                                                                        .payment_schedules
+                                                                        ?.length >
+                                                                        0 &&
+                                                                    secondToLast?.status ===
+                                                                        "paid";
+
+                                                                const endDate =
+                                                                    a
+                                                                        .subscription
+                                                                        ?.adjusted_end_coverage ??
+                                                                    a
+                                                                        .subscription
+                                                                        ?.end_coverage;
+                                                                const isWithin3Days =
+                                                                    endDate
+                                                                        ? (() => {
+                                                                              const end =
+                                                                                  new Date(
+                                                                                      endDate,
+                                                                                  );
+                                                                              const today =
+                                                                                  new Date();
+                                                                              today.setHours(
+                                                                                  0,
+                                                                                  0,
+                                                                                  0,
+                                                                                  0,
+                                                                              );
+                                                                              const diffDays =
+                                                                                  Math.ceil(
+                                                                                      (end -
+                                                                                          today) /
+                                                                                          (1000 *
+                                                                                              60 *
+                                                                                              60 *
+                                                                                              24),
+                                                                                  );
+                                                                              return (
+                                                                                  diffDays <=
+                                                                                  3
+                                                                              );
+                                                                          })()
+                                                                        : false;
+
+                                                                const canRenew =
+                                                                    isPaid &&
+                                                                    isWithin3Days;
+
+                                                                return (
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            canRenew &&
+                                                                            openRenewModal(
+                                                                                a,
+                                                                            )
                                                                         }
-                                                                    />{" "}
-                                                                    Renew
-                                                                </button>
-                                                            )}
+                                                                        disabled={
+                                                                            !canRenew
+                                                                        }
+                                                                        title={
+                                                                            !canRenew
+                                                                                ? "Available 3 days before end coverage"
+                                                                                : "Renew Subscription"
+                                                                        }
+                                                                        className={`flex items-center gap-1 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition ${
+                                                                            canRenew
+                                                                                ? "bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                                                                                : "bg-gray-300 cursor-not-allowed"
+                                                                        }`}
+                                                                    >
+                                                                        <FontAwesomeIcon
+                                                                            icon={
+                                                                                canRenew
+                                                                                    ? faRotateRight
+                                                                                    : faLock
+                                                                            }
+                                                                        />{" "}
+                                                                        Renew
+                                                                    </button>
+                                                                );
+                                                            })()}
                                                     </td>
                                                 )}
                                             </tr>
@@ -336,9 +413,14 @@ export default function Assign() {
                 onClose={() => {
                     setModalOpen(false);
                     setEditData(null);
-                    setRenewData(null);
                 }}
-                onSuccess={() => getAssigns()}
+                onSuccess={() => {
+                    const renewId = renewData?.id;
+                    getAssigns(1, renewId);
+                    setRenewData(null);
+                    setModalOpen(false);
+                    setEditData(null);
+                }}
                 mode={modalMode}
                 editData={editData}
                 renewData={renewData}

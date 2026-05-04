@@ -176,13 +176,14 @@ export default function PaymentModal({
     // ── Auto-fill adjusted coverage dates on renew ───────────────────
     useEffect(() => {
         if (!renewData || editData) return;
-        if (adjustedStartCoverage || adjustedEndCoverage) return; // don't overwrite if already set
 
-        const prevEndDate = renewData.subscription?.end_coverage;
+        const prevEndDate =
+            renewData.subscription?.adjusted_end_coverage ??
+            renewData.subscription?.end_coverage;
         if (!prevEndDate || !recurringType) return;
 
         const start = new Date(prevEndDate);
-        start.setDate(start.getDate() + 1); // start the day after the last coverage ends
+        start.setDate(start.getDate() + 1);
 
         const end = new Date(start);
         if (recurringType === "weekly") {
@@ -195,7 +196,7 @@ export default function PaymentModal({
             end.setDate(end.getDate() - 1);
         }
 
-        const fmt = (d) => d.toLocaleDateString("en-CA"); // YYYY-MM-DD
+        const fmt = (d) => d.toLocaleDateString("en-CA");
         setAdjustedStartCoverage(fmt(start));
         setAdjustedEndCoverage(fmt(end));
     }, [renewData, recurringType]);
@@ -593,8 +594,10 @@ export default function PaymentModal({
                                         <select
                                             value={vatType}
                                             onChange={(e) =>
+                                                !renewData &&
                                                 setVatType(e.target.value)
                                             }
+                                            disabled={!!renewData}
                                             className={selectCls}
                                         >
                                             <option value="vat_exempt">
