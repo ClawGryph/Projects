@@ -119,14 +119,22 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                 bill_name: billName,
                 bill_company: billCompany,
                 bill_address: billAddress,
-                line_items: lineItems.map(({ id, ...rest }) => ({
-                    ...rest,
-                    vat_amount: isVatExclusive
-                        ? (parseFloat(rest.qty) || 0) *
-                          (parseFloat(rest.unitPrice) || 0) *
-                          0.12
-                        : 0,
-                })),
+                line_items: lineItems.map(({ id, ...rest }, index) => {
+                    const qty = parseFloat(rest.qty) || 0;
+                    const unitPrice = parseFloat(rest.unitPrice) || 0;
+                    const amount = qty * unitPrice;
+                    const vat_amount = isVatExclusive ? amount * 0.12 : 0;
+
+                    return {
+                        description: rest.description,
+                        note: rest.note,
+                        qty,
+                        unitPrice,
+                        amount,
+                        vat_amount,
+                        is_additional: index !== 0,
+                    };
+                }),
             })
             .then(() => setSaveStatus("saved"))
             .catch(() => setSaveStatus("error"))

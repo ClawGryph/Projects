@@ -30,7 +30,9 @@ class ManualInvoiceController extends Controller
             'line_items.*.note'        => 'nullable|string',
             'line_items.*.qty'         => 'nullable|numeric|min:0',
             'line_items.*.unitPrice'   => 'nullable|numeric|min:0',
+            'line_items.*.amount'      => 'nullable|numeric|min:0',
             'line_items.*.vat_amount'  => 'nullable|numeric|min:0',
+            'line_items.*.is_additional' => 'nullable|boolean',
         ]);
 
         $invoice = ManualInvoice::updateOrCreate(

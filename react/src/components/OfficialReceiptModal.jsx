@@ -142,6 +142,7 @@ export default function OfficialReceiptModal({
 
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
+    const [manualInvoiceTotal, setManualInvoiceTotal] = useState(0);
 
     // ── Uniqueness check statuses ──────────────────────────────────────────
     const [siStatus, setSiStatus] = useState("idle");
@@ -183,6 +184,27 @@ export default function OfficialReceiptModal({
         }
     }, [existingOR, payment]);
 
+    useEffect(() => {
+        if (!payment?.id) return;
+        axiosClient
+            .get("/manual-invoices", { params: { schedule_id: payment.id } })
+            .then(({ data }) => {
+                const items = data.data?.line_items ?? [];
+                const total = items.reduce((sum, item) => {
+                    if (!item.is_additional) return sum;
+                    return (
+                        sum +
+                        (parseFloat(item.amount) || 0) +
+                        (parseFloat(item.vat_amount) || 0)
+                    );
+                }, 0);
+                setManualInvoiceTotal(total);
+                // ← remove setManualInvoiceAdditionalBase here
+            })
+            .catch(() => {
+                setManualInvoiceTotal(0);
+            });
+    }, [payment?.id]);
     // ── Generic uniqueness checker factory ────────────────────────────────
     const makeChecker =
         (endpoint, setStatus, debounceRef, excludeId) => (value) => {
@@ -233,14 +255,17 @@ export default function OfficialReceiptModal({
     );
 
     // ── Total = base + vat + other ────────────────────────────────────────
-    const grossAmount = (
-        (parseFloat(form.amount) || 0) +
-        (parseFloat(form.vat_amount) || 0) +
-        (parseFloat(form.other) || 0)
-    ).toFixed(2);
-
+    const transactionGross =
+        parseFloat(payment?.transaction?.gross_amount) || 0;
     const withholdingTax = parseFloat(payment?.transaction?.wh_tax) || 0;
-    const totalAmount = (parseFloat(grossAmount) - withholdingTax).toFixed(2);
+    const grossAmount =
+        transactionGross > 0
+            ? transactionGross
+            : (parseFloat(form.amount) || 0) +
+              (parseFloat(form.vat_amount) || 0) +
+              (parseFloat(form.other) || 0) +
+              manualInvoiceTotal;
+    const totalAmount = (grossAmount - withholdingTax).toFixed(2);
 
     // ── Form handlers ─────────────────────────────────────────────────────
     const handleChange = (e) => {
@@ -318,6 +343,7 @@ export default function OfficialReceiptModal({
             notes: form.notes.trim() || null,
             other: form.other !== "" ? form.other : null,
             total_amount: totalAmount,
+            wh_tax: withholdingTax,
             payment_transaction_id: transactionId,
         };
 
@@ -623,6 +649,24 @@ export default function OfficialReceiptModal({
                                     />
                                 </div>
                             </Field>
+
+                            {manualInvoiceTotal > 0 && (
+                                <Field label="Additional Items (Manual Invoice)">
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+                                            ₱
+                                        </span>
+                                        <input
+                                            type="number"
+                                            value={manualInvoiceTotal.toFixed(
+                                                2,
+                                            )}
+                                            readOnly
+                                            className={pesoReadOnlyClass}
+                                        />
+                                    </div>
+                                </Field>
+                            )}
 
                             {/* Withholding Tax — only shown when applicable */}
                             {withholdingTax > 0 && (

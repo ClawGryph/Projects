@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Resources\PaymentScheduleResource;
+use App\Models\ManualInvoice;
 use App\Models\PaymentSchedule;
 use Illuminate\Http\Request;
 
@@ -62,12 +63,11 @@ class PaymentScheduleController extends Controller
 
     public function updateStatus(Request $request, PaymentSchedule $schedule)
     {
-        // Scope check through payment relationship
         abort_if($schedule->payment->company_id !== $this->company()->id, 403);
 
         $request->validate([
-            'status' => 'required|in:pending,paid,overdue,ended',
-            'amount_paid'     => 'nullable|numeric',
+            'status'      => 'required|in:pending,paid,overdue,ended',
+            'amount_paid' => 'nullable|numeric',
             'wh_tax'      => 'nullable|numeric',
         ]);
 
@@ -75,17 +75,41 @@ class PaymentScheduleController extends Controller
         $schedule->save();
 
         if ($request->status === 'paid' && !$schedule->transaction()->exists()) {
-            $grossAmount = $request->amount_paid ?? $schedule->total_amount;
-            $whTax       = $request->wh_tax ?? 0;
+            $baseGross = $request->amount_paid ?? $schedule->total_amount;
+            $whTax     = $request->wh_tax ?? 0;
+
+            $manualInvoice = \App\Models\ManualInvoice::where('payment_schedule_id', $schedule->id)->first();
+            $additionalTotal = 0;
+            $additionalBase = 0;  // ← track base separately for wh_tax
+
+            if ($manualInvoice && !empty($manualInvoice->line_items)) {
+                foreach ($manualInvoice->line_items as $item) {
+                    if (!empty($item['is_additional'])) {
+                        $additionalBase  += (float) ($item['amount'] ?? 0);       // ← base only
+                        $additionalTotal += (float) ($item['amount'] ?? 0);
+                        $additionalTotal += (float) ($item['vat_amount'] ?? 0);
+                    }
+                }
+            }
+
+            // Recompute wh_tax to include additional items' base
+            // wh_tax from request was computed on schedule base_amount only
+            // We need to add the withholding on additional items too
+            $withholdingRate = $whTax > 0
+                ? $whTax / ($schedule->base_amount ?: 1)  // back-calculate rate
+                : 0;
+            $whTax = $whTax + ($additionalBase * $withholdingRate);
+
+            $grossAmount = $baseGross + $additionalTotal;
             $netAmount   = $grossAmount - $whTax;
 
             $schedule->paymentTransactions()->create([
-        'company_id'   => $this->company()->id,
-        'gross_amount' => $grossAmount,
-        'wh_tax'       => $whTax,
-        'net_amount'   => $netAmount,  // gross - wh_tax
-        'paid_at'      => now(),
-    ]);
+                'company_id'   => $this->company()->id,
+                'gross_amount' => $grossAmount,
+                'wh_tax'       => $whTax,
+                'net_amount'   => $netAmount,
+                'paid_at'      => now(),
+            ]);
         }
 
         return response()->json([
