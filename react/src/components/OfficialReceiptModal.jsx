@@ -50,7 +50,7 @@ const pesoInputClass = (hasError) =>
 const pesoReadOnlyClass =
     "w-full border border-gray-200 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-500 bg-gray-50 cursor-default select-none";
 
-// ─── Uniqueness Status Badge (reusable) ──────────────────────────────────────
+// ─── Uniqueness Status Badge ──────────────────────────────────────────────────
 
 const StatusBadge = ({ status, label = "Number" }) => {
     if (status === "idle") return null;
@@ -113,7 +113,6 @@ export default function OfficialReceiptModal({
     scheduleIndex,
     onClose,
     onSaved,
-    company,
 }) {
     const existingOR = payment?.transaction?.officialReceipt;
 
@@ -124,6 +123,10 @@ export default function OfficialReceiptModal({
         payment?.clientsProject?.project?.title ??
         payment?.clientsProject?.subscription?.title ??
         "";
+
+    const invoiceNumber = payment.invoice_number;
+    const vatType = payment?.clientsProject?.vat_type ?? "vat_exempt";
+    const clientType = payment?.clientsProject?.client?.company_type ?? "";
 
     const [form, setForm] = useState({
         service_invoice_number: "",
@@ -149,28 +152,12 @@ export default function OfficialReceiptModal({
     const panDebounceRef = useRef(null);
     const bsDebounceRef = useRef(null);
 
-    const invoiceNumber = payment.invoice_number;
-    const vatType = payment?.clientsProject?.vat_type ?? "vat_exempt";
-    const isVatExclusive = vatType === "vat_exclusive";
-    const isVatInclusive = vatType === "vat_inclusive";
-    const isVatable = isVatExclusive || isVatInclusive;
-    const clientType = payment?.clientsProject?.client?.company_type ?? "";
-
+    // ── Populate form from stored values — no recalculation ───────────────
     useEffect(() => {
-        const expectedAmount = parseFloat(payment?.expected_amount) || 0;
-
-        const subtotal = isVatable
-            ? parseFloat((expectedAmount / 1.12).toFixed(2))
-            : expectedAmount;
-        const autoVat = isVatable
-            ? parseFloat((subtotal * 0.12).toFixed(2))
-            : 0;
-
         const str = (val) => val ?? "";
         const num = (val) => (val != null ? String(val) : "");
 
         if (existingOR) {
-            // If there is an existing O.R. populate the form with existing data
             setForm({
                 service_invoice_number: str(existingOR.service_invoice_number),
                 payment_acknowledgement_number: str(
@@ -187,10 +174,11 @@ export default function OfficialReceiptModal({
                 notes: str(existingOR.notes),
             });
         } else {
+            // Read directly from payment_schedule columns — already calculated by backend
             setForm((prev) => ({
                 ...prev,
-                amount: subtotal > 0 ? String(subtotal) : "",
-                vat_amount: autoVat > 0 ? String(autoVat) : "",
+                amount: num(payment?.base_amount),
+                vat_amount: num(payment?.vat_amount),
             }));
         }
     }, [existingOR, payment]);
@@ -244,35 +232,17 @@ export default function OfficialReceiptModal({
         existingOR?.id,
     );
 
-    const totalAmount = (
+    // ── Total = base + vat + other ────────────────────────────────────────
+    const grossAmount = (
         (parseFloat(form.amount) || 0) +
         (parseFloat(form.vat_amount) || 0) +
         (parseFloat(form.other) || 0)
     ).toFixed(2);
 
-    // Company annual gross
-    const annualGross = parseFloat(company?.annual_gross) || 0;
+    const withholdingTax = parseFloat(payment?.transaction?.wh_tax) || 0;
+    const totalAmount = (parseFloat(grossAmount) - withholdingTax).toFixed(2);
 
-    // Determines withholding tax rate based on client type and companies annual gross
-    const getWithholdingRate = () => {
-        if (clientType === "Private Corporation") {
-            return annualGross >= 3_000_000 ? 0.02 : 0.01;
-        }
-        if (clientType === "Government") return 0.01;
-        return 0;
-    };
-
-    const withholdingRate = getWithholdingRate();
-    // Private Corp → based on subtotal (excluding VAT)
-    // Government → based on total (including VAT)
-    const withholdingBase =
-        clientType === "Government"
-            ? parseFloat(totalAmount)
-            : parseFloat(form.amount) || 0;
-    const withholdingTax = withholdingBase * withholdingRate;
-    const netAmountDue = parseFloat(totalAmount) - withholdingTax;
-
-    // Updates form state and clears validation errors and triggers real-time validation checks
+    // ── Form handlers ─────────────────────────────────────────────────────
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
@@ -506,7 +476,6 @@ export default function OfficialReceiptModal({
 
                     {/* Row: Billing Statement No. + Invoice No. + O.R. Issued Date */}
                     <div className="grid grid-cols-3 gap-4">
-                        {/* Billing Statement No. — now with uniqueness check */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                                 Billing Statement No.
@@ -592,7 +561,7 @@ export default function OfficialReceiptModal({
                         />
                     </Field>
 
-                    {/* Company Type — read only */}
+                    {/* Company Type */}
                     <Field label="Company Type">
                         <input
                             type="text"
@@ -609,7 +578,7 @@ export default function OfficialReceiptModal({
                         </p>
 
                         <div className="space-y-3">
-                            {/* Amount — read-only */}
+                            {/* Amount — read-only, from base_amount */}
                             <Field
                                 label="Amount"
                                 required
@@ -630,7 +599,7 @@ export default function OfficialReceiptModal({
                                 </div>
                             </Field>
 
-                            {/* VAT Amount — read-only */}
+                            {/* VAT Amount — read-only, from vat_amount */}
                             <Field
                                 label={
                                     vatType === "vat_inclusive"
@@ -654,6 +623,30 @@ export default function OfficialReceiptModal({
                                     />
                                 </div>
                             </Field>
+
+                            {/* Withholding Tax — only shown when applicable */}
+                            {withholdingTax > 0 && (
+                                <Field label="Less: Withholding Tax">
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+                                            ₱ -
+                                        </span>
+                                        <input
+                                            type="number"
+                                            name="vat_amount"
+                                            value={new Intl.NumberFormat(
+                                                "en-PH",
+                                                {
+                                                    minimumFractionDigits: 2,
+                                                },
+                                            ).format(withholdingTax)}
+                                            readOnly
+                                            placeholder="0.00"
+                                            className={pesoReadOnlyClass}
+                                        />
+                                    </div>
+                                </Field>
+                            )}
 
                             {/* Others — editable with label */}
                             <div>
