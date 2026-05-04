@@ -357,7 +357,7 @@ export default function PaymentModal({
         const payload = isEditing
             ? {
                   vat_type: vatType,
-                  final_price: displayPrice,
+                  final_price: basePrice,
                   number_of_cycles: installmentMonths || null,
                   installment_schedule:
                       installmentSchedule.length > 0
@@ -381,7 +381,7 @@ export default function PaymentModal({
                             ? installmentSchedule
                             : null,
                     start_date: today,
-                    final_price: displayPrice,
+                    final_price: basePrice,
                     vat_type: vatType,
                 }
               : {
@@ -389,7 +389,7 @@ export default function PaymentModal({
                     payment_type: "recurring",
                     recurring_type: recurringType,
                     start_date: today,
-                    final_price: displayPrice,
+                    final_price: basePrice,
                     vat_type: vatType,
                     ...(renewData && {
                         is_renewal: true,
