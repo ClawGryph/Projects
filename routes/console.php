@@ -35,4 +35,4 @@ app(Schedule::class)->call(function () {
             $subscription->update(['status' => $subscription->auto_status]);
         });
     \Log::info('Subscription statuses updated at: ' . now());
-})->daily();
+})->everyMinute();

@@ -29,7 +29,7 @@ class ClientsProjectResource extends JsonResource
                     'id' => $schedule->id,
                     'due_date' => $schedule->due_date ? Carbon::parse($schedule->due_date)->format('Y-m-d') : null,
                     'payment_rate' => $schedule->payment_rate,
-                    'expected_amount' => $schedule->expected_amount,
+                    'total_amount' => $schedule->total_amount,
                     'status' => $schedule->status,
                     'invoice_number'  => $schedule->invoice_number,
                 ];

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axiosClient from "../axios-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faDownload } from "@fortawesome/free-solid-svg-icons";
@@ -6,8 +7,10 @@ import StatusBadge from "../components/StatusBadge.jsx";
 
 export default function Dashboard() {
     const [client, setClient] = useState([]);
-    const [projects, setProjects] = useState([]);
     const [clientsProject, setClientsProject] = useState([]);
+    const [ongoingProjectsCount, setOngoingProjectsCount] = useState(0);
+    const [ongoingSubscriptionsCount, setOngoingSubscriptionsCount] =
+        useState(0);
     const [transactions, setTransactions] = useState([]);
     const [showPaymentsModal, setShowPaymentsModal] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState("all");
@@ -32,6 +35,7 @@ export default function Dashboard() {
         overdueCount: 0,
     });
     const rowsPerPage = 5;
+    const navigate = useNavigate();
 
     useEffect(() => {
         axiosClient
@@ -42,10 +46,60 @@ export default function Dashboard() {
             .catch(() => console.error("Failed to load payment transactions"));
     }, []);
 
+    // Fetch ongoing projects count
+    useEffect(() => {
+        axiosClient
+            .get("/projects")
+            .then(({ data }) => {
+                const ongoing = data.data.filter((p) => p.status === "ongoing");
+                setOngoingProjectsCount(ongoing.length);
+            })
+            .catch(() => console.error("Failed to load projects"));
+    }, []);
+
+    // Fetch ongoing subscriptions count
+    useEffect(() => {
+        axiosClient
+            .get("/subscriptions")
+            .then(({ data }) => {
+                const ongoing = data.data.filter((s) => s.status === "ongoing");
+                setOngoingSubscriptionsCount(ongoing.length);
+            })
+            .catch(() => console.error("Failed to load subscriptions"));
+    }, []);
+
+    // Fetch Clients
+    useEffect(() => {
+        axiosClient
+            .get("/clients")
+            .then(({ data }) => setClient(data.data))
+            .catch(() => console.error("Failed to load client"));
+    }, []);
+
+    // Fetch All projects belong to client
+    useEffect(() => {
+        axiosClient.get("/clients-projects").then(({ data }) => {
+            setClientsProject(data.data);
+        });
+    }, []);
+
+    // Calculate metrics when data changes
+    useEffect(() => {
+        if (
+            client.length > 0 ||
+            clientsProject.length > 0 ||
+            transactions.length > 0
+        ) {
+            calculateMetrics(client, clientsProject, transactions);
+        }
+    }, [client, clientsProject, transactions]);
+
+    const activeServicesCount =
+        ongoingProjectsCount + ongoingSubscriptionsCount;
+
     // Calculate metrics from data
     const calculateMetrics = (
         clientData,
-        projectsData,
         clientsProjectsData,
         transactionsData,
     ) => {
@@ -69,7 +123,7 @@ export default function Dashboard() {
                     date.getFullYear() === currentYear
                 );
             })
-            .reduce((sum, t) => sum + Number(t.amount_paid || 0), 0);
+            .reduce((sum, t) => sum + Number(t.net_amount || 0), 0);
 
         // Calculates total revenue for the previous month from paid transactions
         // Handles year boundary cases (e.g., January vs December of previous year)
@@ -128,9 +182,9 @@ export default function Dashboard() {
         });
 
         // Filters projects that were created in the current month and year
-        const currentMonthProjects = projectsData.filter((p) => {
-            if (!p.created_at) return false;
-            const date = new Date(p.created_at);
+        const currentMonthProjects = clientsProjectsData.filter((cp) => {
+            if (!cp.created_at) return false;
+            const date = new Date(cp.created_at);
             return (
                 date.getMonth() === currentMonth &&
                 date.getFullYear() === currentYear
@@ -145,46 +199,6 @@ export default function Dashboard() {
             overdueCount: overdueCount,
         });
     };
-
-    // Fetch Clients
-    useEffect(() => {
-        axiosClient
-            .get("/clients")
-            .then(({ data }) => setClient(data.data))
-            .catch(() => console.error("Failed to load client"));
-    }, []);
-
-    // Fetch Projects
-    useEffect(() => {
-        axiosClient
-            .get("/projects")
-            .then(({ data }) => {
-                const activeOnly = data.data.filter(
-                    (p) => p.status !== "complete",
-                );
-                setProjects(activeOnly);
-            })
-            .catch(() => console.error("Failed to load projects"));
-    }, []);
-
-    // Fetch All projects belong to client
-    useEffect(() => {
-        axiosClient
-            .get("/client-projects")
-            .then(({ data }) => setClientsProject(data.data));
-    }, []);
-
-    // Calculate metrics when data changes
-    useEffect(() => {
-        if (
-            client.length > 0 ||
-            projects.length > 0 ||
-            clientsProject.length > 0 ||
-            transactions.length > 0
-        ) {
-            calculateMetrics(client, projects, clientsProject, transactions);
-        }
-    }, [client, projects, clientsProject, transactions]);
 
     // View for all successful payments and filter
     const paidTransactions = transactions.filter((t) => t.paid_at);
@@ -211,7 +225,8 @@ export default function Dashboard() {
                 id: s.id,
                 client: cp.client,
                 project: cp.project,
-                expected_amount: s.expected_amount,
+                subscription: cp.subscription,
+                total_amount: s.total_amount,
                 due_date: s.due_date,
             })),
     );
@@ -279,7 +294,7 @@ export default function Dashboard() {
         // Total cost paid
         const totalCostPaid = schedules
             .filter((s) => s.status === "paid")
-            .reduce((sum, s) => sum + Number(s.expected_amount || 0), 0);
+            .reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
 
         return { overallStatus, cycleLabel, totalCostPaid };
     };
@@ -331,6 +346,11 @@ export default function Dashboard() {
         pending2307Page * rowsPerPage,
     );
 
+    console.log(
+        "Payment schedules sample:",
+        clientsProject[0]?.payment_schedules,
+    );
+
     // Function to export CSV
     const exportDashboardCSV = () => {
         const rows = [];
@@ -340,7 +360,7 @@ export default function Dashboard() {
         // =========================
         rows.push(["DASHBOARD SUMMARY"]);
         rows.push(["Total Clients", client.length]);
-        rows.push(["Active Projects", projects.length]);
+        rows.push(["Active Services", activeServicesCount]);
         rows.push(["Monthly Revenue", metrics.monthlyRevenue]);
         rows.push(["Overdue Payments", metrics.overdueCount]);
         rows.push([]);
@@ -358,12 +378,20 @@ export default function Dashboard() {
         // =========================
         // PROJECTS
         // =========================
-        rows.push(["PROJECTS"]);
+        rows.push(["SERVICES"]);
         rows.push(["Title", "End Date", "Created At"]);
-        projects.forEach((p) => {
-            rows.push([p.title || "", p.end_date || "", p.created_at || ""]);
-        });
-        rows.push([]);
+        clientsProject
+            .filter(
+                (cp) =>
+                    cp.project?.status === "ongoing" ||
+                    cp.subscription?.status === "ongoing",
+            )
+            .forEach((cp) => {
+                const title = cp.project?.title || cp.subscription?.title || "";
+                const endDate =
+                    cp.project?.end_date || cp.subscription?.end_coverage || "";
+                rows.push([title, endDate, cp.created_at || ""]);
+            });
 
         // =========================
         // CLIENT PROJECTS
@@ -406,8 +434,8 @@ export default function Dashboard() {
             .forEach((t) => {
                 rows.push([
                     t.client?.name || "",
-                    t.project?.title || "",
-                    t.amount_paid || 0,
+                    t.project?.title || t.subscription?.title || "",
+                    t.net_amount || 0,
                     t.paid_at || "",
                 ]);
             });
@@ -423,8 +451,8 @@ export default function Dashboard() {
         overduePayments.forEach((o) => {
             rows.push([
                 o.client?.name || "",
-                o.project?.title || "",
-                o.expected_amount || 0,
+                o.project?.title || o.subscription?.title || "",
+                o.total_amount || 0,
                 o.due_date || "",
             ]);
         });
@@ -523,12 +551,7 @@ export default function Dashboard() {
         .flatMap((project) => {
             const schedules = project.payment_schedules || [];
             return schedules
-                .filter((s) => {
-                    if (!s.due_date || s.status === "paid") return false;
-                    const due = new Date(s.due_date);
-                    due.setHours(0, 0, 0, 0);
-                    return due < today;
-                })
+                .filter((s) => s.status === "overdue")
                 .map((s) => ({ ...project, _lateSchedule: s }));
         })
         .sort(
@@ -549,9 +572,7 @@ export default function Dashboard() {
                 id: `project-${cp.id}`,
                 type: "project_created",
                 title: "New Project Created",
-                description: `${cp.project?.title || "Untitled"} - ${
-                    cp.client?.name || "No Client"
-                }`,
+                description: `${cp.project?.title || cp.subscription?.title || "Untitled"} - ${cp.client?.name || "No Client"}`,
                 amount: null,
                 date: new Date(cp.created_at),
             });
@@ -566,7 +587,7 @@ export default function Dashboard() {
                 type: "payment_received",
                 title: "Payment Received",
                 description: `From ${t.client?.name || "Client"}`,
-                amount: t.amount_paid,
+                amount: t.net_amount,
                 date: new Date(t.paid_at),
             });
         });
@@ -582,9 +603,7 @@ export default function Dashboard() {
                     id: `overdue-${cp.id}`,
                     type: "payment_overdue",
                     title: "Payment Overdue",
-                    description: `${cp.project?.title || "Project"} - ${
-                        cp.client?.name || ""
-                    }`,
+                    description: `${cp.project?.title || cp.subscription?.title || "Project"} - ${cp.client?.name || ""}`,
                     amount: cp.payment_transaction?.amount || 0,
                     date: new Date(cp.payment.next_payment_date),
                 });
@@ -601,7 +620,10 @@ export default function Dashboard() {
     const indexOfFirstRow = indexOfLastRow - rowsPerPage;
 
     const ongoingProjects = clientsProject.filter((project) => {
-        return project.project?.status !== "complete";
+        return (
+            project.project?.status !== "complete" ||
+            project.subscription !== null
+        );
     });
 
     const currentProjects = ongoingProjects.slice(
@@ -716,10 +738,10 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500 font-medium">
-                                    Active Projects
+                                    Active Services
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    {projects.length}
+                                    {activeServicesCount}
                                 </h3>
                             </div>
                         </div>
@@ -727,7 +749,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2">
                         {renderChangeIndicator(metrics.projectsChange)}
                         <span className="text-sm text-gray-500">
-                            new this month
+                            new assignments this month
                         </span>
                     </div>
                 </div>
@@ -785,9 +807,7 @@ export default function Dashboard() {
                                             .reduce(
                                                 (sum, s) =>
                                                     sum +
-                                                    Number(
-                                                        s.expected_amount || 0,
-                                                    ),
+                                                    Number(s.total_amount || 0),
                                                 0,
                                             )
                                             .toLocaleString();
@@ -904,9 +924,7 @@ export default function Dashboard() {
                                             .reduce(
                                                 (sum, s) =>
                                                     sum +
-                                                    Number(
-                                                        s.expected_amount || 0,
-                                                    ),
+                                                    Number(s.total_amount || 0),
                                                 0,
                                             )
                                             .toLocaleString();
@@ -1256,7 +1274,7 @@ export default function Dashboard() {
                                 Client Name
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
-                                Project Name
+                                Service Name
                             </th>
                             <th className="px-4 py-2 text-white text-sm font-medium text-gray-700">
                                 End Date
@@ -1288,11 +1306,11 @@ export default function Dashboard() {
                         ) : (
                             currentProjects.map((project) => {
                                 const isOverdue =
-                                    project.payment.next_payment_date &&
+                                    project.payment?.next_payment_date &&
                                     new Date(
                                         project.payment.next_payment_date,
                                     ) < new Date() &&
-                                    project.payment.status !== "completed";
+                                    project.payment?.status !== "completed";
 
                                 return (
                                     <tr
@@ -1313,13 +1331,32 @@ export default function Dashboard() {
 
                                         {/* Project Name */}
                                         <td className="px-4 py-2">
-                                            {project.project.title ||
-                                                "Untitled Project"}
+                                            <button
+                                                onClick={() =>
+                                                    navigate("/assign", {
+                                                        state: {
+                                                            openService:
+                                                                project,
+                                                        },
+                                                    })
+                                                }
+                                                className="text-cyan-800 hover:text-cyan-600 font-medium hover:underline transition-colors"
+                                            >
+                                                {project.project?.title ||
+                                                    project.subscription
+                                                        ?.title ||
+                                                    "Untitled"}
+                                            </button>
                                         </td>
 
                                         {/* Project End Date */}
                                         <td className="px-4 py-2">
-                                            {project.project.end_date || "-"}
+                                            {project.project?.end_date ||
+                                                project.subscription
+                                                    ?.adjusted_end_coverage ||
+                                                project.subscription
+                                                    ?.end_coverage ||
+                                                "-"}
                                         </td>
 
                                         {/* Payment Type */}
@@ -1350,39 +1387,39 @@ export default function Dashboard() {
                                                             : "bg-blue-50 text-blue-600 border-blue-100"
                                                     }`}
                                                 >
-                                                    <svg
-                                                        className="w-3 h-3"
-                                                        fill="currentColor"
-                                                        viewBox="0 0 20 20"
-                                                    >
-                                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-                                                            clipRule="evenodd"
-                                                        />
-                                                    </svg>
-                                                    <span className="font-semibold">
-                                                        {project.payment
-                                                            ?.paid_installments_count ||
-                                                            0}
-                                                    </span>
-                                                    <span
-                                                        className={`${
-                                                            project.payment
-                                                                ?.payment_type ===
-                                                            "installment"
-                                                                ? "text-purple-400"
-                                                                : "text-blue-400"
-                                                        }`}
-                                                    >
-                                                        /
-                                                    </span>
-                                                    <span>
-                                                        {project.payment
-                                                            ?.number_of_cycles ||
-                                                            0}
-                                                    </span>
+                                                    {project.payment
+                                                        ?.payment_type ===
+                                                    "installment" ? (
+                                                        <>
+                                                            <span className="font-semibold">
+                                                                {project.payment
+                                                                    ?.paid_installments_count ||
+                                                                    0}
+                                                            </span>
+                                                            <span className="text-purple-400">
+                                                                /
+                                                            </span>
+                                                            <span>
+                                                                {project.payment
+                                                                    ?.number_of_cycles ||
+                                                                    0}
+                                                            </span>
+                                                            <span className="text-xs opacity-60">
+                                                                installments
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span className="font-semibold">
+                                                                {project.payment
+                                                                    ?.number_of_cycles ||
+                                                                    0}
+                                                            </span>
+                                                            <span className="text-xs opacity-60">
+                                                                renew
+                                                            </span>
+                                                        </>
+                                                    )}
                                                 </span>
                                             ) : (
                                                 " - "
@@ -1478,7 +1515,10 @@ export default function Dashboard() {
                                     >
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-800">
-                                                {project.project.title}
+                                                {project.project?.title ||
+                                                    project.subscription
+                                                        ?.title ||
+                                                    "Untitled"}
                                             </h3>
                                             <p className="text-gray-500">
                                                 {project.client?.name ||
@@ -1491,7 +1531,7 @@ export default function Dashboard() {
                                                 ₱
                                                 {Number(
                                                     project._upcomingSchedule
-                                                        .expected_amount || 0,
+                                                        .total_amount || 0,
                                                 ).toLocaleString()}
                                             </p>
                                             <p className="text-gray-500 text-sm">
@@ -1508,15 +1548,15 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* LATE PAYMENTS */}
+                {/* OVERDUE PAYMENTS */}
                 <div className="bg-white rounded-xl overflow-hidden flex flex-col shadow-sm p-6 h-[500px]">
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
-                        Late Payments
+                        Overdue Payments
                     </h2>
                     <div className="flex-1 overflow-y-auto pr-1">
                         {latePaymentsThisMonth.length === 0 ? (
                             <p className="text-center text-gray-500 py-6">
-                                No late payments this month
+                                No overdue payments this month
                             </p>
                         ) : (
                             latePaymentsThisMonth.map((project) => {
@@ -1541,7 +1581,10 @@ export default function Dashboard() {
                                     >
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-800">
-                                                {project.project.title}
+                                                {project.project?.title ||
+                                                    project.subscription
+                                                        ?.title ||
+                                                    "Untitled"}
                                             </h3>
                                             <p className="text-gray-500">
                                                 {project.client?.name ||
@@ -1558,7 +1601,7 @@ export default function Dashboard() {
                                                 ₱
                                                 {Number(
                                                     project._lateSchedule
-                                                        .expected_amount || 0,
+                                                        .total_amount || 0,
                                                 ).toLocaleString()}
                                             </p>
                                             <p className="text-gray-500 text-sm">
@@ -1744,12 +1787,13 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     {t.project?.title ||
-                                                        "Project"}
+                                                        t.subscription?.title ||
+                                                        "—"}
                                                 </td>
                                                 <td className="px-4 py-2 font-semibold">
                                                     ₱
                                                     {Number(
-                                                        t.amount_paid,
+                                                        t.net_amount,
                                                     ).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -1915,12 +1959,13 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     {o.project?.title ||
-                                                        "Project"}
+                                                        o.subscription?.title ||
+                                                        "—"}
                                                 </td>
                                                 <td className="px-4 py-2 font-semibold text-red-600">
                                                     ₱
                                                     {Number(
-                                                        o.expected_amount || 0,
+                                                        o.total_amount || 0,
                                                     ).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -2025,12 +2070,13 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     {t.project?.title ||
-                                                        "Project"}
+                                                        t.subscription?.title ||
+                                                        "—"}
                                                 </td>
                                                 <td className="px-4 py-2 font-semibold">
                                                     ₱
                                                     {Number(
-                                                        t.amount_paid,
+                                                        t.net_amount,
                                                     ).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -2133,7 +2179,8 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     {t.project?.title ||
-                                                        "Project"}
+                                                        t.subscription?.title ||
+                                                        "—"}
                                                 </td>
                                                 <td className="px-4 py-2 font-semibold">
                                                     ₱

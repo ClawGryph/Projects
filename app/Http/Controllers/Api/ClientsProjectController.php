@@ -400,6 +400,8 @@ class ClientsProjectController extends Controller
 
     public function projectsWithClients()
     {
+        $companyId = $this->company()->id;
+
         $clientsProjects = ClientsProject::with([
             'project',
             'subscription',
@@ -409,11 +411,11 @@ class ClientsProjectController extends Controller
             },
             'payments.paymentTransactions',
         ])
-            ->where(function ($q) {
-                $q->whereHas('project', function ($q) {
-                    $q->where('company_id', $this->company()->id);
-                })->orWhereHas('subscription', function ($q) {
-                    $q->where('company_id', $this->company()->id);
+            ->where(function ($q) use ($companyId) {
+                $q->whereHas('project', function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId);
+                })->orWhereHas('subscription', function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId);
                 });
             })
             ->orderBy('created_at', 'desc')

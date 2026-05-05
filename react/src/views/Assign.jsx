@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faPlus,
@@ -26,10 +27,20 @@ export default function Assign() {
     const [selectedService, setSelectedService] = useState(null);
     const [editData, setEditData] = useState(null);
     const [renewData, setRenewData] = useState(null);
+    const location = useLocation();
 
     useEffect(() => {
         getAssigns();
     }, []);
+
+    useEffect(() => {
+        if (location.state?.openService) {
+            setSelectedService(location.state.openService);
+            setServiceModalOpen(true);
+            // Clear the state so it doesn't reopen on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const getAssigns = (page = 1, refreshRenewId = null) => {
         setLoading(true);
