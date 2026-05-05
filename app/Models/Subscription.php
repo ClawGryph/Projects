@@ -17,7 +17,9 @@ class Subscription extends Model
         'adjusted_end_coverage',
         'cr_no',
         'cost',
-        'type',
+        'vat_type',
+        'frequency',
+        'billing_start_date',
         'status',
         'created_at'
     ];
@@ -27,6 +29,7 @@ class Subscription extends Model
         'end_coverage' => 'date',
         'adjusted_start_coverage' => 'date',
         'adjusted_end_coverage'   => 'date',
+        'billing_start_date'   => 'date',
     ];
 
     public function logs()

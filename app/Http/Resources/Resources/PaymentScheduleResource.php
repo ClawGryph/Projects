@@ -54,7 +54,9 @@ class PaymentScheduleResource extends JsonResource
                 'subscription' => $this->clientsProject->subscription ? [
                     'id' => $this->clientsProject->subscription->id,
                     'title' => $this->clientsProject->subscription->title,
-                    'type' => $this->clientsProject->subscription->type,
+                    'vat_type' => $this->clientsProject->subscription->vat_type,
+                    'frequency' => $this->clientsProject->subscription->frequency,
+                    'billing_start_date' => $this->clientsProject->subscription->billing_start_date,
                     'start_coverage' => $this->clientsProject->subscription->start_coverage,
                     'end_coverage' => $this->clientsProject->subscription->end_coverage,
                 ] : null,

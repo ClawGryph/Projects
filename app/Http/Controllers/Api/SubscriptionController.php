@@ -27,12 +27,14 @@ class SubscriptionController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title' => 'required|string|max:50',
-            'description' => 'required|max:200',
-            'start_coverage' => 'required',
-            'end_coverage' => 'required',
-            'cost' => 'required',
-            'type' => 'required|string|in:weekly,monthly,yearly',
+            'title'                    => 'required|string|max:50',
+            'description'              => 'required|string|max:1000',
+            'start_coverage'           => 'required|date',
+            'end_coverage'             => 'required|date|after_or_equal:start_date',
+            'cost'                     => 'required|numeric|min:0|decimal:0,2',
+            'vat_type'                  => 'required|in:vat_inclusive,vat_exclusive,vat_exempt,vat_other',
+            'frequency'                 => 'required|in:monthly,quarterly,half_yearly,yearly',
+            'billing_start_date'        => 'required|date',
         ]);
 
         $data['company_id'] = $this->company()->id;
