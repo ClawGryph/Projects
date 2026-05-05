@@ -31,11 +31,14 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title' => 'required|string|max:50',
-            'description' => 'required|max:200',
-            'start_date' => 'required',
-            'end_date' => 'required',
-            'price' => 'required'
+            'title'                => 'required|string|max:50',
+            'description'          => 'required|string|max:1000',
+            'start_date'           => 'required|date',
+            'end_date'             => 'required|date|after_or_equal:start_date',
+            'price'                => 'required|numeric|min:0|decimal:0,2',
+            'vat_type'             => 'required|in:vat_inclusive,vat_exclusive,vat_exempt,vat_other',
+            'payment_type'         => 'required|in:one_time,installment',
+            'billing_start_date'   => 'required|date',
         ]);
 
         $data['company_id'] = $this->company()->id;

@@ -45,6 +45,9 @@ class UpdateProjectRequest extends FormRequest
                                             : 'nullable',
                                         'string'
                                     ],
+            'vat_type' => 'required|in:vat_inclusive,vat_exclusive,vat_exempt,vat_other',
+            'payment_type' => 'required|in:one_time,installment',
+            'billing_start_date' => 'required|date',
         ];
     }
 }

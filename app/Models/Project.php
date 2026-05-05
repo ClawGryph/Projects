@@ -21,6 +21,9 @@ class Project extends Model
         'cr_no',
         'price',
         'status',
+        'vat_type',
+        'payment_type',
+        'billing_start_date',
         'created_at'
     ];
 
@@ -29,6 +32,7 @@ class Project extends Model
         'end_date' => 'datetime',
         'adjusted_start_date' => 'date',
         'adjusted_end_date'   => 'date',
+        'billing_start_date' => 'date',
     ];
 
     public function clients()

@@ -51,6 +51,9 @@ class ClientsProjectResource extends JsonResource
                 'status' => $this->project->status,
                 'start_date' => $this->project->start_date ? Carbon::parse($this->project->start_date)->format('Y-m-d') : null,
                 'end_date' => $this->project->end_date ? Carbon::parse($this->project->end_date)->format('Y-m-d') : null,
+                'vat_tpye' => $this->project->vat_type,
+                'payment_type' => $this->project->payment_type,
+                'billing_start_date' => $this->project->billing_start_date ? Carbon::parse($this->project->billing_start_date)->format('Y-m-d') : null,,
                 'created_at' => $this->project->created_at,
             ] : null,
 

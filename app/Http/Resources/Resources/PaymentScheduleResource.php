@@ -46,6 +46,9 @@ class PaymentScheduleResource extends JsonResource
                     'title' => $this->clientsProject->project->title,
                     'start_date' => $this->clientsProject->project->start_date,
                     'end_date' => $this->clientsProject->project->end_date,
+                    'vat_tpye' => $this->clientsProject->project->vat_type,
+                    'payment_type' => $this->clientsProject->project->payment_type,
+                    'billing_start_date' => $this->clientsProject->project->billing_start_date,
                 ] : null,
 
                 'subscription' => $this->clientsProject->subscription ? [
