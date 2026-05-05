@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { calcWithholdingTax } from "../utils/withholdingTax";
 import chimes_logo from "../assets/chimes-logo.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faTrash, faSave } from "@fortawesome/free-solid-svg-icons";
@@ -54,19 +55,6 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
     const billType = client.company_type ?? "";
     const clientType = client.company_type ?? "";
     const annualGross = parseFloat(company?.annual_gross) || 0;
-
-    // Determines withholding tax rate based on client type and companies annual gross
-    const getWithholdingRate = () => {
-        if (clientType === "Private Corporation") {
-            return annualGross >= 3_000_000 ? 0.02 : 0.01;
-        }
-        if (clientType === "Government") {
-            return 0.01;
-        }
-        return 0;
-    };
-
-    const withholdingRate = getWithholdingRate();
 
     // subtotal base on payment amount and vat type
     const getDefaultSubtotal = () => parseFloat(payment.base_amount) || 0;
@@ -189,10 +177,18 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
           : 0;
     const total = subtotal + vatAmount;
 
-    // Private Corp → based on subtotal (excluding VAT)
-    // Government → based on total (including VAT)
-    const withholdingBase = clientType === "Government" ? total : subtotal;
-    const withholdingTax = withholdingBase * withholdingRate;
+    const {
+        rate: withholdingRate,
+        tax: withholdingTax,
+        base: withholdingBase,
+    } = calcWithholdingTax({
+        clientType,
+        annualGross,
+        vatType,
+        baseAmount: subtotal, // subtotal = sum of line items (excluding VAT)
+        totalAmount: total, // total = subtotal + vatAmount
+    });
+
     const netAmount = total - withholdingTax;
 
     // Converts numbers into philippine peso format with proper decimal places
@@ -1029,7 +1025,9 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                             ? "VAT Inclusive (12%)"
                                             : vatType === "vat_exclusive"
                                               ? "VAT Exclusive (12%)"
-                                              : "VAT Exempt"}
+                                              : vatType === "vat_exempt"
+                                                ? "VAT Exempt"
+                                                : "VAT Other"}
                                     </div>
                                 </div>
                             </div>

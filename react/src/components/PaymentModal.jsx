@@ -609,6 +609,9 @@ export default function PaymentModal({
                                             <option value="vat_inclusive">
                                                 VAT Inclusive
                                             </option>
+                                            <option value="vat_other">
+                                                VAT Other
+                                            </option>
                                         </select>
                                     </FloatField>
                                 )}

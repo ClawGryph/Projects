@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { calcWithholdingTax } from "../utils/withholdingTax";
 import chimes_logo from "../assets/chimes-logo.png";
 
 export default function InvoiceModal({
@@ -72,23 +73,17 @@ export default function InvoiceModal({
             maximumFractionDigits: 2,
         }).format(val);
 
-    // Determines withholding tax rate based on client type and companies annual gross
-    const getWithholdingRate = () => {
-        if (clientType === "Private Corporation") {
-            return annualGross >= 3_000_000 ? 0.02 : 0.01;
-        }
-        if (clientType === "Government") {
-            return 0.01;
-        }
-        return 0;
-    };
-
-    const withholdingRate = getWithholdingRate();
-    // Private Corp → based on subtotal (excluding VAT)
-    // Government → based on total (including VAT)
-    const withholdingBase = clientType === "Government" ? total : subtotal;
-
-    const withholdingTax = withholdingBase * withholdingRate;
+    const {
+        rate: withholdingRate,
+        tax: withholdingTax,
+        base: withholdingBase,
+    } = calcWithholdingTax({
+        clientType,
+        annualGross,
+        vatType,
+        baseAmount: subtotal,
+        totalAmount: total,
+    });
     const netAmount = total - withholdingTax;
 
     const handleDownloadPDF = async () => {
@@ -685,7 +680,9 @@ export default function InvoiceModal({
                                         ? "VAT Inclusive (12%)"
                                         : vatType === "vat_exclusive"
                                           ? "VAT Exclusive (12%)"
-                                          : "VAT Exempt"}
+                                          : vatType === "vat_exempt"
+                                            ? "VAT Exempt"
+                                            : "VAT Other"}
                                 </div>
                             </div>
                         </div>

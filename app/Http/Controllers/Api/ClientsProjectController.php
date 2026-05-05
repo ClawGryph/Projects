@@ -54,7 +54,7 @@ class ClientsProjectController extends Controller
                 'vat_amount'   => round($price - ($price / 1.12), 2),
                 'total_amount' => $price,
             ],
-            default => [          // vat_exempt
+            default => [          // vat_exempt & vat_other
                 'base_amount'  => $price,
                 'vat_amount'   => 0,
                 'total_amount' => $price,
@@ -106,7 +106,7 @@ class ClientsProjectController extends Controller
         'installment_schedule.*.due_date'      => 'required_with:installment_schedule|date',
         'installment_schedule.*.payment_rate'  => 'required_with:installment_schedule|numeric',
         'recurring_rate'                       => 'nullable|numeric',
-        'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive',
+        'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive,vat_other',
         'final_price'                          => 'required|numeric|min:0',
         'adjusted_start_coverage'              => 'nullable|date',
         'adjusted_end_coverage'                => 'nullable|date',
@@ -310,7 +310,7 @@ class ClientsProjectController extends Controller
         abort_if($clientsProject->client_id != $clientId, 403);
 
         $data = $request->validate([
-            'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive',
+            'vat_type'                             => 'required|string|in:vat_exempt,vat_exclusive,vat_inclusive,vat_other',
             'final_price'                          => 'required|numeric|min:0',
             'installment_schedule'                 => 'nullable|array',
             'installment_schedule.*.id'            => 'nullable|exists:payment_schedules,id',

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { calcWithholdingTax } from "../utils/withholdingTax";
 import {
     faDownload,
     faFileInvoice,
@@ -119,22 +120,15 @@ export default function Payments() {
                 const vatAmount = parseFloat(currentPayment.vat_amount) || 0;
                 const total = parseFloat(currentPayment.total_amount) || 0;
 
-                const clientType =
-                    currentPayment.clientsProject?.client?.company_type ?? "";
-                const annualGross = parseFloat(company?.annual_gross) || 0;
-
-                const getWithholdingRate = () => {
-                    if (clientType === "Private Corporation")
-                        return annualGross >= 3_000_000 ? 0.02 : 0.01;
-                    if (clientType === "Government") return 0.01;
-                    return 0;
-                };
-
-                const withholdingRate = getWithholdingRate();
-                const withholdingBase =
-                    clientType === "Government" ? total : baseAmount;
-                const withholdingTax = withholdingBase * withholdingRate;
-                const netAmount = total - withholdingTax;
+                const { tax: withholdingTax } = calcWithholdingTax({
+                    clientType:
+                        currentPayment.clientsProject?.client?.company_type ??
+                        "",
+                    annualGross: parseFloat(company?.annual_gross) || 0,
+                    vatType: currentPayment.clientsProject?.vat_type ?? "",
+                    baseAmount: parseFloat(currentPayment.base_amount) || 0,
+                    totalAmount: parseFloat(currentPayment.total_amount) || 0,
+                });
 
                 payload.amount_paid = total;
                 payload.wh_tax = withholdingTax;
