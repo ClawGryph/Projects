@@ -24,16 +24,7 @@ class ClientsProjectResource extends JsonResource
         // Collect all payment schedules across payments
         $schedules = $this->payments
             ->flatMap->paymentSchedules
-            ->map(function ($schedule) {
-                return [
-                    'id' => $schedule->id,
-                    'due_date' => $schedule->due_date ? Carbon::parse($schedule->due_date)->format('Y-m-d') : null,
-                    'payment_rate' => $schedule->payment_rate,
-                    'total_amount' => $schedule->total_amount,
-                    'status' => $schedule->status,
-                    'invoice_number'  => $schedule->invoice_number,
-                ];
-            })
+            ->map(fn($schedule) => new PaymentScheduleResource($schedule))
             ->sortBy(fn($s) => $s['due_date'] ?? '9999-99-99')
             ->values();
 
@@ -41,62 +32,31 @@ class ClientsProjectResource extends JsonResource
             'id' => $this->id,
             'created_at' => $this->created_at,
 
-            'project' => $this->project ? [
-                'id' => $this->project->id,
-                'title' => $this->project->title,
-                'description' => $this->project->description,
-                'price' => $this->project->price,
-                'status' => $this->project->status,
-                'start_date' => $this->project->start_date ? Carbon::parse($this->project->start_date)->format('Y-m-d') : null,
-                'end_date' => $this->project->end_date ? Carbon::parse($this->project->end_date)->format('Y-m-d') : null,
-                'vat_tpye' => $this->project->vat_type,
-                'payment_type' => $this->project->payment_type,
-                'billing_start_date' => $this->project->billing_start_date ? Carbon::parse($this->project->billing_start_date)->format('Y-m-d') : null,,
-                'created_at' => $this->project->created_at,
-            ] : null,
+            'project'      => $this->project
+                ? new ProjectResource($this->project)
+                : null,
 
-            'subscription' => $this->subscription ? [
-                'id' => $this->subscription->id,
-                'title' => $this->subscription->title,
-                'description' => $this->subscription->description,
-                'cost' => $this->subscription->cost,
-                'status' => $this->subscription->status,
-                'vat_type' => $this->subscription->vat_type,
-                'frequency' => $this->subscription->frequency,
-                'billing_start_date' => $this->subscription->billing_start_date ? Carbon::parse($this->subscription->billing_start_date)->format('Y-m-d') : null,,
-                'start_coverage' => $this->subscription->start_coverage ? Carbon::parse($this->subscription->start_coverage)->format('Y-m-d') : null,
-                'end_coverage' => $this->subscription->end_coverage ? Carbon::parse($this->subscription->end_coverage)->format('Y-m-d') : null,
-                'adjusted_start_coverage' => $this->subscription->adjusted_start_coverage ? Carbon::parse($this->subscription->adjusted_start_coverage)->format('Y-m-d') : null,
-                'adjusted_end_coverage' => $this->subscription->adjusted_end_coverage ? Carbon::parse($this->subscription->adjusted_end_coverage)->format('Y-m-d') : null,
-                'created_at' => $this->subscription->created_at,
-            ] : null,
+            'subscription' => $this->subscription
+                ? new SubscriptionResource($this->subscription)
+                : null,
 
-            'payment' => $payment ? [
-                'id' => $payment->id,
-                'payment_type' => $payment->payment_type,
-                'recurring_type' => $payment->recurring_type,
-                'number_of_cycles' => $payment->number_of_cycles,
-                'fixed_rate' => $payment->fixed_rate,
-                'start_date' => $payment->start_date ? Carbon::parse($payment->start_date)->format('Y-m-d') : null,
-                'paid_installments_count' => $payment->paymentTransactions->count(),
-            ] : null,
 
-            'client' => [
-                'id' => $this->client->id,
-                'name' => $this->client->name,
-                'company_type' => $this->client->company_type,
-            ],
+            'payment' => $payment
+                ? new PaymentResource($payment)
+                : null,
 
-            'payment_transaction' => $transaction ? [
-                'id' => $transaction->id,
-                'amount' => $transaction->amount ?? 0,
-                'paid_at' => $transaction->paid_at ? Carbon::parse($transaction->paid_at)->format('Y-m-d') : null,
-            ] : [
-                'id' => null,
-                'amount' => 0,
-                'paid_at' => null,
-                'installment_number' => null,
-            ],
+            'client' => $this->client
+                ? new ClientResource($this->client)
+                : null,
+
+            'payment_transaction' => $transaction
+                ? new PaymentTransactionResource($transaction)
+                : [
+                    'id'     => null,
+                    'amount' => 0,
+                    'paid_at' => null,
+                    'installment_number' => null,
+                ],
 
             'payment_schedules' => $schedules,
         ];

@@ -18,17 +18,10 @@ class PaymentResource extends JsonResource
         return [
             'company_id' => $this->company_id,
             'id'=> $this->id,
-            'payment_type'=> $this->payment_type,
-            'recurring_type'=> $this->recurring_type,
-            'installments' => $this->installments,
-            'current_installment' => $this->current_installment,
-            'start_date' => $this->start_date
-                            ? $this->start_date->format('Y-m-d')
-                            : null,
-            'next_payment_date' => $this->next_payment_date
-                            ? $this->next_payment_date->format('Y-m-d')
-                            : null,
-            'status' => $this->status
+            'clients_project_id' => $this->clients_project_id,
+            'number_of_cycles' => $this->number_of_cycles,
+            'fixed_rate' => $this->fixed_rate,
+            'total_cost' => $this->total_cost,
         ];
     }
 }

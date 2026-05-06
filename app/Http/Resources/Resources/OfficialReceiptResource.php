@@ -8,30 +8,37 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class OfficialReceiptResource extends JsonResource
 {
     public static $wrap = false;
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
+
     public function toArray(Request $request): array
     {
         return [
-            'id'                     => $this->id,
-            'payment_transaction_id' => $this->payment_transaction_id,
-            'or_date'                => $this->or_date,
-            'service_invoice_number' => $this->service_invoice_number,
+            'id'                             => $this->id,
+            'payment_transaction_id'         => $this->payment_transaction_id,
+            'or_date'                        => $this->or_date,
+            'service_invoice_number'         => $this->service_invoice_number,
             'payment_acknowledgement_number' => $this->payment_acknowledgement_number,
-            'billing_statement_number' => $this->billing_statement_number,
-            'base_amount'                 => $this->base_amount,
-            'vat_amount'             => $this->vat_amount,
-            'wh_tax'                 => $this->wh_tax,
-            'other'                  => $this->other,
-            'other_label'            => $this->other_label,
-            'total_amount'           => $this->total_amount,
-            'notes'                  => $this->notes,
-            'created_at'             => $this->created_at,
-            'updated_at'             => $this->updated_at,
-            'form2307'               => $this->whenLoaded('form2307'),
+            'billing_statement_number'       => $this->billing_statement_number,
+            'base_amount'                    => $this->base_amount,
+            'vat_amount'                     => $this->vat_amount,
+            'wh_tax'                         => $this->wh_tax,
+            'other'                          => $this->other,
+            'other_label'                    => $this->other_label,
+            'total_amount'                   => $this->total_amount,
+            'notes'                          => $this->notes,
+            'created_at'                     => $this->created_at,
+            'updated_at'                     => $this->updated_at,
+
+            'or_file_url' => $this->or_file_path
+                ? asset('storage/' . $this->or_file_path)
+                : null,
+
+            'form2307' => $this->form2307
+                ? new Form2307Resource($this->form2307)
+                : null,
+
+            'form2307_file_url' => $this->form2307?->form_file_path
+                ? asset('storage/' . $this->form2307->form_file_path)
+                : null,
         ];
     }
 }

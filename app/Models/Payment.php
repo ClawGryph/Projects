@@ -10,17 +10,10 @@ class Payment extends Model
     protected $fillable = [
         'company_id',
         'clients_project_id',
-        'payment_type',
-        'recurring_type',
         'number_of_cycles',
         'fixed_rate',
-        'start_date',
+        'total_cost',
     ];
-
-    protected $casts = [
-        'start_date' => 'datetime',
-    ];
-
 
     public function clientsProject()
     {
