@@ -21,6 +21,8 @@ export default function ProjectsForm() {
         adjusted_end_date: "",
         cr_no: "",
         payment_type: "",
+        vat_type: "",
+        billing_start_date: "",
         price: "",
     });
     const [formData, setFormData] = useState(null);
@@ -73,19 +75,6 @@ export default function ProjectsForm() {
                 });
         }
     };
-
-    // Error Message
-    function validate() {
-        const e = {};
-        if (!form.title.trim()) e.title = "Title is required.";
-        if (!form.description.trim())
-            e.description = "Description is required.";
-        if (form.price === "") e.price = "Cost is required.";
-        if (!form.start_date) e.start_date = "Start date is required.";
-        if (!form.end_date) e.end_date = "End date is required.";
-        setErrors(e);
-        return Object.keys(e).length === 0;
-    }
 
     const FIELD_LABELS = {
         start_date: "Start Date",
@@ -239,6 +228,94 @@ export default function ProjectsForm() {
                             {errors.end_date && (
                                 <p className="text-xs text-red-500 mt-1">
                                     {errors.end_date}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* VAT TYPE */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                VAT Type{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
+                            <select
+                                value={project.vat_type ?? ""}
+                                onChange={(e) =>
+                                    setProject({
+                                        ...project,
+                                        vat_type: e.target.value,
+                                    })
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                            >
+                                <option value="" disabled>
+                                    Select VAT type...
+                                </option>
+                                <option value="vat_inclusive">
+                                    VAT Inclusive
+                                </option>
+                                <option value="vat_exclusive">
+                                    VAT Exclusive
+                                </option>
+                                <option value="vat_exempt">VAT Exempt</option>
+                                <option value="vat_other">VAT Other</option>
+                            </select>
+                            {errors.vat_type && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.vat_type}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* PAYMENT TYPE */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Payment Type
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
+                            <select
+                                value={project.payment_type ?? ""}
+                                onChange={(e) =>
+                                    setProject({
+                                        ...project,
+                                        payment_type: e.target.value,
+                                    })
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                            >
+                                <option value="" disabled>
+                                    Select payment type...
+                                </option>
+                                <option value="one_time">One Time</option>
+                                <option value="installment">Installment</option>
+                            </select>
+                            {errors.payment_type && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.payment_type}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* BILLING START DATE */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Billing Start Date
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                value={project.billing_start_date ?? ""}
+                                onChange={(e) =>
+                                    setProject({
+                                        ...project,
+                                        billing_start_date: e.target.value,
+                                    })
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+                            />
+                            {errors.billing_start_date && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.billing_start_date}
                                 </p>
                             )}
                         </div>
