@@ -198,23 +198,6 @@ export default function DefaultLayout() {
                                     />
                                     Subscription
                                 </NavLink>
-                                <NavLink
-                                    to="/assign"
-                                    onClick={() => setOpenSidebar(false)}
-                                    className={({ isActive }) =>
-                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
-                                            isActive
-                                                ? "border-white text-white"
-                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
-                                        }`
-                                    }
-                                >
-                                    <FontAwesomeIcon
-                                        icon={faLink}
-                                        className="mr-3 text-xs"
-                                    />
-                                    Assign
-                                </NavLink>
                             </div>
                         </div>
                     </div>

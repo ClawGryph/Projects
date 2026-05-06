@@ -29,7 +29,7 @@ class ProjectResource extends JsonResource
             'status' => $this->status,
             'isEnded' => $this->end_date && $this->end_date <= now(),
             'created_at' => $this->created_at,
-            'vat_tpye' => $this->vat_type,
+            'vat_type' => $this->vat_type,
             'payment_type' => $this->payment_type,
             'billing_start_date' => $this->billing_start_date ? date('Y-m-d', strtotime($this->billing_start_date)) : null,
             'auto_status' => $this->auto_status,

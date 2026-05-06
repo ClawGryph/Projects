@@ -42,17 +42,9 @@ export default function PaymentModal({
     mode,
     editData,
     renewData,
+    clientId,
 }) {
     const { setNotification } = useStateContext();
-
-    // ── Client autocomplete ──────────────────────────────────────────────
-    const [clientInput, setClientInput] = useState("");
-    const [allClients, setAllClients] = useState([]);
-    const [clientSuggestions, setClientSuggestions] = useState([]);
-    const [selectedClient, setSelectedClient] = useState(null);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const suggestionsRef = useRef(null);
-    const clientInputRef = useRef(null);
 
     // ── Service list (projects or subscriptions) ─────────────────────────
     const [services, setServices] = useState([]);
@@ -88,10 +80,6 @@ export default function PaymentModal({
         resetForm();
 
         axiosClient
-            .get("/clients")
-            .then(({ data }) => setAllClients(data.data ?? []))
-            .catch(() => {});
-        axiosClient
             .get("/company")
             .then(({ data }) => setCompany(data))
             .catch(() => {});
@@ -108,8 +96,6 @@ export default function PaymentModal({
                         : editData.subscription;
                     const payment = editData.payment;
 
-                    setClientInput(editData.client?.name ?? "");
-                    setSelectedClient(editData.client ?? null);
                     setSelectedService(String(service?.id ?? ""));
                     setPaymentType(payment?.payment_type ?? "");
                     setVatType(editData.vat_type ?? "vat_exempt");
@@ -134,8 +120,6 @@ export default function PaymentModal({
 
                 if (renewData && !editData) {
                     const service = renewData.subscription;
-                    setClientInput(renewData.client?.name ?? "");
-                    setSelectedClient(renewData.client ?? null);
                     setSelectedService(String(service?.id ?? ""));
                     setPaymentType("recurring");
                     setVatType(renewData.vat_type ?? "vat_exempt");
@@ -203,10 +187,6 @@ export default function PaymentModal({
 
     // ── Helpers ──────────────────────────────────────────────────────────
     const resetForm = () => {
-        setClientInput("");
-        setSelectedClient(null);
-        setClientSuggestions([]);
-        setShowSuggestions(false);
         setSelectedService("");
         setPaymentType("");
         setVatType("vat_exempt");
@@ -265,29 +245,6 @@ export default function PaymentModal({
 
     const today = new Date().toLocaleDateString("en-CA");
 
-    // ── Client autocomplete handlers ─────────────────────────────────────
-    const handleClientInput = (value) => {
-        setClientInput(value);
-        setSelectedClient(null);
-        if (!value.trim()) {
-            setClientSuggestions([]);
-            setShowSuggestions(false);
-            return;
-        }
-        const filtered = allClients
-            .filter((c) => c.name.toLowerCase().includes(value.toLowerCase()))
-            .slice(0, 6);
-        setClientSuggestions(filtered);
-        setShowSuggestions(filtered.length > 0);
-    };
-
-    const handleSelectClient = (client) => {
-        setClientInput(client.name);
-        setSelectedClient(client);
-        setClientSuggestions([]);
-        setShowSuggestions(false);
-    };
-
     // ── Installment schedule builder ─────────────────────────────────────
     const handleInstallmentMonths = (val) => {
         const months = parseInt(val) || 0;
@@ -322,10 +279,6 @@ export default function PaymentModal({
     const handleSubmit = () => {
         setErrors(null);
 
-        if (!selectedClient) {
-            setErrors({ general: ["Please select a client."] });
-            return;
-        }
         if (!selectedService) {
             setErrors({
                 general: [
@@ -351,7 +304,7 @@ export default function PaymentModal({
 
         const endpoint = isEditing
             ? `/clients/${editData.client.id}/assign/${editData.id}`
-            : `/clients/${selectedClient.id}/assign`;
+            : `/clients/${clientId}/assign`;
 
         const method = isEditing ? "patch" : "post";
 
@@ -465,56 +418,6 @@ export default function PaymentModal({
                             ))}
                         </div>
                     )}
-
-                    {/* ── CLIENT AUTOCOMPLETE ────────────────────────── */}
-                    <div className="relative w-full mb-2">
-                        <FloatField label="Client Name">
-                            <input
-                                ref={clientInputRef}
-                                type="text"
-                                value={clientInput}
-                                onChange={(e) =>
-                                    !isEditing &&
-                                    !renewData &&
-                                    handleClientInput(e.target.value)
-                                }
-                                readOnly={isEditing || !!renewData}
-                                placeholder="Enter client..."
-                                className={
-                                    inputCls +
-                                    (isEditing || renewData
-                                        ? " bg-gray-50 cursor-not-allowed"
-                                        : "")
-                                }
-                                autoComplete="off"
-                            />
-                        </FloatField>
-                        {showSuggestions && (
-                            <ul
-                                ref={suggestionsRef}
-                                className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-0.5 max-h-48 overflow-y-auto"
-                            >
-                                {clientSuggestions.map((client) => (
-                                    <li
-                                        key={client.id}
-                                        onMouseDown={() =>
-                                            handleSelectClient(client)
-                                        }
-                                        className="px-4 py-2.5 text-sm text-gray-700 hover:bg-cyan-50 hover:text-cyan-900 cursor-pointer"
-                                    >
-                                        <span className="font-medium">
-                                            {client.name}
-                                        </span>
-                                        {client.company_type && (
-                                            <span className="ml-2 text-xs text-gray-400">
-                                                {client.company_type}
-                                            </span>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
 
                     {/* ── SERVICE DROPDOWN ───────────────────────────── */}
                     <FloatField label={isProject ? "Project" : "Subscription"}>

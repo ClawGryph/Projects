@@ -135,14 +135,12 @@ export default function Clients() {
 
                                             {/* CLICKABLE NAME */}
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                <button
-                                                    onClick={() =>
-                                                        onViewClient(u)
-                                                    }
+                                                <Link
+                                                    to={`/clients/assign/${u.id}`}
                                                     className="text-cyan-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
                                                 >
                                                     {u.name}
-                                                </button>
+                                                </Link>
                                             </td>
 
                                             <td className="border-b border-gray-200 px-4 py-2">
@@ -232,101 +230,6 @@ export default function Clients() {
                     </div>
                 </div>
             </div>
-
-            {/* --- CLIENT DETAILS MODAL --- */}
-            {clientModalOpen && selectedClient && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-                    onClick={closeClientModal}
-                >
-                    <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6 overflow-y-auto max-h-[90vh]"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Modal Header */}
-                        <div className="flex justify-between items-start mb-5">
-                            <div>
-                                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
-                                    Client Details
-                                </p>
-                                <h2 className="text-xl font-bold text-gray-800">
-                                    {selectedClient.name}
-                                </h2>
-                            </div>
-                            <button
-                                onClick={closeClientModal}
-                                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                            >
-                                <FontAwesomeIcon icon={faTimes} size="lg" />
-                            </button>
-                        </div>
-
-                        {/* Metric Cards */}
-                        <div className="grid grid-cols-2 gap-3 mb-5">
-                            <div className="bg-gray-50 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">
-                                    Email
-                                </p>
-                                <p className="text-sm font-semibold text-gray-800 break-all">
-                                    {selectedClient.email ?? "—"}
-                                </p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">
-                                    Phone
-                                </p>
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {selectedClient.phone_number ?? "—"}
-                                </p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">
-                                    Company
-                                </p>
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {selectedClient.company_name ?? "—"}
-                                </p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">
-                                    Company Type
-                                </p>
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {selectedClient.company_type ?? "—"}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Additional Info */}
-                        <div className="border-t border-gray-100 pt-4">
-                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">
-                                Additional Info
-                            </p>
-                            <table className="w-full text-sm">
-                                <tbody>
-                                    <tr>
-                                        <td className="text-gray-400 py-1.5 w-1/2">
-                                            Client ID
-                                        </td>
-                                        <td className="text-gray-800 font-medium py-1.5">
-                                            #{selectedClient.id}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className="text-gray-400 py-1.5">
-                                            Address
-                                        </td>
-                                        <td className="text-gray-800 font-medium py-1.5">
-                                            {selectedClient.company_address ??
-                                                "—"}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 }

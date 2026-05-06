@@ -66,6 +66,11 @@ const router = createBrowserRouter([
                 handle: { title: "Edit Client" },
             },
             {
+                path: "/clients/assign/:id",
+                element: <Assign key="clientAssign" />,
+                handle: { title: "Add Service" },
+            },
+            {
                 path: "/projects",
                 element: <Projects />,
                 handle: { title: "Projects" },
@@ -94,11 +99,6 @@ const router = createBrowserRouter([
                 path: "/subscriptions/:id",
                 element: <SubscriptionsForm key="subscriptionUpdate" />,
                 handle: { title: "Edit Subscription" },
-            },
-            {
-                path: "/assign",
-                element: <Assign />,
-                handle: { title: "Assign Service" },
             },
             {
                 path: "/payments",
