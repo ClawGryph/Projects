@@ -16,11 +16,15 @@ class PaymentSchedule extends Model
         'status',
         'invoice_number',
         'is_or_issued',
-        'is_form2307_issued'
+        'is_form2307_issued',
+        'start_coverage',
+        'end_coverage',
     ];
 
     protected $casts = [
-        'due_date' => 'datetime'
+        'due_date' => 'datetime',
+        'start_coverage' => 'date',
+        'end_coverage' => 'date',
     ];
 
     public function payment()

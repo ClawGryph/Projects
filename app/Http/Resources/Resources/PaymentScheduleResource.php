@@ -27,6 +27,8 @@ class PaymentScheduleResource extends JsonResource
             'invoice_number'     => $this->invoice_number,
             'is_or_issued'       => $this->is_or_issued,
             'is_form2307_issued' => $this->is_form2307_issued,
+            'start_coverage'     => $this->start_coverage?->format('Y-m-d'),
+            'end_coverage'     => $this->end_coverage?->format('Y-m-d'),
 
             'clientsProject' => $clientsProject
                 ? new ClientsProjectResource($clientsProject)
