@@ -185,11 +185,11 @@ export default function ProjectsForm() {
                         {/* START DATE */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Start date{" "}
+                                Start coverage{" "}
                                 <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
-                                type="date"
+                                type={project.id ? "text" : "date"}
                                 value={project.start_date}
                                 onChange={(e) =>
                                     setProject({
@@ -197,8 +197,14 @@ export default function ProjectsForm() {
                                         start_date: e.target.value,
                                     })
                                 }
+                                readOnly={!!project.id}
+                                disabled={!!project.id}
                                 placeholder=" "
-                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+                                className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${
+                                    project.id
+                                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                        : "focus:ring-2 focus:ring-cyan-500"
+                                }`}
                             />
                             {errors.start_date && (
                                 <p className="text-xs text-red-500 mt-1">
@@ -210,11 +216,11 @@ export default function ProjectsForm() {
                         {/* END DATE */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                End date{" "}
+                                End coverage{" "}
                                 <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
-                                type="date"
+                                type={project.id ? "text" : "date"}
                                 value={project.end_date}
                                 onChange={(e) =>
                                     setProject({
@@ -222,12 +228,47 @@ export default function ProjectsForm() {
                                         end_date: e.target.value,
                                     })
                                 }
+                                readOnly={!!project.id}
+                                disabled={!!project.id}
                                 placeholder=" "
-                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+                                className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${
+                                    project.id
+                                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                        : "focus:ring-2 focus:ring-cyan-500"
+                                }`}
                             />
                             {errors.end_date && (
                                 <p className="text-xs text-red-500 mt-1">
                                     {errors.end_date}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* PAYMENT TYPE */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Payment Type
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
+                            <select
+                                value={project.payment_type ?? ""}
+                                onChange={(e) =>
+                                    setProject({
+                                        ...project,
+                                        payment_type: e.target.value,
+                                    })
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                            >
+                                <option value="" disabled>
+                                    Select payment type...
+                                </option>
+                                <option value="one_time">One Time</option>
+                                <option value="installment">Installment</option>
+                            </select>
+                            {errors.payment_type && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.payment_type}
                                 </p>
                             )}
                         </div>
@@ -263,35 +304,6 @@ export default function ProjectsForm() {
                             {errors.vat_type && (
                                 <p className="text-xs text-red-500 mt-1">
                                     {errors.vat_type}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* PAYMENT TYPE */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Payment Type
-                                <span className="text-red-500 text-xs">*</span>
-                            </label>
-                            <select
-                                value={project.payment_type ?? ""}
-                                onChange={(e) =>
-                                    setProject({
-                                        ...project,
-                                        payment_type: e.target.value,
-                                    })
-                                }
-                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
-                            >
-                                <option value="" disabled>
-                                    Select payment type...
-                                </option>
-                                <option value="one_time">One Time</option>
-                                <option value="installment">Installment</option>
-                            </select>
-                            {errors.payment_type && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    {errors.payment_type}
                                 </p>
                             )}
                         </div>
@@ -333,7 +345,7 @@ export default function ProjectsForm() {
                                     <div className="space-y-4 rounded-xl p-4">
                                         <div>
                                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                                Adjusted Start Date
+                                                Adjusted Start Coverage
                                             </label>
                                             <input
                                                 type="date"
@@ -360,7 +372,7 @@ export default function ProjectsForm() {
                                         {/* ADJUSTED END DATE */}
                                         <div>
                                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                                Adjusted End Date
+                                                Adjusted End Coverage
                                             </label>
                                             <input
                                                 type="date"

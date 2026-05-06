@@ -47,7 +47,14 @@ class UpdateProjectRequest extends FormRequest
                                     ],
             'vat_type' => 'required|in:vat_inclusive,vat_exclusive,vat_exempt,vat_other',
             'payment_type' => 'required|in:one_time,installment',
-            'billing_start_date' => 'required|date',
+            'billing_start_date' => [
+                                        'required',
+                                        'date',
+                                        'after_or_equal:start_date',
+                                        'before_or_equal:end_date',
+                                        Rule::when(request('adjusted_start_date'), ['after_or_equal:adjusted_start_date']),
+                                        Rule::when(request('adjusted_end_date'), ['before_or_equal:adjusted_end_date']),
+                                    ],
         ];
     }
 }

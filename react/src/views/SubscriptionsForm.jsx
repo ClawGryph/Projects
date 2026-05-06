@@ -18,11 +18,12 @@ export default function SubscriptionsForm() {
         description: "",
         start_coverage: "",
         end_coverage: "",
-        type: "",
+        frequency: "",
+        vat_type: "",
+        billing_start_date: "",
         adjusted_start_coverage: "",
         adjusted_end_coverage: "",
         cr_no: "",
-        payment_type: "",
         cost: "",
     });
 
@@ -75,14 +76,6 @@ export default function SubscriptionsForm() {
                     }
                 });
         }
-    };
-
-    const inferType = (start, end) => {
-        if (!start || !end) return "";
-        const days = (new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24);
-        if (days <= 10) return "weekly";
-        if (days <= 35) return "monthly";
-        return "yearly";
     };
 
     const FIELD_LABELS = {
@@ -198,21 +191,22 @@ export default function SubscriptionsForm() {
                                 <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
-                                type="date"
+                                type={subscription.id ? "text" : "date"}
                                 value={subscription.start_coverage}
-                                onChange={(e) => {
-                                    const start = e.target.value;
+                                onChange={(e) =>
                                     setSubscription({
                                         ...subscription,
-                                        start_coverage: start,
-                                        type: inferType(
-                                            start,
-                                            subscription.end_coverage,
-                                        ),
-                                    });
-                                }}
+                                        start_coverage: e.target.value,
+                                    })
+                                }
+                                readOnly={!!subscription.id}
+                                disabled={!!subscription.id}
                                 placeholder=" "
-                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+                                className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${
+                                    subscription.id
+                                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                        : "focus:ring-2 focus:ring-cyan-500"
+                                }`}
                             />
                             {errors.start_coverage && (
                                 <p className="text-xs text-red-500 mt-1">
@@ -228,21 +222,22 @@ export default function SubscriptionsForm() {
                                 <span className="text-red-500 text-xs">*</span>
                             </label>
                             <input
-                                type="date"
+                                type={subscription.id ? "text" : "date"}
                                 value={subscription.end_coverage}
-                                onChange={(e) => {
-                                    const end = e.target.value;
+                                onChange={(e) =>
                                     setSubscription({
                                         ...subscription,
-                                        end_coverage: end,
-                                        type: inferType(
-                                            subscription.start_coverage,
-                                            end,
-                                        ),
-                                    });
-                                }}
+                                        end_coverage: e.target.value,
+                                    })
+                                }
+                                readOnly={!!subscription.id}
+                                disabled={!!subscription.id}
                                 placeholder=" "
-                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+                                className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${
+                                    subscription.id
+                                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                        : "focus:ring-2 focus:ring-cyan-500"
+                                }`}
                             />
                             {errors.end_coverage && (
                                 <p className="text-xs text-red-500 mt-1">
@@ -251,32 +246,92 @@ export default function SubscriptionsForm() {
                             )}
                         </div>
 
-                        {/* TYPE */}
+                        {/* FREQUENCY */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                Type{" "}
+                                Frequency{" "}
                                 <span className="text-red-500 text-xs">*</span>
                             </label>
                             <select
-                                value={subscription.type}
+                                value={subscription.frequency}
                                 onChange={(e) =>
                                     setSubscription({
                                         ...subscription,
-                                        type: e.target.value,
+                                        frequency: e.target.value,
                                     })
                                 }
                                 className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
                             >
                                 <option value="" disabled>
-                                    Select type
+                                    Select frequency
                                 </option>
-                                <option value="weekly">Weekly</option>
                                 <option value="monthly">Monthly</option>
+                                <option value="quarterly">Quarterly</option>
+                                <option value="half_yearly">Half Yearly</option>
                                 <option value="yearly">Yearly</option>
                             </select>
-                            {errors.type && (
+                            {errors.frequency && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    {errors.type}
+                                    {errors.frequency}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* VAT TYPE */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                VAT Type{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
+                            <select
+                                value={subscription.vat_type ?? ""}
+                                onChange={(e) =>
+                                    setSubscription({
+                                        ...subscription,
+                                        vat_type: e.target.value,
+                                    })
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                            >
+                                <option value="" disabled>
+                                    Select VAT type
+                                </option>
+                                <option value="vat_inclusive">
+                                    VAT Inclusive
+                                </option>
+                                <option value="vat_exclusive">
+                                    VAT Exclusive
+                                </option>
+                                <option value="vat_exempt">VAT Exempt</option>
+                                <option value="vat_other">VAT Other</option>
+                            </select>
+                            {errors.vat_type && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.vat_type}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* BILLING START DATE */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Billing Start Date
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                value={subscription.billing_start_date ?? ""}
+                                onChange={(e) =>
+                                    setSubscription({
+                                        ...subscription,
+                                        billing_start_date: e.target.value,
+                                    })
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+                            />
+                            {errors.billing_start_date && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.billing_start_date}
                                 </p>
                             )}
                         </div>
