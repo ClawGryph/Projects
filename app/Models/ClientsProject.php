@@ -12,8 +12,6 @@ class ClientsProject extends Model
         'client_id',
         'project_id',
         'subscription_id',
-        'final_price',
-        'vat_type',
     ];
 
     public function client()

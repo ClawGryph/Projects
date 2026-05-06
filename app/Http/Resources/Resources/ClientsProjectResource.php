@@ -40,8 +40,6 @@ class ClientsProjectResource extends JsonResource
         return [
             'id' => $this->id,
             'created_at' => $this->created_at,
-            'final_price' => $this->final_price,
-            'vat_type' => $this->vat_type,
 
             'project' => $this->project ? [
                 'id' => $this->project->id,
