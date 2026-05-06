@@ -20,6 +20,7 @@ import CompanyType from "./views/CompanyType.jsx";
 import Subsciptions from "./views/Subscriptions.jsx";
 import SubscriptionsForm from "./views/SubscriptionsForm.jsx";
 import Assign from "./views/Assign.jsx";
+import ScheduleBilling from "./views/ScheduleBilling.jsx";
 
 const router = createBrowserRouter([
     {
@@ -69,6 +70,11 @@ const router = createBrowserRouter([
                 path: "/clients/assign/:id",
                 element: <Assign key="clientAssign" />,
                 handle: { title: "Add Service" },
+            },
+            {
+                path: "/clients/assign/:id/scheduleBilling/:clientsProjectId",
+                element: <ScheduleBilling key="clientScheduleBilling" />,
+                handle: { title: "Schedule Billing" },
             },
             {
                 path: "/projects",

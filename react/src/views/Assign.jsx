@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import AssignServiceModal from "../components/AssignServiceModal";
+import ScheduleBilling from "./ScheduleBilling";
 
 export default function Assign() {
     const { id } = useParams();
@@ -131,6 +132,23 @@ export default function Assign() {
 
     return (
         <>
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 px-5 py-3">
+                <Link
+                    to="/clients"
+                    className="text-gray-500 hover:text-cyan-700 hover:underline transition"
+                >
+                    Clients
+                </Link>
+
+                <FontAwesomeIcon
+                    icon={faChevronRight}
+                    className="text-[10px] text-gray-400"
+                />
+
+                <span className="text-gray-800 font-semibold">Assign</span>
+            </div>
+
             <div className="flex justify-between items-center p-5 mt-5">
                 <h1 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                     {client ? `${client.name}'s Services` : "Assign Service"}
@@ -157,23 +175,6 @@ export default function Assign() {
                         )}
                     </div>
                 )}
-            </div>
-
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 px-5 py-3">
-                <Link
-                    to="/clients"
-                    className="text-gray-500 hover:text-cyan-700 hover:underline transition"
-                >
-                    Clients
-                </Link>
-
-                <FontAwesomeIcon
-                    icon={faChevronRight}
-                    className="text-[10px] text-gray-400"
-                />
-
-                <span className="text-gray-800 font-semibold">Assign</span>
             </div>
 
             {/* Filter Tabs */}
@@ -272,14 +273,12 @@ export default function Assign() {
                                                     </span>
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            openServiceModal(a)
-                                                        }
-                                                        className="text-cyan-800 hover:text-cyan-600 font-medium hover:underline transition-colors"
+                                                    <Link
+                                                        to={`/clients/assign/${id}/scheduleBilling/${a.id}`}
+                                                        className="text-cyan-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
                                                     >
                                                         {serviceName ?? "—"}
-                                                    </button>
+                                                    </Link>
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     ₱{" "}
