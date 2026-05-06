@@ -240,7 +240,7 @@ export default function Clients() {
                     onClick={closeClientModal}
                 >
                     <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6"
+                        className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6 overflow-y-auto max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}

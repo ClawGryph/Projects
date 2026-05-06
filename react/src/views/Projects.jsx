@@ -106,12 +106,25 @@ export default function Projects() {
         setViewedProject(null);
     };
 
+    const VAT_LABELS = {
+        vat_inclusive: "VAT Inclusive",
+        vat_exclusive: "VAT Exclusive",
+        vat_exempt: "VAT Exempt",
+        vat_other: "VAT Other",
+    };
+
+    const PAYMENT_TYPE_LABELS = {
+        one_time: "One Time",
+        installment: "Installment",
+    };
+
     const tableHeaders = [
         "ID",
         "Title",
         "Cost",
-        "Start Date",
-        "End Date",
+        "Start Coverage",
+        "End Coverage",
+        "Payment Type",
         "Status",
         "Payment View",
         "Actions",
@@ -204,6 +217,11 @@ export default function Projects() {
                                                 {p.adjusted_end_date
                                                     ? p.adjusted_end_date
                                                     : p.end_date}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {PAYMENT_TYPE_LABELS[
+                                                    p.payment_type
+                                                ] ?? "—"}
                                             </td>
 
                                             <td className="border-b border-gray-200 px-4 py-2 relative">
@@ -554,7 +572,7 @@ export default function Projects() {
                     onClick={closeProjectModal}
                 >
                     <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6"
+                        className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6 overflow-y-auto max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -613,8 +631,36 @@ export default function Projects() {
                                     {viewedProject.end_date ?? "—"}
                                 </p>
                             </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Payment Type
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {PAYMENT_TYPE_LABELS[
+                                        viewedProject.payment_type
+                                    ] ?? "—"}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    VAT Type
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {VAT_LABELS[viewedProject.vat_type] ?? "—"}
+                                </p>
+                            </div>
                         </div>
 
+                        {viewedProject.billing_start_date && (
+                            <div className="bg-gray-50 rounded-lg p-3 mb-5">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Billing Start Date
+                                </p>
+                                <p className="text-sm text-gray-800 leading-relaxed">
+                                    {viewedProject.billing_start_date}
+                                </p>
+                            </div>
+                        )}
                         {viewedProject.description && (
                             <div className="bg-gray-50 rounded-lg p-3 mb-5">
                                 <p className="text-xs text-gray-400 mb-1">

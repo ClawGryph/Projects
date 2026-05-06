@@ -30,7 +30,7 @@ class SubscriptionResource extends JsonResource
             'status' => $this->status,
             'vat_type' => $this->vat_type,
             'frequency' => $this->frequency,
-            'billing_start_date' => $this->billing_start_date,
+            'billing_start_date' => $this->billing_start_date ? date('Y-m-d', strtotime($this->billing_start_date)) : null,
             'isEnded' => $this->end_date && $this->end_date <= now(),
             'created_at' => $this->created_at,
             'auto_status' => $this->auto_status,

@@ -77,6 +77,20 @@ export default function Subsciptions() {
         return () => window.removeEventListener("click", close);
     }, []);
 
+    const VAT_LABELS = {
+        vat_inclusive: "VAT Inclusive",
+        vat_exclusive: "VAT Exclusive",
+        vat_exempt: "VAT Exempt",
+        vat_other: "VAT Other",
+    };
+
+    const FREQUENCY_LABELS = {
+        monthly: "Monthly",
+        quarterly: "Quarterly",
+        half_yearly: "Half Yearly",
+        yearly: "Yearly",
+    };
+
     const tableHeaders = [
         "ID",
         "Title",
@@ -178,7 +192,9 @@ export default function Subsciptions() {
                                                     : s.end_coverage}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                {s.type}
+                                                {FREQUENCY_LABELS[
+                                                    s.frequency
+                                                ] ?? "—"}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2 relative">
                                                 {editingId === s.id ? (
@@ -374,7 +390,7 @@ export default function Subsciptions() {
                     onClick={closeSubscriptionModal}
                 >
                     <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6"
+                        className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6 overflow-y-auto max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -435,13 +451,35 @@ export default function Subsciptions() {
                             </div>
                             <div className="bg-gray-50 rounded-lg p-3">
                                 <p className="text-xs text-gray-400 mb-1">
-                                    Type
+                                    Frequency
                                 </p>
                                 <p className="text-sm font-semibold text-gray-800">
-                                    {viewedSubscription.type ?? "—"}
+                                    {FREQUENCY_LABELS[
+                                        viewedSubscription.frequency
+                                    ] ?? "—"}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    VAT Type
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {VAT_LABELS[viewedSubscription.vat_type] ??
+                                        "—"}
                                 </p>
                             </div>
                         </div>
+
+                        {viewedSubscription.billing_start_date && (
+                            <div className="bg-gray-50 rounded-lg p-3 mb-5">
+                                <p className="text-xs text-gray-400 mb-1">
+                                    Billing Start Date
+                                </p>
+                                <p className="text-sm text-gray-800 leading-relaxed">
+                                    {viewedSubscription.billing_start_date}
+                                </p>
+                            </div>
+                        )}
 
                         {viewedSubscription.description && (
                             <div className="bg-gray-50 rounded-lg p-3 mb-5">
