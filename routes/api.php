@@ -68,6 +68,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
     Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);
     Route::put('/payment-schedules/{schedule}/status', [PaymentScheduleController::class, 'updateStatus']);
+    Route::post('/payments/{paymentId}/schedules', [PaymentScheduleController::class, 'store']);
     Route::put('/official-receipts/{id}', [OfficialReceiptController::class, 'update']);
     Route::delete('/transactions/{transaction}', [PaymentTransactionController::class, 'destroy']);
     Route::get('/official-receipts/check-si', [OfficialReceiptController::class, 'checkServiceInvoiceNumber']);
@@ -89,6 +90,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])-
     Route::get('/company', [CompanyController::class, 'current']);
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
+    Route::get('/clients/{client}/projects/{projectId}', [ClientsProjectController::class, 'show']);
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::get('/projects/{project}', [ProjectController::class, 'show']);
     Route::get('/subscriptions', [SubscriptionController::class, 'index']);

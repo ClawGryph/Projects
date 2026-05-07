@@ -21,49 +21,6 @@ class ClientsProjectController extends Controller
         return app('company');
     }
 
-    /**
-     * Calculate base_amount, vat_amount, and total_amount for a single schedule row.
-     *
-     * vat_exclusive — price does NOT yet include VAT, add 12% on top:
-     *   base   = price
-     *   vat    = price × 0.12
-     *   total  = price × 1.12
-     *
-     * vat_inclusive — price ALREADY contains 12% VAT, back-calculate:
-     *   base   = price ÷ 1.12
-     *   vat    = price − (price ÷ 1.12)
-     *   total  = price          (unchanged)
-     *
-     * vat_exempt — no VAT at all:
-     *   base   = price
-     *   vat    = 0
-     *   total  = price
-     *
-     * @return array{base_amount: float, vat_amount: float, total_amount: float}
-     */
-    private function calcVat(float $price, string $vatType): array
-    {
-        return match ($vatType) {
-            'vat_exclusive' => [
-                'base_amount'  => $price,
-                'vat_amount'   => round($price * 0.12, 2),
-                'total_amount' => round($price * 1.12, 2),
-            ],
-            'vat_inclusive' => [
-                'base_amount'  => round($price / 1.12, 2),
-                'vat_amount'   => round($price - ($price / 1.12), 2),
-                'total_amount' => $price,
-            ],
-            default => [          // vat_exempt & vat_other
-                'base_amount'  => $price,
-                'vat_amount'   => 0,
-                'total_amount' => $price,
-            ],
-        };
-    }
-
-    // -------------------------------------------------------------------------
-
     public function index(Client $client)
     {
         abort_if($client->company_id !== $this->company()->id, 403);
@@ -86,8 +43,14 @@ class ClientsProjectController extends Controller
     {
         abort_if($client->company_id !== $this->company()->id, 403);
 
-        $project = $client->projects()->findOrFail($projectId);
-        return new ProjectResource($project);
+        $clientsProject = ClientsProject::with([
+            'project',
+            'subscription',
+            'payments',
+        ])->where('client_id', $client->id)
+        ->findOrFail($projectId);
+
+        return new ClientsProjectResource($clientsProject);
     }
 
     public function assignProject(Request $request, $clientId)

@@ -523,6 +523,8 @@ export default function Payments() {
                             <tbody>
                                 {filteredSchedules.length > 0 ? (
                                     filteredSchedules.map((p) => {
+                                        const isProject =
+                                            !!p.clientsProject?.project;
                                         const isPaid = p.status === "paid";
                                         const officialReceipt =
                                             p.transaction?.officialReceipt;
@@ -610,18 +612,15 @@ export default function Payments() {
                                                     )}
                                                     <div className="text-xs text-gray-500">
                                                         {formatPaymentType(
-                                                            p.clientsProject
-                                                                ?.payment
-                                                                ?.payment_type ===
-                                                                "recurring"
+                                                            isProject
                                                                 ? p
                                                                       .clientsProject
-                                                                      ?.payment
-                                                                      ?.recurring_type
+                                                                      ?.project
+                                                                      ?.payment_type
                                                                 : p
                                                                       .clientsProject
-                                                                      ?.payment
-                                                                      ?.payment_type,
+                                                                      ?.subscription
+                                                                      ?.frequency,
                                                         )}
                                                     </div>
                                                 </td>
