@@ -15,6 +15,8 @@ export default function ScheduleBilling() {
     const [assignData, setAssignData] = useState(null);
     const { setNotification } = useStateContext();
     const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
         axiosClient.get(`/clients/${id}`).then(({ data }) => {
@@ -26,6 +28,12 @@ export default function ScheduleBilling() {
             .then(({ data }) => {
                 setAssignData(data);
             });
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = () => setEditingId(null);
+        document.addEventListener("click", handleClickOutside);
+        return () => document.removeEventListener("click", handleClickOutside);
     }, []);
 
     const handleSaveSchedule = () => {
@@ -198,11 +206,35 @@ export default function ScheduleBilling() {
         );
     };
 
+    const handleAddRow = (index) => {
+        const ref = schedules[index];
+        const newRow = {
+            id: Date.now(),
+            due_date: ref.due_date,
+            start_coverage: ref.end_coverage,
+            end_coverage: ref.end_coverage,
+            rate: ref.rate,
+            base_amount: ref.base_amount,
+            vat_amount: ref.vat_amount,
+            gross_amount: ref.gross_amount,
+        };
+        setSchedules((prev) => [
+            ...prev.slice(0, index + 1),
+            newRow,
+            ...prev.slice(index + 1),
+        ]);
+    };
+
+    const handleDeleteRow = (index) => {
+        setSchedules((prev) => prev.filter((_, i) => i !== index));
+    };
+
     const fmt = (n) =>
         "₱" +
         new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(n);
 
     const tableHeaders = [
+        "No.",
         "Due Date",
         "Start Coverage",
         "End Coverage",
@@ -210,6 +242,7 @@ export default function ScheduleBilling() {
         "Base Amount",
         "VAT Amount",
         "Gross Amount",
+        "Action",
     ];
 
     return (
@@ -378,6 +411,9 @@ export default function ScheduleBilling() {
                                                 className="hover:bg-cyan-50 text-center"
                                             >
                                                 <td className="border-b border-gray-200 px-4 py-2">
+                                                    {index + 1}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
                                                         type="date"
                                                         value={s.due_date}
@@ -474,6 +510,105 @@ export default function ScheduleBilling() {
                                                         }
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                                     />
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    <div className="relative flex justify-center">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const rect =
+                                                                    e.currentTarget.getBoundingClientRect();
+                                                                const dropdownHeight = 65;
+                                                                const spaceBelow =
+                                                                    window.innerHeight -
+                                                                    rect.bottom;
+                                                                setDropdownPos({
+                                                                    top:
+                                                                        spaceBelow <
+                                                                        dropdownHeight
+                                                                            ? rect.top -
+                                                                              dropdownHeight
+                                                                            : rect.bottom,
+                                                                    left: rect.right,
+                                                                });
+                                                                setEditingId(
+                                                                    editingId ===
+                                                                        `action-${s.id}`
+                                                                        ? null
+                                                                        : `action-${s.id}`,
+                                                                );
+                                                            }}
+                                                            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
+                                                        >
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className="h-4 w-4"
+                                                                viewBox="0 0 24 24"
+                                                                fill="currentColor"
+                                                            >
+                                                                <circle
+                                                                    cx="12"
+                                                                    cy="5"
+                                                                    r="1.5"
+                                                                />
+                                                                <circle
+                                                                    cx="12"
+                                                                    cy="12"
+                                                                    r="1.5"
+                                                                />
+                                                                <circle
+                                                                    cx="12"
+                                                                    cy="19"
+                                                                    r="1.5"
+                                                                />
+                                                            </svg>
+                                                        </button>
+
+                                                        {editingId ===
+                                                            `action-${s.id}` && (
+                                                            <div
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                                style={{
+                                                                    position:
+                                                                        "fixed",
+                                                                    top: dropdownPos.top,
+                                                                    left: dropdownPos.left,
+                                                                    transform:
+                                                                        "translateX(-100%)",
+                                                                }}
+                                                                className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-md min-w-[130px]"
+                                                            >
+                                                                <button
+                                                                    onClick={() => {
+                                                                        handleAddRow(
+                                                                            index,
+                                                                        );
+                                                                        setEditingId(
+                                                                            null,
+                                                                        );
+                                                                    }}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                                                >
+                                                                    + Add Row
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        handleDeleteRow(
+                                                                            index,
+                                                                        );
+                                                                        setEditingId(
+                                                                            null,
+                                                                        );
+                                                                    }}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
