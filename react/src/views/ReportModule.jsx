@@ -51,7 +51,7 @@ function DrillDown({ quarter, rows, onClose }) {
     if (!rows) return null;
     return (
         <tr>
-            <td colSpan={7} className="p-0">
+            <td colSpan={9} className="p-0">
                 <div className="bg-cyan-50 dark:bg-cyan-950/30 border-t border-b border-cyan-200 dark:border-cyan-800 px-6 py-3 animate-fadeIn">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 uppercase tracking-widest">
@@ -87,7 +87,13 @@ function DrillDown({ quarter, rows, onClose }) {
                                     Expected
                                 </th>
                                 <th className="text-right py-1 pr-3 font-medium">
-                                    Paid
+                                    Gross Paid
+                                </th>
+                                <th className="text-right py-1 pr-3 font-medium">
+                                    WHT
+                                </th>
+                                <th className="text-right py-1 pr-3 font-medium">
+                                    Net Received
                                 </th>
                                 <th className="text-center py-1 pr-3 font-medium">
                                     O.R.
@@ -134,10 +140,18 @@ function DrillDown({ quarter, rows, onClose }) {
                                             : "—"}
                                     </td>
                                     <td className="py-1.5 pr-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
-                                        {php(s.expected_amount)}
+                                        {php(s.total_amount)}
                                     </td>
-                                    <td className="py-1.5 pr-3 text-right font-semibold text-gray-800 dark:text-white tabular-nums">
-                                        {php(s.transaction?.amount_paid)}
+                                    <td className="py-1.5 pr-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
+                                        {php(s.transaction?.gross_amount)}
+                                    </td>
+                                    <td className="py-1.5 pr-3 text-right text-red-500 tabular-nums">
+                                        {s.transaction?.wh_tax > 0
+                                            ? `- ${php(s.transaction.wh_tax)}`
+                                            : "—"}
+                                    </td>
+                                    <td className="py-1.5 pr-3 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                        {php(s.transaction?.net_amount)}
                                     </td>
                                     <td className="py-1.5 pr-3 text-center">
                                         {!!s.is_or_issued ? (
@@ -177,7 +191,7 @@ export default function ReportModule() {
     const [loading, setLoading] = useState(false);
     const [expandedQ, setExpandedQ] = useState(null);
     const [filters, setFilters] = useState({
-        year: String(new Date().getFullYear()), //Default to current year
+        year: String(new Date().getFullYear()),
         quarter: "All",
         client: "All",
         serviceType: "All",
@@ -193,13 +207,17 @@ export default function ReportModule() {
                 setSchedules(
                     items.map((s) => ({
                         ...s,
-                        expected_amount: parseFloat(s.expected_amount || 0),
+                        total_amount: parseFloat(s.total_amount || 0),
                         transaction: s.transaction
                             ? {
                                   ...s.transaction,
-                                  amount_paid: parseFloat(
-                                      s.transaction.amount_paid || 0,
+                                  gross_amount: parseFloat(
+                                      s.transaction.gross_amount || 0,
                                   ),
+                                  net_amount: parseFloat(
+                                      s.transaction.net_amount || 0,
+                                  ),
+                                  wh_tax: parseFloat(s.transaction.wh_tax || 0),
                               }
                             : null,
                     })),
@@ -209,13 +227,11 @@ export default function ReportModule() {
             .finally(() => setLoading(false));
     }, []);
 
-    // Schedules that have been paid
     const paidSchedules = useMemo(
         () => schedules.filter((s) => s.transaction?.paid_at),
         [schedules],
     );
 
-    // Filter options derived from ALL paid schedules (not affected by current filter)
     const allYears = useMemo(
         () =>
             unique(
@@ -223,6 +239,7 @@ export default function ReportModule() {
             ).reverse(),
         [paidSchedules],
     );
+
     const allClients = useMemo(
         () =>
             unique(
@@ -232,6 +249,7 @@ export default function ReportModule() {
             ),
         [paidSchedules],
     );
+
     const allServices = useMemo(
         () =>
             unique(
@@ -253,7 +271,6 @@ export default function ReportModule() {
         [paidSchedules, filters.serviceType],
     );
 
-    // Filtered paid schedules
     const filtered = useMemo(() => {
         return paidSchedules
             .filter((s) => {
@@ -303,11 +320,12 @@ export default function ReportModule() {
         return g;
     }, [filtered]);
 
-    // Grand totals
-    const grandPaid = filtered.reduce(
-        (s, r) => s + r.transaction.amount_paid,
+    const grandGross = filtered.reduce(
+        (s, r) => s + r.transaction.gross_amount,
         0,
     );
+    const grandWht = filtered.reduce((s, r) => s + r.transaction.wh_tax, 0);
+    const grandNet = filtered.reduce((s, r) => s + r.transaction.net_amount, 0);
 
     const set = (key, val) => setFilters((f) => ({ ...f, [key]: val }));
     const clearFilters = () =>
@@ -423,10 +441,16 @@ export default function ReportModule() {
                                     Period
                                 </th>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
-                                    Payment Schedules
+                                    Schedules
                                 </th>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-right uppercase tracking-wider">
-                                    Total Paid
+                                    Gross Paid
+                                </th>
+                                <th className="px-4 py-2.5 text-white text-xs font-semibold text-right uppercase tracking-wider">
+                                    WHT
+                                </th>
+                                <th className="px-4 py-2.5 text-white text-xs font-semibold text-right uppercase tracking-wider">
+                                    Net Received
                                 </th>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
                                     O.R.
@@ -440,12 +464,11 @@ export default function ReportModule() {
                         {loading && (
                             <tbody>
                                 <tr>
-                                    <td colSpan={7}>
-                                        <div className="flex flex-col items-center gap-2">
-                                            <span className="text-sm">
-                                                Loading...
-                                            </span>
-                                        </div>
+                                    <td
+                                        colSpan={9}
+                                        className="text-center py-4"
+                                    >
+                                        Loading...
                                     </td>
                                 </tr>
                             </tbody>
@@ -456,7 +479,7 @@ export default function ReportModule() {
                                 {filtered.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={9}
                                             className="text-center py-12 text-gray-400 dark:text-gray-500"
                                         >
                                             No paid transactions match the
@@ -469,10 +492,21 @@ export default function ReportModule() {
                                             const rows = grouped[q];
                                             if (!rows.length) return null;
 
-                                            const totalPaid = rows.reduce(
+                                            const totalGross = rows.reduce(
                                                 (s, r) =>
                                                     s +
-                                                    r.transaction.amount_paid,
+                                                    r.transaction.gross_amount,
+                                                0,
+                                            );
+                                            const totalWht = rows.reduce(
+                                                (s, r) =>
+                                                    s + r.transaction.wh_tax,
+                                                0,
+                                            );
+                                            const totalNet = rows.reduce(
+                                                (s, r) =>
+                                                    s +
+                                                    r.transaction.net_amount,
                                                 0,
                                             );
                                             const withOR = rows.filter(
@@ -493,7 +527,6 @@ export default function ReportModule() {
                                                         className={`border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors
                                                             ${isExpanded ? "bg-cyan-50 dark:bg-cyan-950/20" : qi % 2 === 1 ? "bg-gray-50 dark:bg-gray-800/40 hover:bg-cyan-50 dark:hover:bg-cyan-950/20" : "bg-white dark:bg-gray-900 hover:bg-cyan-50 dark:hover:bg-cyan-950/20"}`}
                                                     >
-                                                        {/* Expand toggle */}
                                                         <td className="px-3 py-3 text-center">
                                                             <span
                                                                 className={`text-gray-400 text-xs transition-transform inline-block ${isExpanded ? "rotate-90" : ""}`}
@@ -511,7 +544,15 @@ export default function ReportModule() {
                                                             {rows.length}
                                                         </td>
                                                         <td className="px-4 py-3 text-right font-semibold text-gray-800 dark:text-white tabular-nums">
-                                                            {php(totalPaid)}
+                                                            {php(totalGross)}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right text-red-500 tabular-nums">
+                                                            {totalWht > 0
+                                                                ? `- ${php(totalWht)}`
+                                                                : "—"}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                                            {php(totalNet)}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
                                                             <Badge
@@ -539,7 +580,6 @@ export default function ReportModule() {
                                                         </td>
                                                     </tr>
 
-                                                    {/* Drill-down */}
                                                     {isExpanded && (
                                                         <DrillDown
                                                             quarter={q}
@@ -568,7 +608,15 @@ export default function ReportModule() {
                                                 {filtered.length}
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white tabular-nums">
-                                                {php(grandPaid)}
+                                                {php(grandGross)}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold text-red-500 tabular-nums">
+                                                {grandWht > 0
+                                                    ? `- ${php(grandWht)}`
+                                                    : "—"}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                                {php(grandNet)}
                                             </td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
                                                 {

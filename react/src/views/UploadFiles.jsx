@@ -295,11 +295,7 @@ export default function UploadFiles() {
                                                 ? "uploaded"
                                                 : "pending";
                                         const paymentType =
-                                            t.payment?.payment_type ===
-                                            "recurring"
-                                                ? t.payment?.recurring_type
-                                                : t.payment?.payment_type;
-
+                                            t.payment?.payment_type;
                                         return (
                                             <tr
                                                 key={t.id}
@@ -341,10 +337,7 @@ export default function UploadFiles() {
                                                         ₱
                                                         {new Intl.NumberFormat(
                                                             "en-PH",
-                                                        ).format(
-                                                            t.payment
-                                                                ?.expected_amount,
-                                                        )}
+                                                        ).format(t.net_amount)}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
                                                         {formatPaymentType(
