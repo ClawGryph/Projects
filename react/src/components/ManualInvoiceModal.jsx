@@ -17,32 +17,42 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
     if (!payment) return null;
 
     const client = payment.clientsProject?.client ?? {};
-    const project =
-        payment.clientsProject?.project ??
-        payment.clientsProject?.subscription ??
-        {};
+    const isProject = !!payment.clientsProject?.project;
+    const project = isProject
+        ? payment.clientsProject?.project
+        : payment.clientsProject?.subscription;
     const paymentInfo = payment.clientsProject?.payment ?? {};
     const invoiceNumber = payment.invoice_number;
-    const vatType = payment.clientsProject?.vat_type ?? "vat_exempt";
+    const vatType = isProject
+        ? (payment.clientsProject?.project?.vat_type ?? "vat_exempt")
+        : (payment.clientsProject?.subscription?.vat_type ?? "vat_exempt");
     const isVatExclusive = vatType === "vat_exclusive";
     const isVatInclusive = vatType === "vat_inclusive";
     const isVatable = isVatExclusive || isVatInclusive;
 
     // Payment term label
     const getTerms = () => {
-        const type = paymentInfo.payment_type;
+        const type = isProject
+            ? payment.clientsProject?.project?.payment_type
+            : payment.clientsProject?.subscription?.frequency;
         const total = payment.total_schedules ?? paymentInfo.number_of_cycles;
         const index = payment.schedule_index ?? "?";
+
         if (type === "one_time") return "One Time";
-        if (type === "recurring") {
-            const r = paymentInfo.recurring_type;
-            const label = r
-                ? r.charAt(0).toUpperCase() + r.slice(1)
-                : "Recurring";
-            return total > 1 ? `${label} ${index}/${total}` : label;
-        }
         if (type === "installment") {
             return total ? `Installment ${index}/${total}` : "Installment";
+        }
+
+        const frequencyLabels = {
+            monthly: "Monthly",
+            yearly: "Yearly",
+            quarterly: "Quarterly",
+            half_yearly: "Semi-Annual",
+        };
+
+        if (frequencyLabels[type]) {
+            const label = frequencyLabels[type];
+            return total > 1 ? `${label} ${index}/${total}` : label;
         }
         return "";
     };

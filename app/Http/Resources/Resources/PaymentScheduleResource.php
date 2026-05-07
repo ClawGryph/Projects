@@ -40,20 +40,23 @@ class PaymentScheduleResource extends JsonResource
 
         'clientsProject' => $clientsProject ? [
             'id'           => $clientsProject->id,
-            'vat_type'     => $clientsProject->vat_type,
+            'vat_type' => $project?->vat_type ?? $subscription?->vat_type ?? 'vat_exempt',
             'project'      => $project ? [
                 'id'    => $project->id,
                 'title' => $project->title,
                 'payment_type'   => $project->payment_type,
+                'vat_type' => $project->vat_type,
             ] : null,
             'subscription' => $subscription ? [
                 'id'    => $subscription->id,
                 'title' => $subscription->title,
                 'frequency'   => $subscription->frequency,
+                'vat_type' => $subscription->vat_type,
             ] : null,
             'client' => $client ? [
                 'id'           => $client->id,
                 'name'         => $client->name,
+                'company_address' => $client->company_address,
                 'company_type' => $client->clientCompanyType?->name ?? null,
             ] : null,
             'payment' => $payment ? [

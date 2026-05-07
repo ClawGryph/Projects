@@ -7,7 +7,6 @@ use App\Http\Resources\Resources\PaymentScheduleResource;
 use App\Models\ManualInvoice;
 use App\Models\PaymentSchedule;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class PaymentScheduleController extends Controller
 {
@@ -44,7 +43,6 @@ class PaymentScheduleController extends Controller
 
         $schedules = $query->get();
 
-        // Fetch ALL schedules for the involved payment_ids (ignoring filters)
         $paymentIds = $schedules->pluck('payment_id')->unique();
 
         $allSchedules = PaymentSchedule::whereIn('payment_id', $paymentIds)
@@ -52,7 +50,6 @@ class PaymentScheduleController extends Controller
             ->get()
             ->groupBy('payment_id');
 
-        // Attach schedule_index and total_schedules to each result
         $schedules->each(function ($schedule) use ($allSchedules) {
             $group = $allSchedules->get($schedule->payment_id, collect());
             $schedule->schedule_index = $group->search(fn($s) => $s->id === $schedule->id) + 1;
@@ -63,62 +60,62 @@ class PaymentScheduleController extends Controller
     }
 
     public function store(Request $request, $paymentId)
-{
-    $payment = \App\Models\Payment::select('id', 'company_id', 'clients_project_id')
-        ->findOrFail($paymentId);
+    {
+        $payment = \App\Models\Payment::select('id', 'company_id', 'clients_project_id')
+            ->findOrFail($paymentId);
 
-    abort_if($payment->company_id !== $this->company()->id, 403);
+        abort_if($payment->company_id !== $this->company()->id, 403);
 
-    $data = $request->validate([
-        'schedules'                  => 'required|array|min:1',
-        'schedules.*.due_date'       => 'required|date',
-        'schedules.*.start_coverage' => 'required|date',
-        'schedules.*.end_coverage'   => 'required|date',
-        'schedules.*.payment_rate'   => 'required|numeric|min:0',
-        'schedules.*.base_amount'    => 'required|numeric|min:0',
-        'schedules.*.vat_amount'     => 'required|numeric|min:0',
-        'schedules.*.total_amount'   => 'required|numeric|min:0',
-    ]);
+        $data = $request->validate([
+            'schedules'                  => 'required|array|min:1',
+            'schedules.*.due_date'       => 'required|date',
+            'schedules.*.start_coverage' => 'required|date',
+            'schedules.*.end_coverage'   => 'required|date',
+            'schedules.*.payment_rate'   => 'required|numeric|min:0',
+            'schedules.*.base_amount'    => 'required|numeric|min:0',
+            'schedules.*.vat_amount'     => 'required|numeric|min:0',
+            'schedules.*.total_amount'   => 'required|numeric|min:0',
+        ]);
 
-    if (\App\Models\PaymentSchedule::where('payment_id', $payment->id)->exists()) {
-        return response()->json([
-            'message' => 'Schedules already generated for this payment.'
-        ], 422);
+        if (\App\Models\PaymentSchedule::where('payment_id', $payment->id)->exists()) {
+            return response()->json([
+                'message' => 'Schedules already generated for this payment.'
+            ], 422);
+        }
+
+        $clientsProject = \App\Models\ClientsProject::select('id', 'client_id', 'project_id', 'subscription_id')
+            ->findOrFail($payment->clients_project_id);
+
+        $clientId       = $clientsProject->client_id;
+        $serviceSegment = $clientsProject->project_id
+            ? "P{$clientsProject->project_id}"
+            : "S{$clientsProject->subscription_id}";
+
+        $schedules = collect($data['schedules'])->map(function ($s, $index) use ($payment, $clientId, $serviceSegment) {
+            $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+
+            return [
+                'payment_id'         => $payment->id,
+                'due_date'           => $s['due_date'],
+                'start_coverage'     => $s['start_coverage'],
+                'end_coverage'       => $s['end_coverage'],
+                'payment_rate'       => $s['payment_rate'],
+                'base_amount'        => $s['base_amount'],
+                'vat_amount'         => $s['vat_amount'],
+                'total_amount'       => $s['total_amount'],
+                'status'             => 'pending',
+                'invoice_number'     => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
+                'is_or_issued'       => false,
+                'is_form2307_issued' => false,
+                'created_at'         => now(),
+                'updated_at'         => now(),
+            ];
+        });
+
+        \App\Models\PaymentSchedule::insert($schedules->toArray());
+
+        return response()->json(['message' => 'Billing schedule saved successfully.']);
     }
-
-    $clientsProject = \App\Models\ClientsProject::select('id', 'client_id', 'project_id', 'subscription_id')
-        ->findOrFail($payment->clients_project_id);
-
-    $clientId       = $clientsProject->client_id;
-    $serviceSegment = $clientsProject->project_id
-        ? "P{$clientsProject->project_id}"
-        : "S{$clientsProject->subscription_id}";
-
-    $schedules = collect($data['schedules'])->map(function ($s, $index) use ($payment, $clientId, $serviceSegment) {
-        $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-
-        return [
-            'payment_id'         => $payment->id,
-            'due_date'           => $s['due_date'],
-            'start_coverage'     => $s['start_coverage'],
-            'end_coverage'       => $s['end_coverage'],
-            'payment_rate'       => $s['payment_rate'],
-            'base_amount'        => $s['base_amount'],
-            'vat_amount'         => $s['vat_amount'],
-            'total_amount'       => $s['total_amount'],
-            'status'             => 'pending',
-            'invoice_number'     => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
-            'is_or_issued'       => false,
-            'is_form2307_issued' => false,
-            'created_at'         => now(),
-            'updated_at'         => now(),
-        ];
-    });
-
-    \App\Models\PaymentSchedule::insert($schedules->toArray());
-
-    return response()->json(['message' => 'Billing schedule saved successfully.']);
-}
 
     public function updateStatus(Request $request, PaymentSchedule $schedule)
     {
@@ -138,7 +135,7 @@ class PaymentScheduleController extends Controller
             if ($subscription) {
                 $paidCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
                     $q->where('client_id', $clientsProject->client_id)
-                    ->where('subscription_id', $clientsProject->subscription_id);
+                      ->where('subscription_id', $clientsProject->subscription_id);
                 })
                 ->where('status', 'paid')
                 ->count();
@@ -167,12 +164,10 @@ class PaymentScheduleController extends Controller
         if ($request->status === 'paid' && !$schedule->transaction()->exists()) {
             $baseGross = $request->amount_paid ?? $schedule->total_amount;
 
-            // ── WITHHOLDING TAX CALCULATION ───────────────────────────────────
             $clientsProject = $schedule->payment->clientsProject;
             $vatType        = $clientsProject?->vat_type;
             $whTax          = (float) ($request->wh_tax ?? 0);
 
-            // ── MANUAL INVOICE ADDITIONAL ITEMS ──────────────────────────────
             $manualInvoice   = ManualInvoice::where('payment_schedule_id', $schedule->id)->first();
             $additionalTotal = 0;
             $additionalBase  = 0;
@@ -187,7 +182,6 @@ class PaymentScheduleController extends Controller
                 }
             }
 
-            // Apply withholding rate to additional items too
             if ($vatType !== 'vat_other' && $additionalBase > 0) {
                 $withholdingRate = $whTax > 0
                     ? $whTax / ($schedule->base_amount ?: 1)
@@ -205,63 +199,10 @@ class PaymentScheduleController extends Controller
                 'net_amount'   => $netAmount,
                 'paid_at'      => now(),
             ]);
-
-            // ── AUTO-CREATE NEXT SCHEDULE FOR SUBSCRIPTIONS ───────────────────
-            $subscription = $clientsProject?->subscription;
-
-            if ($subscription) {
-                $hasNextSchedule = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
-                    $q->where('client_id', $clientsProject->client_id)
-                    ->where('subscription_id', $clientsProject->subscription_id);
-                })
-                ->where('status', 'pending')
-                ->where('due_date', '>', $schedule->due_date)
-                ->exists();
-
-                if (!$hasNextSchedule) {
-                    $endCoverage = $subscription->adjusted_end_coverage
-                        ? \Illuminate\Support\Carbon::parse($subscription->adjusted_end_coverage)
-                        : ($subscription->end_coverage
-                            ? \Illuminate\Support\Carbon::parse($subscription->end_coverage)
-                            : null);
-
-                    $recurringType = $schedule->payment->recurring_type ?? 'monthly';
-
-                    $nextDueDate = $endCoverage
-                        ? $endCoverage->copy()->addDay()
-                        : match ($recurringType) {
-                            'weekly' => Carbon::parse($schedule->due_date)->addWeek(),
-                            'yearly' => Carbon::parse($schedule->due_date)->addYear(),
-                            default  => Carbon::parse($schedule->due_date)->addMonth(),
-                        };
-
-                    $existingCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
-                        $q->where('client_id', $clientsProject->client_id)
-                        ->where('subscription_id', $clientsProject->subscription_id);
-                    })->count();
-
-                    $clientId      = $clientsProject->client_id;
-                    $serviceSegment = "S{$clientsProject->subscription_id}";
-                    $invoiceNumber  = "C{$clientId}{$serviceSegment}-" . str_pad($existingCount + 1, 3, '0', STR_PAD_LEFT);
-
-                    PaymentSchedule::create([
-                        'payment_id'         => $schedule->payment_id,
-                        'due_date'           => $nextDueDate->format('Y-m-d'),
-                        'payment_rate'       => 0,
-                        'base_amount'        => $schedule->base_amount,
-                        'vat_amount'         => $schedule->vat_amount,
-                        'total_amount'       => $schedule->total_amount,
-                        'status'             => 'pending',
-                        'is_or_issued'       => false,
-                        'is_form2307_issued' => false,
-                        'invoice_number'     => $invoiceNumber,
-                    ]);
-                }
-            }
         }
 
         return response()->json([
-    'message' => 'Payment schedule status updated successfully',
-]);
+            'message' => 'Payment schedule status updated successfully',
+        ]);
     }
 }
