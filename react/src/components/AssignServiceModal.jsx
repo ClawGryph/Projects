@@ -3,6 +3,7 @@ import axiosClient from "../axios-client.js";
 import { useStateContext } from "../context/ContextProvider.jsx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { calcVat } from "../utils/vatCalculator";
 
 /**
  * AssignServiceModal
@@ -337,11 +338,17 @@ export default function PaymentModal({
                     project_id: selectedService,
                     client_id: clientId,
                     number_of_cycles: numberOfCycles,
+                    total_cost: calcVat(basePrice, vatType).total_amount,
                 }
               : {
                     subscription_id: selectedService,
                     client_id: clientId,
                     number_of_cycles: numberOfCycles,
+                    total_cost:
+                        numberOfCycles !== "—"
+                            ? calcVat(basePrice * numberOfCycles, vatType)
+                                  .total_amount
+                            : 0,
                     ...(renewData && {
                         is_renewal: true,
                         adjusted_start_coverage: adjustedStartCoverage || null,
@@ -525,6 +532,18 @@ export default function PaymentModal({
                                         : String(numberOfCycles)
                                 }
                             />
+
+                            {!isProject && numberOfCycles !== "—" && (
+                                <ReadonlyInput
+                                    label="Expected Gross Amount"
+                                    value={fmt(
+                                        calcVat(
+                                            basePrice * numberOfCycles,
+                                            vatType,
+                                        ).total_amount,
+                                    )}
+                                />
+                            )}
 
                             {/* ── CR NO. (subscription renew only) ─── */}
                             {!isProject && renewData && !editData && (

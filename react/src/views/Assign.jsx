@@ -285,7 +285,8 @@ export default function Assign() {
                                                     {new Intl.NumberFormat(
                                                         "en-PH",
                                                     ).format(
-                                                        a.final_price ?? 0,
+                                                        a.payment?.total_cost ??
+                                                            0,
                                                     )}
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">

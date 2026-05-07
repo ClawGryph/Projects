@@ -66,6 +66,7 @@ class ClientsProjectController extends Controller
             'adjusted_end_coverage'   => 'nullable|date',
             'cr_no'                   => 'nullable|string',
             'is_renewal'              => 'nullable|boolean',
+            'total_cost'              => 'nullable|numeric|min:0',
         ]);
 
         $project      = isset($data['project_id'])      ? Project::findOrFail($data['project_id'])           : null;
@@ -170,6 +171,7 @@ class ClientsProjectController extends Controller
             'company_id'         => $this->company()->id,
             'clients_project_id' => $clientsProject->id,
             'number_of_cycles'   => $data['number_of_cycles'] ?? 0,
+            'total_cost'         => $data['total_cost'] ?? 0,
         ]);
 
         return response()->json(['message' => 'Project assigned with payment successfully']);
