@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -553,10 +554,15 @@ export default function Payments() {
                                                     {p.due_date || "-"}
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
-                                                    {
-                                                        p.clientsProject?.client
-                                                            ?.name
-                                                    }
+                                                    <Link
+                                                        to={`/clients/assign/${p.clientsProject?.client?.id}`}
+                                                        className="text-cyan-700 hover:underline font-medium"
+                                                    >
+                                                        {
+                                                            p.clientsProject
+                                                                ?.client?.name
+                                                        }
+                                                    </Link>
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     {p.clientsProject

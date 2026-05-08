@@ -62,7 +62,6 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
     const billName = client.name ?? "";
     const billCompany = client.company_name ?? "";
     const billAddress = client.company_address ?? "";
-    const billType = client.company_type ?? "";
     const clientType = client.company_type ?? "";
     const annualGross = parseFloat(company?.annual_gross) || 0;
 
@@ -643,30 +642,7 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
                                         )}
                                     </p>
                                 </div>
-                                <div>
-                                    <div
-                                        style={{
-                                            background: "#2980b9",
-                                            color: "#fff",
-                                            padding: "5px 14px",
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            letterSpacing: 1.5,
-                                            display: "inline-block",
-                                            marginBottom: 8,
-                                        }}
-                                    >
-                                        Company Type
-                                    </div>
-                                    <p
-                                        style={{
-                                            fontSize: 13,
-                                            lineHeight: 1.8,
-                                        }}
-                                    >
-                                        {client.company_type || ""}
-                                    </p>
-                                </div>
+
                                 <div style={{ textAlign: "right" }}>
                                     <div
                                         style={{

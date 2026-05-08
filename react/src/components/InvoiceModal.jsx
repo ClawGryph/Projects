@@ -333,25 +333,7 @@ export default function InvoiceModal({
                                     {client.company_address || ""}
                                 </p>
                             </div>
-                            <div>
-                                <div
-                                    style={{
-                                        background: "#2980b9",
-                                        color: "#fff",
-                                        padding: "5px 14px",
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        letterSpacing: 1.5,
-                                        display: "inline-block",
-                                        marginBottom: 8,
-                                    }}
-                                >
-                                    Company Type
-                                </div>
-                                <p style={{ fontSize: 13, lineHeight: 1.8 }}>
-                                    {client.company_type || ""}
-                                </p>
-                            </div>
+
                             <div style={{ textAlign: "right" }}>
                                 <div
                                     style={{
