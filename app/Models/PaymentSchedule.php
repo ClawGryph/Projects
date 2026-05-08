@@ -17,6 +17,7 @@ class PaymentSchedule extends Model
         'invoice_number',
         'is_or_issued',
         'is_form2307_issued',
+        'is_invoice_generated',
         'start_coverage',
         'end_coverage',
     ];

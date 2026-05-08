@@ -132,12 +132,25 @@ class PaymentController extends Controller
             }
         }
 
-    $payment->save();
+        $payment->save();
 
-    return response()->json([
-        'message' => 'Payment status updated',
-        'payment' => new PaymentResource($payment),
-    ]);
-}
+        return response()->json([
+            'message' => 'Payment status updated',
+            'payment' => new PaymentResource($payment),
+        ]);
+    }
+
+    public function updateCycles(Request $request, \App\Models\Payment $payment)
+    {
+        abort_if($payment->company_id !== $this->company()->id, 403);
+
+        $request->validate([
+            'number_of_cycles' => 'required|integer|min:1',
+        ]);
+
+        $payment->update(['number_of_cycles' => $request->number_of_cycles]);
+
+        return response()->json(['message' => 'Payment cycles updated.']);
+    }
 
 }

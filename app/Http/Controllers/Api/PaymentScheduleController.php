@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Resources\PaymentScheduleResource;
+use App\Models\ClientsProject;
 use App\Models\ManualInvoice;
+use App\Models\Payment;
 use App\Models\PaymentSchedule;
 use Illuminate\Http\Request;
 
@@ -61,7 +63,7 @@ class PaymentScheduleController extends Controller
 
     public function store(Request $request, $paymentId)
     {
-        $payment = \App\Models\Payment::select('id', 'company_id', 'clients_project_id')
+        $payment = Payment::select('id', 'company_id', 'clients_project_id')
             ->findOrFail($paymentId);
 
         abort_if($payment->company_id !== $this->company()->id, 403);
@@ -77,13 +79,13 @@ class PaymentScheduleController extends Controller
             'schedules.*.total_amount'   => 'required|numeric|min:0',
         ]);
 
-        if (\App\Models\PaymentSchedule::where('payment_id', $payment->id)->exists()) {
+        if (PaymentSchedule::where('payment_id', $payment->id)->exists()) {
             return response()->json([
                 'message' => 'Schedules already generated for this payment.'
             ], 422);
         }
 
-        $clientsProject = \App\Models\ClientsProject::select('id', 'client_id', 'project_id', 'subscription_id')
+        $clientsProject = ClientsProject::select('id', 'client_id', 'project_id', 'subscription_id')
             ->findOrFail($payment->clients_project_id);
 
         $clientId       = $clientsProject->client_id;
@@ -107,12 +109,13 @@ class PaymentScheduleController extends Controller
                 'invoice_number'     => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
                 'is_or_issued'       => false,
                 'is_form2307_issued' => false,
+                'is_invoice_generated' => false,
                 'created_at'         => now(),
                 'updated_at'         => now(),
             ];
         });
 
-        \App\Models\PaymentSchedule::insert($schedules->toArray());
+        PaymentSchedule::insert($schedules->toArray());
 
         return response()->json(['message' => 'Billing schedule saved successfully.']);
     }
@@ -204,5 +207,107 @@ class PaymentScheduleController extends Controller
         return response()->json([
             'message' => 'Payment schedule status updated successfully',
         ]);
+    }
+
+    public function getByPayment($paymentId)
+    {
+        $payment = Payment::findOrFail($paymentId);
+        abort_if($payment->company_id !== $this->company()->id, 403);
+
+        $schedules = PaymentSchedule::where('payment_id', $paymentId)
+            ->orderBy('due_date', 'asc')
+            ->get();
+
+        return PaymentScheduleResource::collection($schedules);
+    }
+
+    public function updateSchedules(Request $request, $paymentId)
+    {
+        $payment = Payment::with('clientsProject')->findOrFail($paymentId);
+        abort_if($payment->company_id !== $this->company()->id, 403);
+
+        $data = $request->validate([
+            'schedules'                  => 'required|array|min:1',
+            'schedules.*.id'             => 'nullable|integer',
+            'schedules.*.due_date'       => 'required|date',
+            'schedules.*.start_coverage' => 'required|date',
+            'schedules.*.end_coverage'   => 'required|date',
+            'schedules.*.payment_rate'   => 'required|numeric|min:0',
+            'schedules.*.base_amount'    => 'required|numeric|min:0',
+            'schedules.*.vat_amount'     => 'required|numeric|min:0',
+            'schedules.*.total_amount'   => 'required|numeric|min:0',
+        ]);
+
+        // Delete rows removed by the user
+        $incomingIds = collect($data['schedules'])->pluck('id')->filter()->toArray();
+        PaymentSchedule::where('payment_id', $paymentId)
+            ->whereNotIn('id', $incomingIds)
+            ->delete();
+
+        foreach ($data['schedules'] as $s) {
+            if (!empty($s['id'])) {
+                // Update existing row
+                PaymentSchedule::where('id', $s['id'])
+                    ->where('payment_id', $paymentId)
+                    ->update([
+                        'due_date'       => $s['due_date'],
+                        'start_coverage' => $s['start_coverage'],
+                        'end_coverage'   => $s['end_coverage'],
+                        'payment_rate'   => $s['payment_rate'],
+                        'base_amount'    => $s['base_amount'],
+                        'vat_amount'     => $s['vat_amount'],
+                        'total_amount'   => $s['total_amount'],
+                        'updated_at'     => now(),
+                    ]);
+            } else {
+                // Insert new row — no invoice_number yet, assigned on generateInvoice
+                PaymentSchedule::create([
+                    'payment_id'           => $paymentId,
+                    'due_date'             => $s['due_date'],
+                    'start_coverage'       => $s['start_coverage'],
+                    'end_coverage'         => $s['end_coverage'],
+                    'payment_rate'         => $s['payment_rate'],
+                    'base_amount'          => $s['base_amount'],
+                    'vat_amount'           => $s['vat_amount'],
+                    'total_amount'         => $s['total_amount'],
+                    'status'               => 'pending',
+                    'is_or_issued'         => false,
+                    'is_form2307_issued'   => false,
+                    'is_invoice_generated' => false,
+                ]);
+            }
+        }
+
+        return response()->json(['message' => 'Schedules updated successfully.']);
+    }
+
+    public function generateInvoice($paymentId)
+    {
+        $payment = Payment::with('clientsProject')->findOrFail($paymentId);
+        abort_if($payment->company_id !== $this->company()->id, 403);
+
+        $clientId = $payment->clientsProject->client_id;
+        $serviceSegment = $payment->clientsProject->project_id
+            ? "P{$payment->clientsProject->project_id}"
+            : "S{$payment->clientsProject->subscription_id}";
+
+        $schedules = PaymentSchedule::where('payment_id', $paymentId)
+            ->orderBy('due_date', 'asc')
+            ->get();
+
+        foreach ($schedules as $index => $schedule) {
+            $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+
+            $schedule->is_invoice_generated = true;
+
+            // Only assign invoice_number if not yet set
+            if (empty($schedule->invoice_number)) {
+                $schedule->invoice_number = "C{$clientId}{$serviceSegment}-{$formattedIndex}";
+            }
+
+            $schedule->save();
+        }
+
+        return response()->json(['message' => 'Invoice generated successfully.']);
     }
 }

@@ -18,6 +18,7 @@ export default function ScheduleBilling() {
     const [editingId, setEditingId] = useState(null);
     const [pendingRowIndex, setPendingRowIndex] = useState(null);
     const [showExceedModal, setShowExceedModal] = useState(false);
+    const [hasChanges, setHasChanges] = useState(false);
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
@@ -29,6 +30,34 @@ export default function ScheduleBilling() {
             .get(`/clients/${id}/projects/${clientsProjectId}`)
             .then(({ data }) => {
                 setAssignData(data);
+
+                // check if schedules already exist for this payment
+                const paymentId = data?.payment?.id;
+                if (paymentId) {
+                    axiosClient
+                        .get(`/payments/${paymentId}/schedules`)
+                        .then(({ data: scheduleData }) => {
+                            const existing = scheduleData.data ?? scheduleData;
+                            if (existing.length > 0) {
+                                // map API response back to the local schedule shape
+                                setSchedules(
+                                    existing.map((s) => ({
+                                        id: s.id,
+                                        due_date: s.due_date,
+                                        start_coverage: s.start_coverage,
+                                        end_coverage: s.end_coverage,
+                                        rate: s.payment_rate,
+                                        base_amount: s.base_amount,
+                                        vat_amount: s.vat_amount,
+                                        gross_amount: s.total_amount,
+                                    })),
+                                );
+                                setGenerated(true); // skip the generate button
+                                setHasChanges(false);
+                            }
+                        })
+                        .catch(() => {}); // silently ignore if no schedules yet
+                }
             });
     }, []);
 
@@ -68,6 +97,70 @@ export default function ScheduleBilling() {
             .finally(() => setSaving(false));
     };
 
+    const handleSaveChanges = () => {
+        setSaving(true);
+        const paymentId = assignData.payment.id;
+        const payload = {
+            schedules: schedules.map((s) => ({
+                id: s.id ?? null,
+                due_date: s.due_date,
+                start_coverage: s.start_coverage,
+                end_coverage: s.end_coverage,
+                payment_rate: s.rate,
+                base_amount: s.base_amount,
+                vat_amount: s.vat_amount,
+                total_amount: s.gross_amount,
+            })),
+        };
+
+        axiosClient
+            .put(`/payments/${paymentId}/schedules`, payload)
+            .then(() => {
+                setNotification("Schedule updated successfully.");
+                // Re-fetch to sync real DB ids
+                return axiosClient.get(`/payments/${paymentId}/schedules`);
+            })
+            .then(({ data }) => {
+                const existing = data.data ?? data;
+                setSchedules(
+                    existing.map((s) => ({
+                        id: s.id,
+                        due_date: s.due_date,
+                        start_coverage: s.start_coverage,
+                        end_coverage: s.end_coverage,
+                        rate: s.payment_rate,
+                        base_amount: s.base_amount,
+                        vat_amount: s.vat_amount,
+                        gross_amount: s.total_amount,
+                    })),
+                );
+                setHasChanges(false);
+            })
+            .catch((err) => {
+                const msg =
+                    err.response?.data?.message ?? "Something went wrong.";
+                setNotification(msg);
+            })
+            .finally(() => setSaving(false));
+    };
+
+    const handleGenerateInvoice = () => {
+        setSaving(true);
+        const paymentId = assignData.payment.id;
+
+        axiosClient
+            .post(`/payments/${paymentId}/schedules/generate-invoice`)
+            .then(() => {
+                setNotification("Invoice generated successfully.");
+            })
+            .catch((err) => {
+                const msg =
+                    err.response?.data?.message ?? "Something went wrong.";
+                setNotification(msg);
+            })
+            .finally(() => setSaving(false));
+    };
+
     const fmtDate = (d) => new Date(d).toLocaleDateString("en-CA");
 
     // calculate a billing cycle
@@ -81,13 +174,20 @@ export default function ScheduleBilling() {
         return d;
     };
 
+    const updatePaymentCycles = (count) => {
+        const paymentId = assignData.payment.id;
+        axiosClient
+            .patch(`/payments/${paymentId}`, { number_of_cycles: count })
+            .catch((err) => console.error("Failed to update cycles:", err));
+    };
+
     const recalculateFromIndex = (rows, fromIndex, recurringType) => {
         const result = [...rows];
 
         for (let i = fromIndex; i < result.length; i++) {
             if (i === 0) continue;
 
-            const prevRow = result[i - 1]; // ✅ always reads the already-updated prev row
+            const prevRow = result[i - 1]; // always reads the already-updated prev row
 
             const newStartCoverage = new Date(prevRow.end_coverage);
             newStartCoverage.setDate(newStartCoverage.getDate() + 1);
@@ -204,6 +304,7 @@ export default function ScheduleBilling() {
     };
 
     const handleScheduleChange = (index, field, value) => {
+        setHasChanges(true);
         setSchedules((prev) => {
             const mapped = prev.map((s, i) => {
                 if (i !== index) return s;
@@ -275,7 +376,8 @@ export default function ScheduleBilling() {
     };
 
     const handleAddRow = (index) => {
-        const ref = schedules[index]; // the row that was clicked
+        setHasChanges(true);
+        const ref = schedules[index];
 
         const isProject = assignData?.project !== null;
         const service = isProject
@@ -283,7 +385,6 @@ export default function ScheduleBilling() {
             : assignData.subscription;
         const recurringType = service?.frequency ?? service?.type ?? "monthly";
 
-        // new row starts the day after ref's end_coverage
         const newStartCoverage = new Date(ref.end_coverage);
         newStartCoverage.setDate(newStartCoverage.getDate() + 1);
 
@@ -296,7 +397,8 @@ export default function ScheduleBilling() {
         newDueDate.setDate(newDueDate.getDate() + 1);
 
         const newRow = {
-            id: Date.now(),
+            id: null,
+            _tempKey: Date.now(),
             due_date: fmtDate(newDueDate),
             start_coverage: fmtDate(newStartCoverage),
             end_coverage: fmtDate(newEndCoverage),
@@ -312,8 +414,6 @@ export default function ScheduleBilling() {
             ...schedules.slice(index + 1),
         ];
 
-        // ✅ recalculate from index + 2 (rows AFTER the new row)
-        // using the iterative version so each row reads the correctly updated prev row
         const newSchedules = recalculateFromIndex(
             inserted,
             index + 2,
@@ -333,9 +433,20 @@ export default function ScheduleBilling() {
         } else {
             setSchedules(newSchedules);
         }
+
+        // increment payment cycles
+        const newCount = schedules.length + 1;
+        updatePaymentCycles(newCount);
+
+        // update local assignData so the Payment Cycle display reflects the new count
+        setAssignData((prev) => ({
+            ...prev,
+            payment: { ...prev.payment, number_of_cycles: newCount },
+        }));
     };
 
     const handleDeleteRow = (index) => {
+        setHasChanges(true);
         setSchedules((prev) => {
             const isProject = assignData?.project !== null;
             const service = isProject
@@ -345,6 +456,16 @@ export default function ScheduleBilling() {
                 service?.frequency ?? service?.type ?? "monthly";
 
             const filtered = prev.filter((_, i) => i !== index);
+
+            // decrement payment cycles
+            const newCount = filtered.length;
+            updatePaymentCycles(newCount);
+
+            setAssignData((prev) => ({
+                ...prev,
+                payment: { ...prev.payment, number_of_cycles: newCount },
+            }));
+
             return recalculateFromIndex(
                 filtered,
                 Math.max(1, index),
@@ -366,6 +487,124 @@ export default function ScheduleBilling() {
         }
         setShowExceedModal(false);
         setPendingRowIndex(null);
+    };
+
+    const handleGenerateAndSave = () => {
+        if (!assignData) return;
+
+        // --- run the same generation logic ---
+        const isProject = assignData.project !== null;
+        const service = isProject
+            ? assignData.project
+            : assignData.subscription;
+        const payment = assignData.payment;
+
+        const numberOfCycles = payment?.number_of_cycles ?? 0;
+        const billingStartDate = service?.billing_start_date;
+        const recurringType = service?.frequency ?? service?.type ?? "monthly";
+        const vatType = service?.vat_type ?? "vat_exempt";
+        const price = isProject
+            ? parseFloat(service?.price ?? 0)
+            : parseFloat(service?.cost ?? 0);
+        const paymentType = service?.payment_type ?? "";
+        const equalRate =
+            paymentType === "installment"
+                ? parseFloat((100 / numberOfCycles).toFixed(2))
+                : 100;
+        const firstStart = isProject
+            ? (service?.adjusted_start_date ?? service?.start_date)
+            : (service?.adjusted_start_coverage ?? service?.start_coverage);
+
+        if (!billingStartDate || numberOfCycles === 0) return;
+
+        const rows = [];
+        let dueDate = new Date(billingStartDate);
+
+        for (let i = 0; i < numberOfCycles; i++) {
+            const rate =
+                paymentType === "installment" && i === numberOfCycles - 1
+                    ? parseFloat(
+                          (100 - equalRate * (numberOfCycles - 1)).toFixed(2),
+                      )
+                    : equalRate;
+            const adjustedPrice = (price * rate) / 100;
+            const { base_amount, vat_amount, total_amount } = calcVat(
+                adjustedPrice,
+                vatType,
+            );
+
+            if (i === 0) {
+                const firstStartDate = new Date(firstStart ?? dueDate);
+                const firstEndDate = new Date(
+                    addPeriod(firstStartDate, recurringType),
+                );
+                firstEndDate.setDate(firstEndDate.getDate() - 1);
+
+                rows.push({
+                    id: i + 1,
+                    due_date: fmtDate(dueDate),
+                    start_coverage: firstStart ?? fmtDate(dueDate),
+                    end_coverage: fmtDate(firstEndDate),
+                    rate,
+                    base_amount,
+                    vat_amount,
+                    gross_amount: total_amount,
+                });
+            } else {
+                const prevEnd = new Date(rows[i - 1].end_coverage);
+                const startCoverage = new Date(prevEnd);
+                startCoverage.setDate(startCoverage.getDate() + 1);
+                const endCoverage = new Date(
+                    addPeriod(startCoverage, recurringType),
+                );
+                endCoverage.setDate(endCoverage.getDate() - 1);
+
+                rows.push({
+                    id: i + 1,
+                    due_date: fmtDate(dueDate),
+                    start_coverage: fmtDate(startCoverage),
+                    end_coverage: fmtDate(endCoverage),
+                    rate,
+                    base_amount,
+                    vat_amount,
+                    gross_amount: total_amount,
+                });
+            }
+
+            dueDate = new Date(rows[i].end_coverage);
+            dueDate.setDate(dueDate.getDate() + 1);
+        }
+
+        // set in state for table display
+        setSchedules(rows);
+        setGenerated(true);
+
+        // ✅ immediately save with is_invoice_generated: false
+        setSaving(true);
+        const paymentId = assignData.payment.id;
+        const payload = {
+            schedules: rows.map((s) => ({
+                due_date: s.due_date,
+                start_coverage: s.start_coverage,
+                end_coverage: s.end_coverage,
+                payment_rate: s.rate,
+                base_amount: s.base_amount,
+                vat_amount: s.vat_amount,
+                total_amount: s.gross_amount,
+            })),
+        };
+
+        axiosClient
+            .post(`/payments/${paymentId}/schedules`, payload)
+            .then(() => {
+                setNotification("Billing schedule generated and saved.");
+            })
+            .catch((err) => {
+                const msg =
+                    err.response?.data?.message ?? "Something went wrong.";
+                setNotification(msg);
+            })
+            .finally(() => setSaving(false));
     };
 
     const fmt = (n) =>
@@ -424,15 +663,19 @@ export default function ScheduleBilling() {
                         : "Billing Schedule"}
                 </h1>
                 <button
-                    onClick={handleGenerate}
-                    disabled={generated || !assignData}
+                    onClick={handleGenerateAndSave}
+                    disabled={generated || !assignData || saving}
                     className={`flex items-center gap-1.5 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
-                        generated || !assignData
+                        generated || !assignData || saving
                             ? "bg-gray-300 cursor-not-allowed"
                             : "bg-sky-400 hover:bg-sky-500 cursor-pointer"
                     }`}
                 >
-                    Generate Billing Schedule
+                    {saving
+                        ? "Generating..."
+                        : generated
+                          ? "Already Generated"
+                          : "Generate Billing Schedule"}
                 </button>
             </div>
 
@@ -521,17 +764,33 @@ export default function ScheduleBilling() {
             {/* Schedule Table */}
             {generated && (
                 <>
-                    <div className="px-5 mb-3 flex justify-end">
+                    <div className="px-5 mb-3 flex justify-end gap-2">
+                        {/* Save Changes button — only shown when user edits existing schedule */}
+                        {hasChanges && (
+                            <button
+                                onClick={handleSaveChanges}
+                                disabled={saving}
+                                className={`flex items-center gap-1.5 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                                    saving
+                                        ? "bg-gray-300 cursor-not-allowed"
+                                        : "bg-emerald-500 hover:bg-emerald-600 cursor-pointer"
+                                }`}
+                            >
+                                {saving ? "Saving..." : "Save Changes"}
+                            </button>
+                        )}
+
+                        {/* Generate Invoice button */}
                         <button
-                            onClick={handleSaveSchedule}
-                            disabled={saving}
+                            onClick={handleGenerateInvoice}
+                            disabled={saving || hasChanges}
                             className={`flex items-center gap-1.5 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
-                                saving
+                                saving || hasChanges
                                     ? "bg-gray-300 cursor-not-allowed"
                                     : "bg-sky-400 hover:bg-sky-500 cursor-pointer"
                             }`}
                         >
-                            {saving ? "Saving..." : "Generate Invoice"}
+                            Generate Invoices
                         </button>
                     </div>
 
@@ -554,7 +813,7 @@ export default function ScheduleBilling() {
                                     {schedules.length > 0 ? (
                                         schedules.map((s, index) => (
                                             <tr
-                                                key={s.id}
+                                                key={s._tempKey ?? s.id}
                                                 className="hover:bg-cyan-50 text-center"
                                             >
                                                 <td className="border-b border-gray-200 px-4 py-2">

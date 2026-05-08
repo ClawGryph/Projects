@@ -539,6 +539,10 @@ export default function Payments() {
                                             p.is_form2307_issued
                                                 ? "issued"
                                                 : "pending";
+                                        const hasActions =
+                                            p.is_invoice_generated ||
+                                            isPaid ||
+                                            (isPaid && !!p.is_or_issued);
 
                                         return (
                                             <tr
@@ -766,168 +770,180 @@ export default function Payments() {
                                                     "viewer" && (
                                                     <td className="border-b border-gray-200 px-4 py-2">
                                                         <div className="relative flex justify-center">
-                                                            <button
-                                                                onClick={(
-                                                                    e,
-                                                                ) => {
-                                                                    e.stopPropagation();
-                                                                    const rect =
-                                                                        e.currentTarget.getBoundingClientRect();
-                                                                    const dropdownHeight = 65; // approximate height of the dropdown
-                                                                    const spaceBelow =
-                                                                        window.innerHeight -
-                                                                        rect.bottom;
-
-                                                                    setDropdownPos(
-                                                                        {
-                                                                            top:
-                                                                                spaceBelow <
-                                                                                dropdownHeight
-                                                                                    ? rect.top -
-                                                                                      dropdownHeight
-                                                                                    : rect.bottom,
-                                                                            left: rect.right,
-                                                                        },
-                                                                    );
-                                                                    setEditingId(
-                                                                        editingId ===
-                                                                            `action-${p.id}`
-                                                                            ? null
-                                                                            : `action-${p.id}`,
-                                                                    );
-                                                                }}
-                                                                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 cursor-pointer"
-                                                            >
-                                                                <svg
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    className="h-4 w-4"
-                                                                    viewBox="0 0 24 24"
-                                                                    fill="currentColor"
-                                                                >
-                                                                    <circle
-                                                                        cx="12"
-                                                                        cy="5"
-                                                                        r="1.5"
-                                                                    />
-                                                                    <circle
-                                                                        cx="12"
-                                                                        cy="12"
-                                                                        r="1.5"
-                                                                    />
-                                                                    <circle
-                                                                        cx="12"
-                                                                        cy="19"
-                                                                        r="1.5"
-                                                                    />
-                                                                </svg>
-                                                            </button>
-
-                                                            {editingId ===
-                                                                `action-${p.id}` && (
-                                                                <div
-                                                                    onClick={(
-                                                                        e,
-                                                                    ) =>
-                                                                        e.stopPropagation()
-                                                                    }
-                                                                    style={{
-                                                                        position:
-                                                                            "fixed",
-                                                                        top: dropdownPos.top,
-                                                                        left: dropdownPos.left,
-                                                                        transform:
-                                                                            "translateX(-100%)",
-                                                                    }}
-                                                                    className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-md min-w-[130px]"
-                                                                >
+                                                            {hasActions ? (
+                                                                <>
                                                                     <button
-                                                                        onClick={() => {
-                                                                            setInvoicePayment(
-                                                                                p,
+                                                                        onClick={(
+                                                                            e,
+                                                                        ) => {
+                                                                            e.stopPropagation();
+                                                                            const rect =
+                                                                                e.currentTarget.getBoundingClientRect();
+                                                                            const dropdownHeight = 65; // approximate height of the dropdown
+                                                                            const spaceBelow =
+                                                                                window.innerHeight -
+                                                                                rect.bottom;
+
+                                                                            setDropdownPos(
+                                                                                {
+                                                                                    top:
+                                                                                        spaceBelow <
+                                                                                        dropdownHeight
+                                                                                            ? rect.top -
+                                                                                              dropdownHeight
+                                                                                            : rect.bottom,
+                                                                                    left: rect.right,
+                                                                                },
                                                                             );
                                                                             setEditingId(
-                                                                                null,
+                                                                                editingId ===
+                                                                                    `action-${p.id}`
+                                                                                    ? null
+                                                                                    : `action-${p.id}`,
                                                                             );
                                                                         }}
-                                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                                                        className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 cursor-pointer"
                                                                     >
-                                                                        <FontAwesomeIcon
-                                                                            icon={
-                                                                                faFileInvoice
-                                                                            }
-                                                                            className="h-3 w-3"
-                                                                        />
-                                                                        Invoice
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setManualInvoicePayment(
-                                                                                p,
-                                                                            );
-                                                                            setEditingId(
-                                                                                null,
-                                                                            );
-                                                                        }}
-                                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                                                                    >
-                                                                        <FontAwesomeIcon
-                                                                            icon={
-                                                                                faFileInvoice
-                                                                            }
-                                                                            className="h-3 w-3"
-                                                                        />
-                                                                        Manual
-                                                                        Invoice
-                                                                    </button>
-
-                                                                    {isPaid && (
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setOrPayment(
-                                                                                    p,
-                                                                                );
-                                                                                setEditingId(
-                                                                                    null,
-                                                                                );
-                                                                            }}
-                                                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                                        <svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            className="h-4 w-4"
+                                                                            viewBox="0 0 24 24"
+                                                                            fill="currentColor"
                                                                         >
-                                                                            <FontAwesomeIcon
-                                                                                icon={
-                                                                                    faReceipt
-                                                                                }
-                                                                                className="h-3 w-3"
+                                                                            <circle
+                                                                                cx="12"
+                                                                                cy="5"
+                                                                                r="1.5"
                                                                             />
-                                                                            Issue
-                                                                            O.R.
-                                                                        </button>
-                                                                    )}
+                                                                            <circle
+                                                                                cx="12"
+                                                                                cy="12"
+                                                                                r="1.5"
+                                                                            />
+                                                                            <circle
+                                                                                cx="12"
+                                                                                cy="19"
+                                                                                r="1.5"
+                                                                            />
+                                                                        </svg>
+                                                                    </button>
 
-                                                                    {isPaid &&
-                                                                        !!p.is_or_issued && (
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    setForm2307Payment(
-                                                                                        p,
-                                                                                    );
-                                                                                    setEditingId(
-                                                                                        null,
-                                                                                    );
-                                                                                }}
-                                                                                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-gray-700 cursor-pointer"
-                                                                            >
-                                                                                <FontAwesomeIcon
-                                                                                    icon={
-                                                                                        faFileInvoiceDollar
-                                                                                    }
-                                                                                    className="h-3 w-3"
-                                                                                />
-                                                                                {p.is_form2307_issued
-                                                                                    ? "Edit 2307"
-                                                                                    : "Issue 2307"}
-                                                                            </button>
-                                                                        )}
-                                                                </div>
+                                                                    {editingId ===
+                                                                        `action-${p.id}` && (
+                                                                        <div
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) =>
+                                                                                e.stopPropagation()
+                                                                            }
+                                                                            style={{
+                                                                                position:
+                                                                                    "fixed",
+                                                                                top: dropdownPos.top,
+                                                                                left: dropdownPos.left,
+                                                                                transform:
+                                                                                    "translateX(-100%)",
+                                                                            }}
+                                                                            className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-md min-w-[130px]"
+                                                                        >
+                                                                            {p.is_invoice_generated && (
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setInvoicePayment(
+                                                                                            p,
+                                                                                        );
+                                                                                        setEditingId(
+                                                                                            null,
+                                                                                        );
+                                                                                    }}
+                                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                                                                >
+                                                                                    <FontAwesomeIcon
+                                                                                        icon={
+                                                                                            faFileInvoice
+                                                                                        }
+                                                                                        className="h-3 w-3"
+                                                                                    />
+                                                                                    Invoice
+                                                                                </button>
+                                                                            )}
+                                                                            {p.is_invoice_generated && (
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setManualInvoicePayment(
+                                                                                            p,
+                                                                                        );
+                                                                                        setEditingId(
+                                                                                            null,
+                                                                                        );
+                                                                                    }}
+                                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                                                                >
+                                                                                    <FontAwesomeIcon
+                                                                                        icon={
+                                                                                            faFileInvoice
+                                                                                        }
+                                                                                        className="h-3 w-3"
+                                                                                    />
+                                                                                    Manual
+                                                                                    Invoice
+                                                                                </button>
+                                                                            )}
+
+                                                                            {isPaid && (
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setOrPayment(
+                                                                                            p,
+                                                                                        );
+                                                                                        setEditingId(
+                                                                                            null,
+                                                                                        );
+                                                                                    }}
+                                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                                                >
+                                                                                    <FontAwesomeIcon
+                                                                                        icon={
+                                                                                            faReceipt
+                                                                                        }
+                                                                                        className="h-3 w-3"
+                                                                                    />
+                                                                                    Issue
+                                                                                    O.R.
+                                                                                </button>
+                                                                            )}
+
+                                                                            {isPaid &&
+                                                                                !!p.is_or_issued && (
+                                                                                    <button
+                                                                                        onClick={() => {
+                                                                                            setForm2307Payment(
+                                                                                                p,
+                                                                                            );
+                                                                                            setEditingId(
+                                                                                                null,
+                                                                                            );
+                                                                                        }}
+                                                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                                                    >
+                                                                                        <FontAwesomeIcon
+                                                                                            icon={
+                                                                                                faFileInvoiceDollar
+                                                                                            }
+                                                                                            className="h-3 w-3"
+                                                                                        />
+                                                                                        {p.is_form2307_issued
+                                                                                            ? "Edit 2307"
+                                                                                            : "Issue 2307"}
+                                                                                    </button>
+                                                                                )}
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-gray-300 text-xs">
+                                                                    —
+                                                                </span>
                                                             )}
                                                         </div>
                                                     </td>

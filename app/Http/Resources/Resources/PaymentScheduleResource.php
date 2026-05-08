@@ -29,6 +29,7 @@ class PaymentScheduleResource extends JsonResource
         'vat_amount'         => $this->vat_amount,
         'status'             => $this->status,
         'invoice_number'     => $this->invoice_number,
+        'is_invoice_generated' => $this->is_invoice_generated,
         'is_or_issued'       => $this->is_or_issued,
         'is_form2307_issued' => $this->is_form2307_issued,
         'start_coverage'     => $this->start_coverage?->format('Y-m-d'),
