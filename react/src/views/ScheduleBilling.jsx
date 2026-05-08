@@ -162,6 +162,14 @@ export default function ScheduleBilling() {
     };
 
     const fmtDate = (d) => new Date(d).toLocaleDateString("en-CA");
+    const fmtNumber = (n) =>
+        n === "" || n === null || n === undefined
+            ? ""
+            : new Intl.NumberFormat("en-PH", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+              }).format(n);
+    const parseNumber = (v) => parseFloat(v.replace(/,/g, "")) || 0;
 
     // calculate a billing cycle
     const addPeriod = (date, type) => {
@@ -877,13 +885,18 @@ export default function ScheduleBilling() {
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
-                                                        type="number"
-                                                        value={s.base_amount}
+                                                        type="text"
+                                                        value={fmtNumber(
+                                                            s.base_amount,
+                                                        )}
                                                         onChange={(e) =>
                                                             handleScheduleChange(
                                                                 index,
                                                                 "base_amount",
-                                                                e.target.value,
+                                                                parseNumber(
+                                                                    e.target
+                                                                        .value,
+                                                                ),
                                                             )
                                                         }
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -891,13 +904,18 @@ export default function ScheduleBilling() {
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
-                                                        type="number"
-                                                        value={s.vat_amount}
+                                                        type="text"
+                                                        value={fmtNumber(
+                                                            s.vat_amount,
+                                                        )}
                                                         onChange={(e) =>
                                                             handleScheduleChange(
                                                                 index,
                                                                 "vat_amount",
-                                                                e.target.value,
+                                                                parseNumber(
+                                                                    e.target
+                                                                        .value,
+                                                                ),
                                                             )
                                                         }
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -905,13 +923,18 @@ export default function ScheduleBilling() {
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
-                                                        type="number"
-                                                        value={s.gross_amount}
+                                                        type="text"
+                                                        value={fmtNumber(
+                                                            s.gross_amount,
+                                                        )}
                                                         onChange={(e) =>
                                                             handleScheduleChange(
                                                                 index,
                                                                 "gross_amount",
-                                                                e.target.value,
+                                                                parseNumber(
+                                                                    e.target
+                                                                        .value,
+                                                                ),
                                                             )
                                                         }
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
