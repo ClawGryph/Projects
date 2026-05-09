@@ -77,6 +77,29 @@ export default function Subsciptions() {
         return () => window.removeEventListener("click", close);
     }, []);
 
+    const onView = (s) => {
+        setSelectedSubscription(s);
+        setModalOpen(true);
+        setPayments([]);
+        setPaymentsLoading(true);
+
+        axiosClient
+            .get(`/payment-schedules`, { params: { subscription_id: s.id } })
+            .then(({ data }) => {
+                setPayments(data.data ?? data);
+                setPaymentsLoading(false);
+            })
+            .catch(() => {
+                setPaymentsLoading(false);
+            });
+    };
+
+    const closeModal = () => {
+        setModalOpen(false);
+        setSelectedSubscription(null);
+        setPayments([]);
+    };
+
     const VAT_LABELS = {
         vat_inclusive: "VAT Inclusive",
         vat_exclusive: "VAT Exclusive",
@@ -308,33 +331,37 @@ export default function Subsciptions() {
                                             </td>
 
                                             {user?.role_name !== "viewer" && (
-                                                <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
-                                                    <Link
-                                                        to={
-                                                            "/subscriptions/" +
-                                                            s.id
-                                                        }
-                                                        className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faPen}
-                                                        />{" "}
-                                                        Edit
-                                                    </Link>
-                                                    {user?.role_name ===
-                                                        "super_admin" && (
-                                                        <button
-                                                            onClick={() =>
-                                                                onDelete(s)
+                                                <td className="border-b border-gray-200 px-4 py-2 text-center">
+                                                    <div className="flex justify-center items-center gap-2">
+                                                        <Link
+                                                            to={
+                                                                "/subscriptions/" +
+                                                                s.id
                                                             }
-                                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                                                            className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
                                                         >
                                                             <FontAwesomeIcon
-                                                                icon={faTrash}
+                                                                icon={faPen}
                                                             />{" "}
-                                                            Delete
-                                                        </button>
-                                                    )}
+                                                            Edit
+                                                        </Link>
+                                                        {user?.role_name ===
+                                                            "super_admin" && (
+                                                            <button
+                                                                onClick={() =>
+                                                                    onDelete(s)
+                                                                }
+                                                                className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={
+                                                                        faTrash
+                                                                    }
+                                                                />{" "}
+                                                                Delete
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             )}
                                         </tr>
@@ -537,6 +564,154 @@ export default function Subsciptions() {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- PAYMENTS MODAL --- */}
+            {modalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                    onClick={closeModal}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    {selectedSubscription?.title}
+                                </h2>
+                                <p className="text-sm text-gray-500">
+                                    Client Payments
+                                </p>
+                            </div>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            >
+                                <FontAwesomeIcon icon={faTimes} size="lg" />
+                            </button>
+                        </div>
+
+                        {paymentsLoading ? (
+                            <div className="text-center py-8 text-gray-500">
+                                Loading payments...
+                            </div>
+                        ) : payments.length > 0 ? (
+                            <div className="overflow-auto max-h-96">
+                                <table className="w-full text-sm border-separate border-spacing-0">
+                                    <thead>
+                                        <tr className="bg-cyan-800 text-center text-white">
+                                            <th className="px-4 py-2 rounded-tl-lg">
+                                                ID
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                Client Name
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                Amount
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                Due Date
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                Status
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                S.I/ACK No.
+                                            </th>
+                                            <th className="px-4 py-2 rounded-tr-lg">
+                                                2307 Status
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {payments.map((p, idx) => {
+                                            const isPaid = p.status === "paid";
+                                            const officialReceipt =
+                                                p.transaction?.official_receipt;
+                                            const orNumber =
+                                                officialReceipt?.service_invoice_number ??
+                                                officialReceipt?.payment_acknowledgement_number;
+
+                                            return (
+                                                <tr
+                                                    key={p.id}
+                                                    className="text-center hover:bg-cyan-50"
+                                                >
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {idx + 1}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {p.clientsProject
+                                                            ?.client?.name ??
+                                                            "—"}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        ₱{" "}
+                                                        {new Intl.NumberFormat(
+                                                            "en-PH",
+                                                        ).format(
+                                                            p.total_amount ?? 0,
+                                                        )}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {p.due_date ?? "—"}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        <StatusBadge
+                                                            status={
+                                                                p.status ?? "—"
+                                                            }
+                                                        />
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {isPaid ? (
+                                                            p.is_or_issued &&
+                                                            orNumber ? (
+                                                                <span className="text-xs font-mono text-gray-700">
+                                                                    {orNumber}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-400 italic">
+                                                                    No O.R.
+                                                                    issued
+                                                                </span>
+                                                            )
+                                                        ) : (
+                                                            <span className="text-gray-400">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        {isPaid ? (
+                                                            <StatusBadge
+                                                                status={
+                                                                    p.is_form2307_issued
+                                                                        ? "issued"
+                                                                        : "pending"
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <span className="text-gray-400">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-gray-500">
+                                No payments found for this subscription.
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

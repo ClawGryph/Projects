@@ -25,6 +25,8 @@ import {
     faShield,
     faRepeat,
     faLink,
+    faBuilding,
+    faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function DefaultLayout() {
@@ -106,14 +108,14 @@ export default function DefaultLayout() {
                 sm:translate-x-0
             `}
             >
-                <div className="m-5 flex flex-col items-center justify-center">
+                <div className="p-5 flex flex-col items-center justify-center border-b border-cyan-600">
                     <img
                         src={logo}
                         alt="invoicing logo"
-                        className="w-40 h-15 [filter:brightness(0)_invert(1)_opacity(0.80)]"
+                        className="w-40 h-12 [filter:brightness(0)_saturate(100%)_invert(85%)_sepia(30%)_saturate(400%)_hue-rotate(150deg)]"
                     />
                 </div>
-                <nav className="text-white text-base font-semibold pt-3">
+                <nav className="text-white text-base font-semibold">
                     <NavLink
                         to="/dashboard"
                         onClick={() => setOpenSidebar(false)}
@@ -306,10 +308,10 @@ export default function DefaultLayout() {
                                             }
                                         >
                                             <FontAwesomeIcon
-                                                icon={faUserTie}
+                                                icon={faBuilding}
                                                 className="mr-3 text-xs"
                                             />
-                                            Company Management
+                                            Company Profile
                                         </NavLink>
                                     </>
                                 )}
@@ -325,7 +327,7 @@ export default function DefaultLayout() {
                                     }
                                 >
                                     <FontAwesomeIcon
-                                        icon={faUserTie}
+                                        icon={faLayerGroup}
                                         className="mr-3 text-xs"
                                     />
                                     Company Types

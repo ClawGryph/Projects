@@ -85,7 +85,7 @@ export default function CompanyManagement() {
     return (
         <div className="p-6 w-full">
             <div className="mb-5">
-                <h2 className="text-lg font-semibold">Company Management</h2>
+                <h2 className="text-lg font-semibold">Company Profile</h2>
                 <p className="text-sm text-gray-400">
                     Update your company profile and tax settings
                 </p>

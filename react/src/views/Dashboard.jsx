@@ -346,11 +346,6 @@ export default function Dashboard() {
         pending2307Page * rowsPerPage,
     );
 
-    console.log(
-        "Payment schedules sample:",
-        clientsProject[0]?.payment_schedules,
-    );
-
     // Function to export CSV
     const exportDashboardCSV = () => {
         const rows = [];
@@ -1305,6 +1300,12 @@ export default function Dashboard() {
                             </tr>
                         ) : (
                             currentProjects.map((project) => {
+                                const isProject = !!project.project;
+                                const paidCount = (
+                                    project.payment_schedules || []
+                                ).filter((s) => s.status === "paid").length;
+                                const totalCount =
+                                    project.payment?.number_of_cycles || 0;
                                 const isOverdue =
                                     project.payment?.next_payment_date &&
                                     new Date(
@@ -1362,68 +1363,93 @@ export default function Dashboard() {
                                         {/* Payment Type */}
                                         <td className="px-4 py-2">
                                             {formatPaymentType(
-                                                project.payment
-                                                    ?.payment_type ===
-                                                    "recurring"
-                                                    ? project.payment
-                                                          ?.recurring_type
-                                                    : project.payment
-                                                          ?.payment_type,
+                                                isProject
+                                                    ? project.project
+                                                          ?.payment_type
+                                                    : project.subscription
+                                                          ?.frequency,
                                             )}
                                         </td>
 
                                         {/* Payment Progress */}
                                         <td className="px-4 py-2">
-                                            {project.payment?.payment_type ===
-                                                "installment" ||
-                                            project.payment?.payment_type ===
-                                                "recurring" ? (
-                                                <span
-                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${
-                                                        project.payment
-                                                            ?.payment_type ===
+                                            {(() => {
+                                                const isProject =
+                                                    !!project.project;
+
+                                                if (isProject) {
+                                                    // Project: payment_type is one_time or installment
+                                                    const paymentType =
+                                                        project.project
+                                                            ?.payment_type;
+
+                                                    if (
+                                                        paymentType ===
                                                         "installment"
-                                                            ? "bg-purple-50 text-purple-600 border-purple-100"
-                                                            : "bg-blue-50 text-blue-600 border-blue-100"
-                                                    }`}
-                                                >
-                                                    {project.payment
-                                                        ?.payment_type ===
-                                                    "installment" ? (
-                                                        <>
-                                                            <span className="font-semibold">
-                                                                {project.payment
-                                                                    ?.paid_installments_count ||
-                                                                    0}
+                                                    ) {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-purple-50 text-purple-600 border-purple-100">
+                                                                <span className="font-semibold">
+                                                                    {paidCount}
+                                                                </span>
+                                                                <span className="text-purple-400">
+                                                                    /
+                                                                </span>
+                                                                <span>
+                                                                    {totalCount}
+                                                                </span>
+                                                                <span className="text-xs opacity-60">
+                                                                    installments
+                                                                </span>
                                                             </span>
-                                                            <span className="text-purple-400">
+                                                        );
+                                                    }
+
+                                                    if (
+                                                        paymentType ===
+                                                        "one_time"
+                                                    ) {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-gray-50 text-gray-600 border-gray-100">
+                                                                One Time
+                                                            </span>
+                                                        );
+                                                    }
+
+                                                    return <span>-</span>;
+                                                } else {
+                                                    // Subscription: frequency is monthly, quarterly, half_yearly, yearly
+                                                    const frequency =
+                                                        project.subscription
+                                                            ?.frequency;
+
+                                                    if (!frequency)
+                                                        return <span>-</span>;
+
+                                                    const unit = frequency
+                                                        .replace(/_/g, " ")
+                                                        .replace(/\b\w/g, (c) =>
+                                                            c.toUpperCase(),
+                                                        );
+
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-blue-50 text-blue-600 border-blue-100">
+                                                            <span className="font-semibold">
+                                                                {paidCount}
+                                                            </span>
+                                                            <span className="text-blue-400">
                                                                 /
                                                             </span>
                                                             <span>
-                                                                {project.payment
-                                                                    ?.number_of_cycles ||
-                                                                    0}
+                                                                {totalCount}
                                                             </span>
                                                             <span className="text-xs opacity-60">
-                                                                installments
+                                                                {unit}
                                                             </span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <span className="font-semibold">
-                                                                {project.payment
-                                                                    ?.number_of_cycles ||
-                                                                    0}
-                                                            </span>
-                                                            <span className="text-xs opacity-60">
-                                                                renew
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </span>
-                                            ) : (
-                                                " - "
-                                            )}
+                                                        </span>
+                                                    );
+                                                }
+                                            })()}
                                         </td>
 
                                         {/* Total Cost Paid */}

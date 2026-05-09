@@ -440,17 +440,14 @@ export default function ScheduleBilling() {
             setShowExceedModal(true);
         } else {
             setSchedules(newSchedules);
+
+            const newCount = schedules.length + 1;
+            updatePaymentCycles(newCount);
+            setAssignData((prev) => ({
+                ...prev,
+                payment: { ...prev.payment, number_of_cycles: newCount },
+            }));
         }
-
-        // increment payment cycles
-        const newCount = schedules.length + 1;
-        updatePaymentCycles(newCount);
-
-        // update local assignData so the Payment Cycle display reflects the new count
-        setAssignData((prev) => ({
-            ...prev,
-            payment: { ...prev.payment, number_of_cycles: newCount },
-        }));
     };
 
     const handleDeleteRow = (index) => {
@@ -483,6 +480,13 @@ export default function ScheduleBilling() {
     };
 
     const handleExceedProceed = () => {
+        const newCount = schedules.length;
+        updatePaymentCycles(newCount);
+        setAssignData((prev) => ({
+            ...prev,
+            payment: { ...prev.payment, number_of_cycles: newCount },
+        }));
+
         setShowExceedModal(false);
         setPendingRowIndex(null);
     };

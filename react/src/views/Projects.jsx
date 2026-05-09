@@ -336,30 +336,37 @@ export default function Projects() {
                                             </td>
 
                                             {user?.role_name !== "viewer" && (
-                                                <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
-                                                    <Link
-                                                        to={"/projects/" + p.id}
-                                                        className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faPen}
-                                                        />{" "}
-                                                        Edit
-                                                    </Link>
-                                                    {user?.role_name ===
-                                                        "super_admin" && (
-                                                        <button
-                                                            onClick={() =>
-                                                                onDelete(p)
+                                                <td className="border-b border-gray-200 px-4 py-2 text-center">
+                                                    <div className="flex justify-center items-center gap-2">
+                                                        <Link
+                                                            to={
+                                                                "/projects/" +
+                                                                p.id
                                                             }
-                                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                                                            className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
                                                         >
                                                             <FontAwesomeIcon
-                                                                icon={faTrash}
+                                                                icon={faPen}
                                                             />{" "}
-                                                            Delete
-                                                        </button>
-                                                    )}
+                                                            Edit
+                                                        </Link>
+                                                        {user?.role_name ===
+                                                            "super_admin" && (
+                                                            <button
+                                                                onClick={() =>
+                                                                    onDelete(p)
+                                                                }
+                                                                className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={
+                                                                        faTrash
+                                                                    }
+                                                                />{" "}
+                                                                Delete
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             )}
                                         </tr>
@@ -473,16 +480,10 @@ export default function Projects() {
                                         {payments.map((p, idx) => {
                                             const isPaid = p.status === "paid";
                                             const officialReceipt =
-                                                p.transaction?.officialReceipt;
+                                                p.transaction?.official_receipt;
                                             const orNumber =
                                                 officialReceipt?.service_invoice_number ??
                                                 officialReceipt?.payment_acknowledgement_number;
-                                            const form2307Status = isPaid
-                                                ? p.transaction?.officialReceipt
-                                                      ?.form2307
-                                                    ? "issued"
-                                                    : "pending"
-                                                : "";
 
                                             return (
                                                 <tr
@@ -502,23 +503,22 @@ export default function Projects() {
                                                         {new Intl.NumberFormat(
                                                             "en-PH",
                                                         ).format(
-                                                            p.expected_amount ??
-                                                                0,
+                                                            p.total_amount ?? 0,
                                                         )}
                                                     </td>
                                                     <td className="border-b border-gray-200 px-4 py-2">
                                                         {p.due_date ?? "—"}
                                                     </td>
-                                                    <td className="border-b border-gray-200 px-4 py-2 capitalize">
+                                                    <td className="border-b border-gray-200 px-4 py-2">
                                                         <StatusBadge
                                                             status={
                                                                 p.status ?? "—"
                                                             }
                                                         />
                                                     </td>
-                                                    {/* O.R # Column */}
                                                     <td className="border-b border-gray-200 px-4 py-2">
                                                         {isPaid ? (
+                                                            p.is_or_issued &&
                                                             orNumber ? (
                                                                 <span className="text-xs font-mono text-gray-700">
                                                                     {orNumber}
@@ -535,13 +535,13 @@ export default function Projects() {
                                                             </span>
                                                         )}
                                                     </td>
-                                                    {/* 2307 Status Column */}
                                                     <td className="border-b border-gray-200 px-4 py-2">
                                                         {isPaid ? (
                                                             <StatusBadge
                                                                 status={
-                                                                    form2307Status ??
-                                                                    "pending"
+                                                                    p.is_form2307_issued
+                                                                        ? "issued"
+                                                                        : "pending"
                                                                 }
                                                             />
                                                         ) : (
