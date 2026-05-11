@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,8 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Null out empty strings before adding unique constraint
+        DB::statement("UPDATE payment_schedules SET invoice_number = NULL WHERE invoice_number = '' OR invoice_number IS NULL");
+
         Schema::table('payment_schedules', function (Blueprint $table) {
-            $table->string('invoice_number')->unique();
+            $table->unique('invoice_number');
         });
     }
 
@@ -22,7 +26,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('payment_schedules', function (Blueprint $table) {
-            $table->dropColumn('invoice_number');
+            $table->dropUnique(['invoice_number']);
         });
     }
 };
