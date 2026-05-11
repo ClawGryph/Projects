@@ -12,8 +12,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Null out empty strings before adding unique constraint
-        DB::statement("UPDATE payment_schedules SET invoice_number = NULL WHERE invoice_number = '' OR invoice_number IS NULL");
+        if (Schema::hasColumn('payment_schedules', 'invoice_number')) {
+            DB::statement("UPDATE payment_schedules SET invoice_number = NULL WHERE invoice_number = '' OR invoice_number IS NULL");
+        } else {
+            Schema::table('payment_schedules', function (Blueprint $table) {
+                $table->string('invoice_number')->nullable();
+            });
+        }
 
         Schema::table('payment_schedules', function (Blueprint $table) {
             $table->unique('invoice_number');
