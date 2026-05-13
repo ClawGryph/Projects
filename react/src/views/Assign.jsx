@@ -139,6 +139,18 @@ export default function Assign() {
                     className="text-[10px] text-gray-400"
                 />
 
+                <Link
+                    to={`/clients/${id}/dashboard`}
+                    className="text-gray-500 hover:text-cyan-700 hover:underline transition"
+                >
+                    Dashboard
+                </Link>
+
+                <FontAwesomeIcon
+                    icon={faChevronRight}
+                    className="text-[10px] text-gray-400"
+                />
+
                 <span className="text-gray-800 font-semibold">Assign</span>
             </div>
 

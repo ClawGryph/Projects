@@ -136,7 +136,7 @@ export default function Clients() {
                                             {/* CLICKABLE NAME */}
                                             <td className="border-b border-gray-200 px-4 py-2">
                                                 <Link
-                                                    to={`/clients/assign/${u.id}`}
+                                                    to={`/clients/${u.id}/dashboard`}
                                                     className="text-cyan-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
                                                 >
                                                     {u.name}

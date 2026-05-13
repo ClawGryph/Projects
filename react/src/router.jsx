@@ -21,6 +21,7 @@ import Subsciptions from "./views/Subscriptions.jsx";
 import SubscriptionsForm from "./views/SubscriptionsForm.jsx";
 import Assign from "./views/Assign.jsx";
 import ScheduleBilling from "./views/ScheduleBilling.jsx";
+import ClientDashboard from "./views/ClientDashboard.jsx";
 
 const router = createBrowserRouter([
     {
@@ -65,6 +66,11 @@ const router = createBrowserRouter([
                 path: "/clients/:id",
                 element: <ClientForm key="clientUpdate" />,
                 handle: { title: "Edit Client" },
+            },
+            {
+                path: "/clients/:id/dashboard",
+                element: <ClientDashboard key="clientDashboard" />,
+                handle: { title: "Client Dashboard" },
             },
             {
                 path: "/clients/assign/:id",
