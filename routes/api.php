@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin', 'company'])->group(functi
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
     Route::delete('/subscriptions/{subscription}', [SubscriptionController::class, 'destroy']);
     Route::delete('/company-types/{companyType}', [CompanyTypeController::class, 'destroy']);
+    Route::delete('/clients/{client}/projects/{clientsProject}', [ClientsProjectController::class, 'destroy']);
 });
 
 // Super Admin and Admin can edit

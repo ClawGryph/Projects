@@ -53,6 +53,26 @@ class ClientsProjectController extends Controller
         return new ClientsProjectResource($clientsProject);
     }
 
+    public function destroy($clientId, $clientsProjectId)
+    {
+        $client = Client::findOrFail($clientId);
+        abort_if($client->company_id !== $this->company()->id, 403);
+
+        $clientsProject = ClientsProject::where('client_id', $clientId)
+            ->findOrFail($clientsProjectId);
+
+        // Delete payment schedules through each payment
+        $clientsProject->payments()->each(function ($payment) {
+            $payment->paymentSchedules()->delete();
+            $payment->delete();
+        });
+
+        // Delete the clients project record
+        $clientsProject->delete();
+
+        return response()->json(['message' => 'Service deleted successfully']);
+    }
+
     public function assignProject(Request $request, $clientId)
     {
         $client = Client::findOrFail($clientId);

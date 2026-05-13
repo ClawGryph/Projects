@@ -59,6 +59,15 @@ export default function Assign() {
             .catch(() => setLoading(false));
     };
 
+    const onDelete = (a) => {
+        if (!window.confirm("Are you sure you want to delete this service?"))
+            return;
+        axiosClient.delete(`/clients/${id}/projects/${a.id}`).then(() => {
+            setNotification("Service was successfully deleted");
+            getAssigns();
+        });
+    };
+
     const assignLink =
         filter === "projects"
             ? "/assign/project/new"
@@ -325,6 +334,22 @@ export default function Assign() {
                                                             />{" "}
                                                             Edit
                                                         </button>
+                                                        {user?.role_name ===
+                                                            "super_admin" && (
+                                                            <button
+                                                                onClick={() =>
+                                                                    onDelete(a)
+                                                                }
+                                                                className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={
+                                                                        faTrash
+                                                                    }
+                                                                />{" "}
+                                                                Delete
+                                                            </button>
+                                                        )}
 
                                                         {!isProject &&
                                                             (() => {
