@@ -295,6 +295,21 @@ class PaymentScheduleController extends Controller
         return response()->json(['message' => 'Schedules updated successfully.']);
     }
 
+    public function updateAmounts(Request $request, PaymentSchedule $schedule)
+    {
+        abort_if($schedule->payment->company_id !== $this->company()->id, 403);
+
+        $data = $request->validate([
+            'base_amount'  => 'required|numeric|min:0',
+            'vat_amount'   => 'required|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0',
+        ]);
+
+        $schedule->update($data);
+
+        return response()->json(['message' => 'Schedule amounts updated successfully.']);
+    }
+
     public function generateInvoice($paymentId)
     {
         $payment = Payment::with('clientsProject')->findOrFail($paymentId);

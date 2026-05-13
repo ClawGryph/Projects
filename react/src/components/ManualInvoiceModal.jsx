@@ -7,7 +7,12 @@ import axiosClient from "../axios-client";
 
 const generateId = () => Math.random().toString(36).slice(2, 9);
 
-export default function ManualInvoiceModal({ payment, onClose, company }) {
+export default function ManualInvoiceModal({
+    payment,
+    onClose,
+    company,
+    onRefresh,
+}) {
     const invoiceRef = useRef();
     const [downloading, setDownloading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -106,34 +111,60 @@ export default function ManualInvoiceModal({ payment, onClose, company }) {
     const handleSave = () => {
         setSaving(true);
         setSaveStatus(null);
-        axiosClient
-            .post("/manual-invoices", {
-                payment_schedule_id: payment.id,
-                invoice_number: invoiceNumber,
-                due_date: dueDate || null,
-                terms,
-                vat_type: vatType,
-                bill_name: billName,
-                bill_company: billCompany,
-                bill_address: billAddress,
-                line_items: lineItems.map(({ id, ...rest }, index) => {
-                    const qty = parseFloat(rest.qty) || 0;
-                    const unitPrice = parseFloat(rest.unitPrice) || 0;
-                    const amount = qty * unitPrice;
-                    const vat_amount = isVatExclusive ? amount * 0.12 : 0;
 
-                    return {
-                        description: rest.description,
-                        note: rest.note,
-                        qty,
-                        unitPrice,
-                        amount,
-                        vat_amount,
-                        is_additional: index !== 0,
-                    };
-                }),
+        const firstItem = lineItems[0];
+        const firstQty = parseFloat(firstItem?.qty) || 0;
+        const firstUnitPrice = parseFloat(firstItem?.unitPrice) || 0;
+        const firstItemAmount = firstQty * firstUnitPrice;
+
+        // Recalculate base, vat, and total based on the first line item
+        const newBaseAmount = firstItemAmount;
+        const newVatAmount = isVatExclusive ? firstItemAmount * 0.12 : 0;
+        const newTotalAmount = newBaseAmount + newVatAmount;
+
+        // Save manual invoice draft
+        const saveDraft = axiosClient.post("/manual-invoices", {
+            payment_schedule_id: payment.id,
+            invoice_number: invoiceNumber,
+            due_date: dueDate || null,
+            terms,
+            vat_type: vatType,
+            bill_name: billName,
+            bill_company: billCompany,
+            bill_address: billAddress,
+            line_items: lineItems.map(({ id, ...rest }, index) => {
+                const qty = parseFloat(rest.qty) || 0;
+                const unitPrice = parseFloat(rest.unitPrice) || 0;
+                const amount = qty * unitPrice;
+                const vat_amount = isVatExclusive ? amount * 0.12 : 0;
+
+                return {
+                    description: rest.description,
+                    note: rest.note,
+                    qty,
+                    unitPrice,
+                    amount,
+                    vat_amount,
+                    is_additional: index !== 0,
+                };
+            }),
+        });
+
+        // Update the payment schedule amounts based on the first line item
+        const updateSchedule = axiosClient.patch(
+            `/payment-schedules/${payment.id}`,
+            {
+                base_amount: parseFloat(newBaseAmount.toFixed(2)),
+                vat_amount: parseFloat(newVatAmount.toFixed(2)),
+                total_amount: parseFloat(newTotalAmount.toFixed(2)),
+            },
+        );
+
+        Promise.all([saveDraft, updateSchedule])
+            .then(() => {
+                setSaveStatus("saved");
+                if (onRefresh) onRefresh();
             })
-            .then(() => setSaveStatus("saved"))
             .catch(() => setSaveStatus("error"))
             .finally(() => setSaving(false));
     };

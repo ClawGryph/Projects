@@ -41,6 +41,7 @@ export default function PaymentSchedulesTable({
     };
 
     const tableHeaders = [
+        { key: "Invoice No." },
         { key: "Due Date" },
         ...(showClientColumn ? [{ key: "Client Name" }] : []),
         { key: "Service" },
@@ -105,20 +106,26 @@ export default function PaymentSchedulesTable({
                                         className="hover:bg-cyan-50 text-center"
                                     >
                                         <td className="border-b border-gray-200 px-4 py-2">
-                                            {p.due_date || "-"}
+                                            {p.invoice_number ? (
+                                                <span className="text-xs font-mono text-gray-700">
+                                                    {p.invoice_number}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            <span className="text-xs font-mono text-gray-700">
+                                                {p.due_date || "-"}
+                                            </span>
                                         </td>
 
                                         {showClientColumn && (
                                             <td className="border-b border-gray-200 px-4 py-2">
-                                                <Link
-                                                    to={`/clients/assign/${p.clientsProject?.client?.id}`}
-                                                    className="text-cyan-700 hover:underline font-medium"
-                                                >
-                                                    {
-                                                        p.clientsProject?.client
-                                                            ?.name
-                                                    }
-                                                </Link>
+                                                {p.clientsProject?.client?.name}
                                             </td>
                                         )}
 
@@ -512,6 +519,7 @@ export default function PaymentSchedulesTable({
                     payment={manualInvoicePayment}
                     company={company}
                     onClose={() => setManualInvoicePayment(null)}
+                    onRefresh={onRefresh}
                 />
             )}
             {orPayment && (

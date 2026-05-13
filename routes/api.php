@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::put('/payments/{payment}/status', [PaymentController::class, 'updateStatus']);
     Route::patch('/payments/{payment}', [PaymentController::class, 'updateCycles']);
     Route::put('/payments/{payment}/schedules', [PaymentScheduleController::class, 'updateSchedules']);
+    Route::patch('/payment-schedules/{schedule}', [PaymentScheduleController::class, 'updateAmounts']);
     Route::post('/payments/{payment}/schedules/generate-invoice', [PaymentScheduleController::class, 'generateInvoice']);
     Route::put('/payment-schedules/{schedule}/status', [PaymentScheduleController::class, 'updateStatus']);
     Route::post('/payments/{paymentId}/schedules', [PaymentScheduleController::class, 'store']);
