@@ -161,6 +161,20 @@ export default function Clients() {
                                             {user?.role_name !== "viewer" && (
                                                 <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
                                                     <Link
+                                                        to={
+                                                            "/clients/assign/" +
+                                                            u.id
+                                                        }
+                                                        className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={
+                                                                faDiagramProject
+                                                            }
+                                                        />{" "}
+                                                        Assign
+                                                    </Link>
+                                                    <Link
                                                         to={"/clients/" + u.id}
                                                         className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
                                                     >
