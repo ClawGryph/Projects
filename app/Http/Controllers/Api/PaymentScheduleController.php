@@ -34,8 +34,14 @@ class PaymentScheduleController extends Controller
             $query->where('due_date', 'like', $request->month . '%');
         }
 
+        if ($request->filled('client_id')) {
+            $query->whereHas('payment.clientsProject', function ($q) use ($request) {
+                $q->where('client_id', $request->client_id);
+            });
+        }
+
         if ($request->filled('project_id')) {
-            $query->whereHas('clientsProject.project', function ($q) use ($request) {
+            $query->whereHas('payment.clientsProject.project', function ($q) use ($request) {
                 $q->where('id', $request->project_id);
             });
         }

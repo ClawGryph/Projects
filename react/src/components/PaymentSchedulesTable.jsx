@@ -1,0 +1,542 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { calcWithholdingTax } from "../utils/withholdingTax";
+import {
+    faFileInvoice,
+    faReceipt,
+    faChevronDown,
+    faFileInvoiceDollar,
+} from "@fortawesome/free-solid-svg-icons";
+import StatusBadge from "./StatusBadge";
+import InvoiceModal from "./InvoiceModal";
+import OfficialReceiptModal from "./OfficialReceiptModal";
+import ManualInvoiceModal from "./ManualInvoiceModal";
+import Form2307Modal from "./Form2307Modal";
+
+export default function PaymentSchedulesTable({
+    paymentSchedules = [],
+    manualInvoiceTotals = {},
+    company,
+    user,
+    onStatusUpdate,
+    onRefresh,
+    setNotification,
+    showClientColumn = true, // hide on client-specific pages
+}) {
+    const [editingId, setEditingId] = useState(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [invoicePayment, setInvoicePayment] = useState(null);
+    const [orPayment, setOrPayment] = useState(null);
+    const [manualInvoicePayment, setManualInvoicePayment] = useState(null);
+    const [form2307Payment, setForm2307Payment] = useState(null);
+
+    const formatPaymentType = (type) => {
+        if (!type) return "";
+        return type
+            .replace(/_/g, " ")
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+    };
+
+    const tableHeaders = [
+        { key: "Due Date" },
+        ...(showClientColumn ? [{ key: "Client Name" }] : []),
+        { key: "Service" },
+        { key: "Service Name" },
+        { key: "Payment Details" },
+        { key: "Status" },
+        { key: "S.I/ACK No." },
+        { key: "2307 Status" },
+        { key: "Action" },
+    ];
+
+    const columnCount = tableHeaders.filter(
+        (h) => !(h.key === "Action" && user?.role_name === "viewer"),
+    ).length;
+
+    return (
+        <>
+            <div className="w-full overflow-auto rounded-lg">
+                <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
+                    <thead className="sticky top-0 z-20 bg-cyan-800">
+                        <tr>
+                            {tableHeaders.map((header) => {
+                                if (
+                                    header.key === "Action" &&
+                                    user?.role_name === "viewer"
+                                )
+                                    return null;
+                                return (
+                                    <th
+                                        key={header.key}
+                                        className="px-4 py-2 text-white text-sm font-medium"
+                                    >
+                                        {header.key}
+                                    </th>
+                                );
+                            })}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {paymentSchedules.length > 0 ? (
+                            paymentSchedules.map((p) => {
+                                const isProject = !!p.clientsProject?.project;
+                                const isPaid = p.status === "paid";
+                                const SIOrACKNo = p.is_or_issued
+                                    ? p.transaction?.officialReceipt
+                                          ?.service_invoice_number ||
+                                      p.transaction?.officialReceipt
+                                          ?.payment_acknowledgement_number ||
+                                      ""
+                                    : "";
+                                const form2307Status = p.is_form2307_issued
+                                    ? "issued"
+                                    : "pending";
+                                const hasActions =
+                                    p.is_invoice_generated ||
+                                    isPaid ||
+                                    (isPaid && !!p.is_or_issued);
+
+                                return (
+                                    <tr
+                                        key={p.id}
+                                        className="hover:bg-cyan-50 text-center"
+                                    >
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            {p.due_date || "-"}
+                                        </td>
+
+                                        {showClientColumn && (
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                <Link
+                                                    to={`/clients/assign/${p.clientsProject?.client?.id}`}
+                                                    className="text-cyan-700 hover:underline font-medium"
+                                                >
+                                                    {
+                                                        p.clientsProject?.client
+                                                            ?.name
+                                                    }
+                                                </Link>
+                                            </td>
+                                        )}
+
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            <span
+                                                className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isProject ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}
+                                            >
+                                                {isProject
+                                                    ? "Project"
+                                                    : "Subscription"}
+                                            </span>
+                                        </td>
+
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            {p.clientsProject?.project?.title ??
+                                                p.clientsProject?.subscription
+                                                    ?.title ??
+                                                "—"}
+                                        </td>
+
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            <div className="font-semibold">
+                                                ₱
+                                                {new Intl.NumberFormat(
+                                                    "en-PH",
+                                                    {
+                                                        minimumFractionDigits: 2,
+                                                        maximumFractionDigits: 2,
+                                                    },
+                                                ).format(
+                                                    parseFloat(
+                                                        (
+                                                            (parseFloat(
+                                                                p.total_amount,
+                                                            ) || 0) +
+                                                            (manualInvoiceTotals[
+                                                                p.id
+                                                            ] || 0)
+                                                        ).toFixed(2),
+                                                    ),
+                                                )}
+                                            </div>
+                                            {manualInvoiceTotals[p.id] > 0 && (
+                                                <div className="text-xs text-cyan-600">
+                                                    +₱
+                                                    {new Intl.NumberFormat(
+                                                        "en-PH",
+                                                    ).format(
+                                                        manualInvoiceTotals[
+                                                            p.id
+                                                        ],
+                                                    )}{" "}
+                                                    additional
+                                                </div>
+                                            )}
+                                            <div className="text-xs text-gray-500">
+                                                {formatPaymentType(
+                                                    isProject
+                                                        ? p.clientsProject
+                                                              ?.project
+                                                              ?.payment_type
+                                                        : p.clientsProject
+                                                              ?.subscription
+                                                              ?.frequency,
+                                                )}
+                                            </div>
+                                        </td>
+
+                                        <td className="border-b border-gray-200 px-4 py-2 relative">
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const rect =
+                                                        e.currentTarget.getBoundingClientRect();
+                                                    setDropdownPos({
+                                                        top:
+                                                            rect.bottom +
+                                                            window.scrollY -
+                                                            30,
+                                                        left:
+                                                            rect.left +
+                                                            rect.width / 2 +
+                                                            window.scrollX,
+                                                    });
+                                                    user?.role_name !==
+                                                        "viewer" &&
+                                                        setEditingId(p.id);
+                                                }}
+                                                className={`inline-flex items-center gap-1 justify-center ${user?.role_name !== "viewer" ? "cursor-pointer" : "cursor-default"}`}
+                                            >
+                                                <StatusBadge
+                                                    status={p.status}
+                                                    isEnded={p.isEnded}
+                                                />
+                                                {user?.role_name !==
+                                                    "viewer" && (
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-3 w-3 text-gray-400 shrink-0"
+                                                        viewBox="0 0 20 20"
+                                                        fill="currentColor"
+                                                    >
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            {editingId === p.id && (
+                                                <div
+                                                    style={{
+                                                        position: "fixed",
+                                                        top: dropdownPos.top,
+                                                        left: dropdownPos.left,
+                                                        transform:
+                                                            "translateX(-50%)",
+                                                    }}
+                                                    className="bg-white border rounded shadow-md z-50"
+                                                >
+                                                    {[
+                                                        "pending",
+                                                        "paid",
+                                                        "overdue",
+                                                    ].map((status) => (
+                                                        <div
+                                                            key={status}
+                                                            onClick={() => {
+                                                                onStatusUpdate(
+                                                                    p.id,
+                                                                    status,
+                                                                    p,
+                                                                );
+                                                                setEditingId(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                        >
+                                                            <StatusBadge
+                                                                status={status}
+                                                                isEnded={
+                                                                    p.isEnded
+                                                                }
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </td>
+
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            {isPaid ? (
+                                                SIOrACKNo ? (
+                                                    <span className="text-s font-mono text-gray-700">
+                                                        {SIOrACKNo}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400 italic">
+                                                        No O.R. issued
+                                                    </span>
+                                                )
+                                            ) : (
+                                                <span className="text-gray-400">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            {isPaid ? (
+                                                <div className="flex justify-center">
+                                                    <StatusBadge
+                                                        status={form2307Status}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        {user?.role_name !== "viewer" && (
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                <div className="relative flex justify-center">
+                                                    {hasActions ? (
+                                                        <>
+                                                            <button
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    const rect =
+                                                                        e.currentTarget.getBoundingClientRect();
+                                                                    const dropdownHeight = 65;
+                                                                    const spaceBelow =
+                                                                        window.innerHeight -
+                                                                        rect.bottom;
+                                                                    setDropdownPos(
+                                                                        {
+                                                                            top:
+                                                                                spaceBelow <
+                                                                                dropdownHeight
+                                                                                    ? rect.top -
+                                                                                      dropdownHeight
+                                                                                    : rect.bottom,
+                                                                            left: rect.right,
+                                                                        },
+                                                                    );
+                                                                    setEditingId(
+                                                                        editingId ===
+                                                                            `action-${p.id}`
+                                                                            ? null
+                                                                            : `action-${p.id}`,
+                                                                    );
+                                                                }}
+                                                                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
+                                                            >
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    className="h-4 w-4"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="currentColor"
+                                                                >
+                                                                    <circle
+                                                                        cx="12"
+                                                                        cy="5"
+                                                                        r="1.5"
+                                                                    />
+                                                                    <circle
+                                                                        cx="12"
+                                                                        cy="12"
+                                                                        r="1.5"
+                                                                    />
+                                                                    <circle
+                                                                        cx="12"
+                                                                        cy="19"
+                                                                        r="1.5"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+
+                                                            {editingId ===
+                                                                `action-${p.id}` && (
+                                                                <div
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
+                                                                    style={{
+                                                                        position:
+                                                                            "fixed",
+                                                                        top: dropdownPos.top,
+                                                                        left: dropdownPos.left,
+                                                                        transform:
+                                                                            "translateX(-100%)",
+                                                                    }}
+                                                                    className="z-50 bg-white border border-gray-200 rounded-md shadow-md min-w-[130px]"
+                                                                >
+                                                                    {p.is_invoice_generated && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setInvoicePayment(
+                                                                                    p,
+                                                                                );
+                                                                                setEditingId(
+                                                                                    null,
+                                                                                );
+                                                                            }}
+                                                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                                                        >
+                                                                            <FontAwesomeIcon
+                                                                                icon={
+                                                                                    faFileInvoice
+                                                                                }
+                                                                                className="h-3 w-3"
+                                                                            />{" "}
+                                                                            Invoice
+                                                                        </button>
+                                                                    )}
+                                                                    {p.is_invoice_generated && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setManualInvoicePayment(
+                                                                                    p,
+                                                                                );
+                                                                                setEditingId(
+                                                                                    null,
+                                                                                );
+                                                                            }}
+                                                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                                                        >
+                                                                            <FontAwesomeIcon
+                                                                                icon={
+                                                                                    faFileInvoice
+                                                                                }
+                                                                                className="h-3 w-3"
+                                                                            />{" "}
+                                                                            Manual
+                                                                            Invoice
+                                                                        </button>
+                                                                    )}
+                                                                    {isPaid && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setOrPayment(
+                                                                                    p,
+                                                                                );
+                                                                                setEditingId(
+                                                                                    null,
+                                                                                );
+                                                                            }}
+                                                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-emerald-600 hover:bg-emerald-50 cursor-pointer"
+                                                                        >
+                                                                            <FontAwesomeIcon
+                                                                                icon={
+                                                                                    faReceipt
+                                                                                }
+                                                                                className="h-3 w-3"
+                                                                            />{" "}
+                                                                            Issue
+                                                                            O.R.
+                                                                        </button>
+                                                                    )}
+                                                                    {isPaid &&
+                                                                        !!p.is_or_issued && (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setForm2307Payment(
+                                                                                        p,
+                                                                                    );
+                                                                                    setEditingId(
+                                                                                        null,
+                                                                                    );
+                                                                                }}
+                                                                                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-amber-600 hover:bg-amber-50 cursor-pointer"
+                                                                            >
+                                                                                <FontAwesomeIcon
+                                                                                    icon={
+                                                                                        faFileInvoiceDollar
+                                                                                    }
+                                                                                    className="h-3 w-3"
+                                                                                />{" "}
+                                                                                {p.is_form2307_issued
+                                                                                    ? "Edit 2307"
+                                                                                    : "Issue 2307"}
+                                                                            </button>
+                                                                        )}
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-gray-300 text-xs">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                );
+                            })
+                        ) : (
+                            <tr>
+                                <td
+                                    colSpan={columnCount}
+                                    className="px-4 py-6 text-center text-gray-500"
+                                >
+                                    No payment schedules found
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {invoicePayment && (
+                <InvoiceModal
+                    payment={invoicePayment}
+                    scheduleIndex={invoicePayment.schedule_index}
+                    totalSchedules={invoicePayment.total_schedules}
+                    company={company}
+                    onClose={() => setInvoicePayment(null)}
+                />
+            )}
+            {manualInvoicePayment && (
+                <ManualInvoiceModal
+                    payment={manualInvoicePayment}
+                    company={company}
+                    onClose={() => setManualInvoicePayment(null)}
+                />
+            )}
+            {orPayment && (
+                <OfficialReceiptModal
+                    payment={orPayment}
+                    scheduleIndex={orPayment.schedule_index}
+                    onClose={() => setOrPayment(null)}
+                    onSaved={() => {
+                        setOrPayment(null);
+                        onRefresh();
+                        setNotification("Official Receipt saved");
+                    }}
+                />
+            )}
+            {form2307Payment && (
+                <Form2307Modal
+                    payment={form2307Payment}
+                    onClose={() => setForm2307Payment(null)}
+                    onSaved={() => {
+                        setForm2307Payment(null);
+                        onRefresh();
+                        setNotification("BIR Form 2307 saved");
+                    }}
+                />
+            )}
+        </>
+    );
+}
