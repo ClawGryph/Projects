@@ -66,13 +66,6 @@ export default function Assign() {
               ? "/assign/subscription/new"
               : null;
 
-    const assignLabel =
-        filter === "projects"
-            ? "Add Project"
-            : filter === "subscriptions"
-              ? "Add Subscription"
-              : null;
-
     const filteredAssigns = assigns.filter((a) => {
         if (filter === "projects") return a.project !== null;
         if (filter === "subscriptions") return a.subscription !== null;
@@ -161,7 +154,7 @@ export default function Assign() {
                                 className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
                             >
                                 <FontAwesomeIcon icon={faPlus} />
-                                Add Project
+                                Assign Project
                             </button>
                         )}
                         {filter === "subscriptions" && (
@@ -170,7 +163,7 @@ export default function Assign() {
                                 className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
                             >
                                 <FontAwesomeIcon icon={faPlus} />
-                                Add Subscription
+                                Assign Subscription
                             </button>
                         )}
                     </div>

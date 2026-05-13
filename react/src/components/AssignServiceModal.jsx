@@ -116,6 +116,12 @@ export default function PaymentModal({
     const [adjustedEndCoverage, setAdjustedEndCoverage] = useState("");
     const [crNo, setCrNo] = useState("");
 
+    {
+        /* ── 1. SERVICE DROPDOWN (Searchable) ─────────────────────── */
+    }
+    const [search, setSearch] = useState("");
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+
     // ── Fetch on open ────────────────────────────────────────────────
     useEffect(() => {
         if (!isOpen) return;
@@ -137,6 +143,7 @@ export default function PaymentModal({
                         : editData.subscription;
 
                     setSelectedService(String(service?.id ?? ""));
+                    setSearch(service?.title ?? "");
                     // Derive payment type from the service, not from payment record
                     setPaymentType(
                         isProject
@@ -150,6 +157,7 @@ export default function PaymentModal({
                 if (renewData && !editData) {
                     const service = renewData.subscription;
                     setSelectedService(String(service?.id ?? ""));
+                    setSearch(service?.title ?? "");
                     setPaymentType("recurring");
                     setVatType(renewData.vat_type ?? "vat_exempt");
                     setRecurringType(service?.type ?? "");
@@ -221,6 +229,8 @@ export default function PaymentModal({
         setAdjustedStartCoverage("");
         setAdjustedEndCoverage("");
         setCrNo("");
+        setSearch("");
+        setDropdownOpen(false);
     };
 
     const handleClose = () => {
@@ -421,32 +431,95 @@ export default function PaymentModal({
                         </div>
                     )}
 
-                    {/* ── 1. SERVICE DROPDOWN ─────────────────────── */}
+                    {/* ── 1. SERVICE DROPDOWN (Searchable) ─────────────────────── */}
                     <FloatField label={isProject ? "Project" : "Subscription"}>
-                        <select
-                            value={selectedService}
-                            onChange={(e) =>
-                                !renewData && setSelectedService(e.target.value)
-                            }
-                            disabled={!!renewData}
-                            className={
-                                selectCls +
-                                (renewData
-                                    ? " bg-gray-50 cursor-not-allowed"
-                                    : "")
-                            }
-                        >
-                            <option value="" disabled>
-                                {isProject
-                                    ? "Select a project"
-                                    : "Select a subscription"}
-                            </option>
-                            {services.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                    {s.title}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setDropdownOpen(true);
+                                }}
+                                onBlur={() =>
+                                    setTimeout(
+                                        () => setDropdownOpen(false),
+                                        150,
+                                    )
+                                }
+                                disabled={!!renewData}
+                                placeholder={
+                                    isProject
+                                        ? "Search a project..."
+                                        : "Search a subscription..."
+                                }
+                                className={
+                                    "block w-full border border-gray-300 rounded-md pl-3 pr-10 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500" +
+                                    (renewData
+                                        ? " bg-gray-50 cursor-not-allowed"
+                                        : " bg-white")
+                                }
+                            />
+                            {/* Dropdown arrow button */}
+                            {!renewData && (
+                                <button
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setDropdownOpen((prev) => !prev);
+                                    }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg
+                                        className={`w-4 h-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
+                            )}
+                            {dropdownOpen && !renewData && (
+                                <ul className="absolute z-50 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-48 overflow-y-auto shadow-lg">
+                                    {services
+                                        .filter((s) =>
+                                            s.title
+                                                .toLowerCase()
+                                                .includes(search.toLowerCase()),
+                                        )
+                                        .map((s) => (
+                                            <li
+                                                key={s.id}
+                                                onMouseDown={() => {
+                                                    setSelectedService(
+                                                        String(s.id),
+                                                    );
+                                                    setSearch(s.title);
+                                                    setDropdownOpen(false);
+                                                }}
+                                                className="px-3 py-2 text-sm hover:bg-cyan-50 cursor-pointer"
+                                            >
+                                                {s.title}
+                                            </li>
+                                        ))}
+                                    {services.filter((s) =>
+                                        s.title
+                                            .toLowerCase()
+                                            .includes(search.toLowerCase()),
+                                    ).length === 0 && (
+                                        <li className="px-3 py-2 text-sm text-gray-400">
+                                            No results found
+                                        </li>
+                                    )}
+                                </ul>
+                            )}
+                        </div>
                     </FloatField>
 
                     {/* ── Fields revealed after a service is picked ── */}
