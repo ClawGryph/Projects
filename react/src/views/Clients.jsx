@@ -159,44 +159,51 @@ export default function Clients() {
                                                 {u.company_type}
                                             </td>
                                             {user?.role_name !== "viewer" && (
-                                                <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
-                                                    <Link
-                                                        to={
-                                                            "/clients/assign/" +
-                                                            u.id
-                                                        }
-                                                        className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={
-                                                                faDiagramProject
+                                                <td className="border-b border-gray-200 px-4 py-2 text-center">
+                                                    <div className="flex justify-center items-center gap-2">
+                                                        <Link
+                                                            to={
+                                                                "/clients/assign/" +
+                                                                u.id
                                                             }
-                                                        />{" "}
-                                                        Assign
-                                                    </Link>
-                                                    <Link
-                                                        to={"/clients/" + u.id}
-                                                        className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={faPen}
-                                                        />{" "}
-                                                        Edit
-                                                    </Link>
-                                                    {user?.role_name ===
-                                                        "super_admin" && (
-                                                        <button
-                                                            onClick={() =>
-                                                                onDelete(u)
-                                                            }
-                                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                            className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
                                                         >
                                                             <FontAwesomeIcon
-                                                                icon={faTrash}
+                                                                icon={
+                                                                    faDiagramProject
+                                                                }
                                                             />{" "}
-                                                            Delete
-                                                        </button>
-                                                    )}
+                                                            Assign
+                                                        </Link>
+                                                        <Link
+                                                            to={
+                                                                "/clients/" +
+                                                                u.id
+                                                            }
+                                                            className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={faPen}
+                                                            />{" "}
+                                                            Edit
+                                                        </Link>
+                                                        {user?.role_name ===
+                                                            "super_admin" && (
+                                                            <button
+                                                                onClick={() =>
+                                                                    onDelete(u)
+                                                                }
+                                                                className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={
+                                                                        faTrash
+                                                                    }
+                                                                />{" "}
+                                                                Delete
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             )}
                                         </tr>

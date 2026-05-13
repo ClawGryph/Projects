@@ -409,128 +409,132 @@ export default function Assign() {
                                                     </td>
                                                     {user?.role_name !==
                                                         "viewer" && (
-                                                        <td className="border-b border-gray-200 px-4 py-3 flex justify-center items-center gap-2">
-                                                            <button
-                                                                onClick={() =>
-                                                                    openEditModal(
-                                                                        a,
-                                                                    )
-                                                                }
-                                                                className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                            >
-                                                                <FontAwesomeIcon
-                                                                    icon={faPen}
-                                                                />{" "}
-                                                                Edit
-                                                            </button>
-                                                            {user?.role_name ===
-                                                                "super_admin" && (
+                                                        <td className="border-b border-gray-200 px-4 py-2 text-center">
+                                                            <div className="flex justify-center items-center gap-2">
                                                                 <button
                                                                     onClick={() =>
-                                                                        onDelete(
+                                                                        openEditModal(
                                                                             a,
                                                                         )
                                                                     }
-                                                                    className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                                    className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
                                                                 >
                                                                     <FontAwesomeIcon
                                                                         icon={
-                                                                            faTrash
+                                                                            faPen
                                                                         }
                                                                     />{" "}
-                                                                    Delete
+                                                                    Edit
                                                                 </button>
-                                                            )}
+                                                                {user?.role_name ===
+                                                                    "super_admin" && (
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            onDelete(
+                                                                                a,
+                                                                            )
+                                                                        }
+                                                                        className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                                    >
+                                                                        <FontAwesomeIcon
+                                                                            icon={
+                                                                                faTrash
+                                                                            }
+                                                                        />{" "}
+                                                                        Delete
+                                                                    </button>
+                                                                )}
 
-                                                            {!isProject &&
-                                                                (() => {
-                                                                    const secondToLast =
-                                                                        a.payment_schedules?.at(
-                                                                            -2,
-                                                                        );
-                                                                    const isPaid =
-                                                                        a
-                                                                            .payment_schedules
-                                                                            ?.length >
-                                                                            0 &&
-                                                                        secondToLast?.status ===
-                                                                            "paid";
+                                                                {!isProject &&
+                                                                    (() => {
+                                                                        const secondToLast =
+                                                                            a.payment_schedules?.at(
+                                                                                -2,
+                                                                            );
+                                                                        const isPaid =
+                                                                            a
+                                                                                .payment_schedules
+                                                                                ?.length >
+                                                                                0 &&
+                                                                            secondToLast?.status ===
+                                                                                "paid";
 
-                                                                    const endDate =
-                                                                        a
-                                                                            .subscription
-                                                                            ?.adjusted_end_coverage ??
-                                                                        a
-                                                                            .subscription
-                                                                            ?.end_coverage;
-                                                                    const isWithin3Days =
-                                                                        endDate
-                                                                            ? (() => {
-                                                                                  const end =
-                                                                                      new Date(
-                                                                                          endDate,
+                                                                        const endDate =
+                                                                            a
+                                                                                .subscription
+                                                                                ?.adjusted_end_coverage ??
+                                                                            a
+                                                                                .subscription
+                                                                                ?.end_coverage;
+                                                                        const isWithin3Days =
+                                                                            endDate
+                                                                                ? (() => {
+                                                                                      const end =
+                                                                                          new Date(
+                                                                                              endDate,
+                                                                                          );
+                                                                                      const today =
+                                                                                          new Date();
+                                                                                      today.setHours(
+                                                                                          0,
+                                                                                          0,
+                                                                                          0,
+                                                                                          0,
                                                                                       );
-                                                                                  const today =
-                                                                                      new Date();
-                                                                                  today.setHours(
-                                                                                      0,
-                                                                                      0,
-                                                                                      0,
-                                                                                      0,
-                                                                                  );
-                                                                                  const diffDays =
-                                                                                      Math.ceil(
-                                                                                          (end -
-                                                                                              today) /
-                                                                                              (1000 *
-                                                                                                  60 *
-                                                                                                  60 *
-                                                                                                  24),
+                                                                                      const diffDays =
+                                                                                          Math.ceil(
+                                                                                              (end -
+                                                                                                  today) /
+                                                                                                  (1000 *
+                                                                                                      60 *
+                                                                                                      60 *
+                                                                                                      24),
+                                                                                          );
+                                                                                      return (
+                                                                                          diffDays <=
+                                                                                          3
                                                                                       );
-                                                                                  return (
-                                                                                      diffDays <=
-                                                                                      3
-                                                                                  );
-                                                                              })()
-                                                                            : false;
+                                                                                  })()
+                                                                                : false;
 
-                                                                    const canRenew =
-                                                                        isPaid &&
-                                                                        isWithin3Days;
+                                                                        const canRenew =
+                                                                            isPaid &&
+                                                                            isWithin3Days;
 
-                                                                    return (
-                                                                        <button
-                                                                            onClick={() =>
-                                                                                canRenew &&
-                                                                                openRenewModal(
-                                                                                    a,
-                                                                                )
-                                                                            }
-                                                                            disabled={
-                                                                                !canRenew
-                                                                            }
-                                                                            title={
-                                                                                !canRenew
-                                                                                    ? "Available 3 days before end coverage"
-                                                                                    : "Renew Subscription"
-                                                                            }
-                                                                            className={`flex items-center gap-1 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition ${
-                                                                                canRenew
-                                                                                    ? "bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
-                                                                                    : "bg-gray-300 cursor-not-allowed"
-                                                                            }`}
-                                                                        >
-                                                                            <FontAwesomeIcon
-                                                                                icon={
-                                                                                    canRenew
-                                                                                        ? faRotateRight
-                                                                                        : faLock
+                                                                        return (
+                                                                            <button
+                                                                                onClick={() =>
+                                                                                    canRenew &&
+                                                                                    openRenewModal(
+                                                                                        a,
+                                                                                    )
                                                                                 }
-                                                                            />{" "}
-                                                                            Renew
-                                                                        </button>
-                                                                    );
-                                                                })()}
+                                                                                disabled={
+                                                                                    !canRenew
+                                                                                }
+                                                                                title={
+                                                                                    !canRenew
+                                                                                        ? "Available 3 days before end coverage"
+                                                                                        : "Renew Subscription"
+                                                                                }
+                                                                                className={`flex items-center gap-1 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition ${
+                                                                                    canRenew
+                                                                                        ? "bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                                                                                        : "bg-gray-300 cursor-not-allowed"
+                                                                                }`}
+                                                                            >
+                                                                                <FontAwesomeIcon
+                                                                                    icon={
+                                                                                        canRenew
+                                                                                            ? faRotateRight
+                                                                                            : faLock
+                                                                                    }
+                                                                                />{" "}
+                                                                                Renew
+                                                                            </button>
+                                                                        );
+                                                                    })()}
+                                                            </div>
                                                         </td>
                                                     )}
                                                 </tr>
