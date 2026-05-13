@@ -252,7 +252,6 @@ class PaymentScheduleController extends Controller
 
         foreach ($data['schedules'] as $s) {
             if (!empty($s['id'])) {
-                // Update existing row
                 PaymentSchedule::where('id', $s['id'])
                     ->where('payment_id', $paymentId)
                     ->update([
@@ -266,7 +265,6 @@ class PaymentScheduleController extends Controller
                         'updated_at'     => now(),
                     ]);
             } else {
-                // Insert new row — no invoice_number yet, assigned on generateInvoice
                 PaymentSchedule::create([
                     'payment_id'           => $paymentId,
                     'due_date'             => $s['due_date'],
@@ -283,6 +281,16 @@ class PaymentScheduleController extends Controller
                 ]);
             }
         }
+
+        // Recalculate and update payment total_cost and number_of_cycles
+        $updatedSchedules = PaymentSchedule::where('payment_id', $paymentId)->get();
+        $newTotalCost = $updatedSchedules->sum('total_amount');
+        $newCycleCount = $updatedSchedules->count();
+
+        $payment->update([
+            'total_cost'       => $newTotalCost,
+            'number_of_cycles' => $newCycleCount,
+        ]);
 
         return response()->json(['message' => 'Schedules updated successfully.']);
     }

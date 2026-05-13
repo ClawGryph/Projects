@@ -2,13 +2,14 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../context/ContextProvider";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { calcVat } from "../utils/vatCalculator";
 
 export default function ScheduleBilling() {
     const { id, clientsProjectId } = useParams();
+    const navigate = useNavigate();
     const [client, setClient] = useState(null);
     const [schedules, setSchedules] = useState([]);
     const [generated, setGenerated] = useState(false);
@@ -19,7 +20,12 @@ export default function ScheduleBilling() {
     const [pendingRowIndex, setPendingRowIndex] = useState(null);
     const [showExceedModal, setShowExceedModal] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+    const [editingField, setEditingField] = useState({});
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [preEditSchedules, setPreEditSchedules] = useState(null);
+    const [isInvoiceGenerated, setIsInvoiceGenerated] = useState(false);
+    const [saveCount, setSaveCount] = useState(0);
+    const [showSaveWarningModal, setShowSaveWarningModal] = useState(false);
 
     useEffect(() => {
         axiosClient.get(`/clients/${id}`).then(({ data }) => {
@@ -52,7 +58,13 @@ export default function ScheduleBilling() {
                                         gross_amount: s.total_amount,
                                     })),
                                 );
-                                setGenerated(true); // skip the generate button
+                                // if any schedule has invoice generated, disable the button
+                                setIsInvoiceGenerated(
+                                    existing.some(
+                                        (s) => s.is_invoice_generated,
+                                    ),
+                                );
+                                setGenerated(true);
                                 setHasChanges(false);
                             }
                         })
@@ -98,6 +110,40 @@ export default function ScheduleBilling() {
     };
 
     const handleSaveChanges = () => {
+        // If already saved once before, show warning first
+        if (saveCount >= 1) {
+            setShowSaveWarningModal(true);
+            return;
+        }
+        executeSaveChanges();
+    };
+
+    const executeSaveChanges = () => {
+        setShowSaveWarningModal(false);
+
+        const invalidRows = schedules.reduce((acc, s, i) => {
+            const missing = [];
+            if (!s.due_date) missing.push("Due Date");
+            if (!s.start_coverage) missing.push("Start Coverage");
+            if (!s.end_coverage) missing.push("End Coverage");
+            if (
+                s.base_amount === "" ||
+                s.base_amount === null ||
+                s.base_amount === undefined
+            )
+                missing.push("Base Amount");
+            if (missing.length > 0) acc.push({ row: i + 1, missing });
+            return acc;
+        }, []);
+
+        if (invalidRows.length > 0) {
+            const messages = invalidRows
+                .map((r) => `Row ${r.row}: ${r.missing.join(", ")}`)
+                .join(" | ");
+            setNotification(`Please fill in required fields — ${messages}`);
+            return;
+        }
+
         setSaving(true);
         const paymentId = assignData.payment.id;
         const payload = {
@@ -117,11 +163,16 @@ export default function ScheduleBilling() {
             .put(`/payments/${paymentId}/schedules`, payload)
             .then(() => {
                 setNotification("Schedule updated successfully.");
-                // Re-fetch to sync real DB ids
+                setSaveCount((prev) => prev + 1); // ✅ increment on success
                 return axiosClient.get(`/payments/${paymentId}/schedules`);
             })
             .then(({ data }) => {
                 const existing = data.data ?? data;
+                const newTotalCost = existing.reduce(
+                    (sum, s) => sum + parseFloat(s.total_amount || 0),
+                    0,
+                );
+
                 setSchedules(
                     existing.map((s) => ({
                         id: s.id,
@@ -134,6 +185,17 @@ export default function ScheduleBilling() {
                         gross_amount: s.total_amount,
                     })),
                 );
+                setIsInvoiceGenerated(
+                    existing.some((s) => s.is_invoice_generated),
+                );
+                setAssignData((prev) => ({
+                    ...prev,
+                    payment: {
+                        ...prev.payment,
+                        number_of_cycles: existing.length,
+                        total_cost: newTotalCost,
+                    },
+                }));
                 setHasChanges(false);
             })
             .catch((err) => {
@@ -152,6 +214,8 @@ export default function ScheduleBilling() {
             .post(`/payments/${paymentId}/schedules/generate-invoice`)
             .then(() => {
                 setNotification("Invoice generated successfully.");
+                setIsInvoiceGenerated(true);
+                navigate("/payments");
             })
             .catch((err) => {
                 const msg =
@@ -383,6 +447,25 @@ export default function ScheduleBilling() {
         });
     };
 
+    const getRawOrFormatted = (index, field, value) => {
+        const key = `${index}-${field}`;
+        return editingField[key] !== undefined
+            ? editingField[key]
+            : fmtNumber(value);
+    };
+
+    const checkExceedOnBlur = (updatedSchedules) => {
+        const actualGross = updatedSchedules.reduce(
+            (sum, s) => sum + parseFloat(s.gross_amount || 0),
+            0,
+        );
+        const expectedGross = parseFloat(assignData?.payment?.total_cost ?? 0);
+        if (actualGross > expectedGross) {
+            setPreEditSchedules((snap) => snap); // already set before change
+            setShowExceedModal(true);
+        }
+    };
+
     const handleAddRow = (index) => {
         setHasChanges(true);
         const ref = schedules[index];
@@ -407,96 +490,51 @@ export default function ScheduleBilling() {
         const newRow = {
             id: null,
             _tempKey: Date.now(),
-            due_date: fmtDate(newDueDate),
-            start_coverage: fmtDate(newStartCoverage),
-            end_coverage: fmtDate(newEndCoverage),
-            rate: ref.rate,
-            base_amount: ref.base_amount,
-            vat_amount: ref.vat_amount,
-            gross_amount: ref.gross_amount,
+            due_date: "",
+            start_coverage: "",
+            end_coverage: "",
+            rate: "",
+            base_amount: "",
+            vat_amount: "",
+            gross_amount: "",
         };
 
-        const inserted = [
+        const newSchedules = [
             ...schedules.slice(0, index + 1),
             newRow,
             ...schedules.slice(index + 1),
         ];
 
-        const newSchedules = recalculateFromIndex(
-            inserted,
-            index + 2,
-            recurringType,
-        );
-
-        const actualGross = newSchedules.reduce(
-            (sum, s) => sum + parseFloat(s.gross_amount || 0),
-            0,
-        );
-        const expectedGross = parseFloat(assignData?.payment?.total_cost ?? 0);
-
-        if (actualGross > expectedGross) {
-            setSchedules(newSchedules);
-            setPendingRowIndex(index + 1);
-            setShowExceedModal(true);
-        } else {
-            setSchedules(newSchedules);
-
-            const newCount = schedules.length + 1;
-            updatePaymentCycles(newCount);
-            setAssignData((prev) => ({
-                ...prev,
-                payment: { ...prev.payment, number_of_cycles: newCount },
-            }));
-        }
+        setSchedules(newSchedules);
+        setAssignData((prev) => ({
+            ...prev,
+            payment: { ...prev.payment, number_of_cycles: newSchedules.length },
+        }));
     };
 
     const handleDeleteRow = (index) => {
         setHasChanges(true);
         setSchedules((prev) => {
-            const isProject = assignData?.project !== null;
-            const service = isProject
-                ? assignData.project
-                : assignData.subscription;
-            const recurringType =
-                service?.frequency ?? service?.type ?? "monthly";
-
             const filtered = prev.filter((_, i) => i !== index);
-
-            // decrement payment cycles
-            const newCount = filtered.length;
-            updatePaymentCycles(newCount);
-
             setAssignData((prev) => ({
                 ...prev,
-                payment: { ...prev.payment, number_of_cycles: newCount },
+                payment: { ...prev.payment, number_of_cycles: filtered.length },
             }));
-
-            return recalculateFromIndex(
-                filtered,
-                Math.max(1, index),
-                recurringType,
-            );
+            return filtered;
         });
     };
 
     const handleExceedProceed = () => {
-        const newCount = schedules.length;
-        updatePaymentCycles(newCount);
-        setAssignData((prev) => ({
-            ...prev,
-            payment: { ...prev.payment, number_of_cycles: newCount },
-        }));
-
+        setPreEditSchedules(null);
         setShowExceedModal(false);
         setPendingRowIndex(null);
     };
 
     const handleExceedCancel = () => {
-        if (pendingRowIndex !== null) {
-            setSchedules((prev) =>
-                prev.filter((_, i) => i !== pendingRowIndex),
-            );
+        if (preEditSchedules !== null) {
+            setSchedules(preEditSchedules);
         }
+        setPreEditSchedules(null);
         setShowExceedModal(false);
         setPendingRowIndex(null);
     };
@@ -652,6 +690,18 @@ export default function ScheduleBilling() {
                 />
 
                 <Link
+                    to={`/clients/${id}/dashboard`}
+                    className="text-gray-500 hover:text-cyan-700 hover:underline transition"
+                >
+                    Dashboard
+                </Link>
+
+                <FontAwesomeIcon
+                    icon={faChevronRight}
+                    className="text-[10px] text-gray-400"
+                />
+
+                <Link
                     to={`/clients/assign/${id}`}
                     className="text-gray-500 hover:text-cyan-700 hover:underline transition"
                 >
@@ -795,14 +845,18 @@ export default function ScheduleBilling() {
                         {/* Generate Invoice button */}
                         <button
                             onClick={handleGenerateInvoice}
-                            disabled={saving || hasChanges}
+                            disabled={
+                                saving || hasChanges || isInvoiceGenerated
+                            }
                             className={`flex items-center gap-1.5 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
-                                saving || hasChanges
+                                saving || hasChanges || isInvoiceGenerated
                                     ? "bg-gray-300 cursor-not-allowed"
                                     : "bg-sky-400 hover:bg-sky-500 cursor-pointer"
                             }`}
                         >
-                            Generate Invoices
+                            {isInvoiceGenerated
+                                ? "Invoices Generated"
+                                : "Generate Invoices"}
                         </button>
                     </div>
 
@@ -884,25 +938,126 @@ export default function ScheduleBilling() {
                                                                 e.target.value,
                                                             )
                                                         }
+                                                        onFocus={() =>
+                                                            setPreEditSchedules(
+                                                                schedules,
+                                                            )
+                                                        }
+                                                        onBlur={() => {
+                                                            setSchedules(
+                                                                (current) => {
+                                                                    checkExceedOnBlur(
+                                                                        current,
+                                                                    );
+                                                                    return current;
+                                                                },
+                                                            );
+                                                        }}
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
                                                         type="text"
-                                                        value={fmtNumber(
-                                                            s.base_amount,
-                                                        )}
-                                                        onChange={(e) =>
-                                                            handleScheduleChange(
-                                                                index,
-                                                                "base_amount",
-                                                                parseNumber(
+                                                        value={
+                                                            editingField[
+                                                                `${index}-base_amount`
+                                                            ] !== undefined
+                                                                ? editingField[
+                                                                      `${index}-base_amount`
+                                                                  ]
+                                                                : fmtNumber(
+                                                                      s.base_amount,
+                                                                  )
+                                                        }
+                                                        onFocus={() => {
+                                                            const key = `${index}-base_amount`;
+                                                            setPreEditSchedules(
+                                                                schedules,
+                                                            );
+                                                            setEditingField(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    [key]:
+                                                                        s.base_amount ??
+                                                                        "",
+                                                                }),
+                                                            );
+                                                        }}
+                                                        onChange={(e) => {
+                                                            const key = `${index}-base_amount`;
+                                                            const raw =
+                                                                e.target.value.replace(
+                                                                    /[^0-9.]/g,
+                                                                    "",
+                                                                );
+                                                            setEditingField(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    [key]: raw,
+                                                                }),
+                                                            );
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const key = `${index}-base_amount`;
+                                                            const parsed =
+                                                                parseFloat(
                                                                     e.target
                                                                         .value,
-                                                                ),
-                                                            )
-                                                        }
+                                                                ) || 0;
+                                                            const vat =
+                                                                parseFloat(
+                                                                    s.vat_amount,
+                                                                ) || 0;
+                                                            const newGross =
+                                                                parseFloat(
+                                                                    (
+                                                                        parsed +
+                                                                        vat
+                                                                    ).toFixed(
+                                                                        2,
+                                                                    ),
+                                                                );
+
+                                                            setSchedules(
+                                                                (prev) => {
+                                                                    const updated =
+                                                                        prev.map(
+                                                                            (
+                                                                                row,
+                                                                                i,
+                                                                            ) =>
+                                                                                i ===
+                                                                                index
+                                                                                    ? {
+                                                                                          ...row,
+                                                                                          base_amount:
+                                                                                              parsed,
+                                                                                          gross_amount:
+                                                                                              newGross,
+                                                                                      }
+                                                                                    : row,
+                                                                        );
+                                                                    checkExceedOnBlur(
+                                                                        updated,
+                                                                    );
+                                                                    return updated;
+                                                                },
+                                                            );
+                                                            setEditingField(
+                                                                (prev) => {
+                                                                    const next =
+                                                                        {
+                                                                            ...prev,
+                                                                        };
+                                                                    delete next[
+                                                                        key
+                                                                    ];
+                                                                    return next;
+                                                                },
+                                                            );
+                                                            setHasChanges(true);
+                                                        }}
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                                     />
                                                 </td>
@@ -912,6 +1067,11 @@ export default function ScheduleBilling() {
                                                         value={fmtNumber(
                                                             s.vat_amount,
                                                         )}
+                                                        onFocus={() =>
+                                                            setPreEditSchedules(
+                                                                schedules,
+                                                            )
+                                                        }
                                                         onChange={(e) =>
                                                             handleScheduleChange(
                                                                 index,
@@ -922,6 +1082,16 @@ export default function ScheduleBilling() {
                                                                 ),
                                                             )
                                                         }
+                                                        onBlur={() => {
+                                                            setSchedules(
+                                                                (current) => {
+                                                                    checkExceedOnBlur(
+                                                                        current,
+                                                                    );
+                                                                    return current;
+                                                                },
+                                                            );
+                                                        }}
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                                     />
                                                 </td>
@@ -931,6 +1101,11 @@ export default function ScheduleBilling() {
                                                         value={fmtNumber(
                                                             s.gross_amount,
                                                         )}
+                                                        onFocus={() =>
+                                                            setPreEditSchedules(
+                                                                schedules,
+                                                            )
+                                                        }
                                                         onChange={(e) =>
                                                             handleScheduleChange(
                                                                 index,
@@ -941,6 +1116,16 @@ export default function ScheduleBilling() {
                                                                 ),
                                                             )
                                                         }
+                                                        onBlur={() => {
+                                                            setSchedules(
+                                                                (current) => {
+                                                                    checkExceedOnBlur(
+                                                                        current,
+                                                                    );
+                                                                    return current;
+                                                                },
+                                                            );
+                                                        }}
                                                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                                     />
                                                 </td>
@@ -1098,6 +1283,50 @@ export default function ScheduleBilling() {
                             <button
                                 onClick={handleExceedProceed}
                                 className="px-4 py-1.5 text-sm font-medium text-white bg-sky-500 rounded-md hover:bg-sky-600 transition cursor-pointer"
+                            >
+                                Proceed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showSaveWarningModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-100">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 text-orange-500"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                            <h2 className="text-base font-semibold text-gray-800">
+                                Schedule Already Updated
+                            </h2>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-5">
+                            You have already changed the payment schedule once.
+                            Do you still wish to update it?
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowSaveWarningModal(false)}
+                                className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={executeSaveChanges}
+                                className="px-4 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600 transition cursor-pointer"
                             >
                                 Proceed
                             </button>
