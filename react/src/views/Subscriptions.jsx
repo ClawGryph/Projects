@@ -116,7 +116,7 @@ export default function Subsciptions() {
 
     const tableHeaders = [
         "ID",
-        "Title",
+        "Subscription Name",
         "Cost",
         "Start Coverage",
         "End Coverage",

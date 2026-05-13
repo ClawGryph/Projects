@@ -120,7 +120,7 @@ export default function Projects() {
 
     const tableHeaders = [
         "ID",
-        "Title",
+        "Project Name",
         "Cost",
         "Start Date",
         "End Date",
