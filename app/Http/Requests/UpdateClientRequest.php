@@ -23,7 +23,12 @@ class UpdateClientRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:55',
-            'email' => 'required|email|unique:clients,email,'.$this->id,
+            'email' => [
+                            'required',
+                            'email:rfc',
+                            'regex:/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/',
+                            'unique:clients,email,'.$this->id,
+                        ],
             'phone_number' => 'required|string|max:20',
             'company_name' => 'required|string|max:55',
             'company_address' => 'required|string|max:100',

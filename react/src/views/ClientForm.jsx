@@ -38,7 +38,10 @@ export default function ClientForm() {
             .get(`/clients/${id}`)
             .then(({ data }) => {
                 setLoading(false);
-                setClient(data);
+                setClient({
+                    ...data,
+                    phone_number: data.phone_number?.replace("+63", "") ?? "",
+                });
                 setFormData(data);
             })
             .catch(() => setLoading(false));
@@ -46,9 +49,15 @@ export default function ClientForm() {
 
     const onSubmit = (e) => {
         e.preventDefault();
+
+        const payload = {
+            ...client,
+            phone_number: `+63${client.phone_number}`,
+        };
+
         if (client.id) {
             axiosClient
-                .put(`/clients/${client.id}`, client)
+                .put(`/clients/${client.id}`, payload)
                 .then(() => {
                     setNotification("Client was successfully updated");
                     navigate("/clients");
@@ -61,7 +70,7 @@ export default function ClientForm() {
                 });
         } else {
             axiosClient
-                .post(`/clients`, client)
+                .post(`/clients`, payload)
                 .then(() => {
                     setNotification("Client was successfully created");
                     navigate("/clients");
@@ -167,12 +176,15 @@ export default function ClientForm() {
                                 </span>
                                 <input
                                     value={client.phone_number}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                        const value = e.target.value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 10);
                                         setClient({
                                             ...client,
-                                            phone_number: e.target.value,
-                                        })
-                                    }
+                                            phone_number: value,
+                                        });
+                                    }}
                                     placeholder="9xxxxxxxxx"
                                     className="w-full px-3 py-2 text-sm outline-none"
                                 />

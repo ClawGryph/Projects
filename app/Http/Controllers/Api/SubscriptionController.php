@@ -27,7 +27,7 @@ class SubscriptionController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title'                    => 'required|string|max:50',
+            'title'                    => 'required|string|max:100',
             'description'              => 'required|string|max:1000',
             'start_coverage'           => 'required|date',
             'end_coverage'             => 'required|date|after_or_equal:start_coverage',

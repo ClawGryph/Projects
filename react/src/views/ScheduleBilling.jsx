@@ -671,7 +671,7 @@ export default function ScheduleBilling() {
             <div className="flex justify-between items-center p-5 mt-5">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {assignData
-                        ? `${assignData.project?.title ?? assignData.subscription?.title}: Billing Schedule`
+                        ? `${assignData.project?.title ?? assignData.subscription?.title}`
                         : "Billing Schedule"}
                 </h1>
                 <button

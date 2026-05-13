@@ -34,7 +34,12 @@ class ClientController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('clients','email')->where('company_id', $this->company()->id)],
+            'email' => [
+                            'required',
+                            'email:rfc',
+                            'regex:/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/',
+                            Rule::unique('clients','email')->where('company_id', $this->company()->id)
+                        ],
             'phone_number' => 'required',
             'company_name' => 'required',
             'company_address' => 'required',
