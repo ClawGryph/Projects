@@ -24,7 +24,10 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:55',
-            'email' => 'required|email|unique:users,email',
+            'email' => ['required',
+                        'email:rfc',
+                        'regex:/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/',
+                        'unique:users,email'],
             'role_name' => 'required|string|exists:roles,name',
             'password' => [
                 'required',
