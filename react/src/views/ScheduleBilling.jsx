@@ -26,6 +26,8 @@ export default function ScheduleBilling() {
     const [isInvoiceGenerated, setIsInvoiceGenerated] = useState(false);
     const [saveCount, setSaveCount] = useState(0);
     const [showSaveWarningModal, setShowSaveWarningModal] = useState(false);
+    const [adjustedAlreadyGenerated, setAdjustedAlreadyGenerated] =
+        useState(false);
 
     useEffect(() => {
         axiosClient.get(`/clients/${id}`).then(({ data }) => {
@@ -45,7 +47,6 @@ export default function ScheduleBilling() {
                         .then(({ data: scheduleData }) => {
                             const existing = scheduleData.data ?? scheduleData;
                             if (existing.length > 0) {
-                                // map API response back to the local schedule shape
                                 setSchedules(
                                     existing.map((s) => ({
                                         id: s.id,
@@ -56,16 +57,36 @@ export default function ScheduleBilling() {
                                         base_amount: s.base_amount,
                                         vat_amount: s.vat_amount,
                                         gross_amount: s.total_amount,
+                                        status: s.status,
                                     })),
                                 );
-                                // if any schedule has invoice generated, disable the button
                                 setIsInvoiceGenerated(
-                                    existing.some(
-                                        (s) => s.is_invoice_generated,
-                                    ),
+                                    existing.length > 0 &&
+                                        existing.every(
+                                            (s) => s.is_invoice_generated,
+                                        ),
                                 );
                                 setGenerated(true);
                                 setHasChanges(false);
+
+                                // If adjusted dates exist and a schedule already covers that adjusted start,
+                                // disable the generate button right away
+                                const adjustedStart =
+                                    data?.subscription?.adjusted_start_coverage;
+                                if (adjustedStart) {
+                                    const alreadyCovered = existing.some(
+                                        (s) =>
+                                            new Date(
+                                                s.start_coverage,
+                                            ).toDateString() ===
+                                            new Date(
+                                                adjustedStart,
+                                            ).toDateString(),
+                                    );
+                                    if (alreadyCovered) {
+                                        setAdjustedAlreadyGenerated(true);
+                                    }
+                                }
                             }
                         })
                         .catch(() => {}); // silently ignore if no schedules yet
@@ -85,16 +106,24 @@ export default function ScheduleBilling() {
         const paymentId = assignData.payment.id;
 
         const payload = {
-            schedules: schedules.map((s) => ({
-                due_date: s.due_date,
-                start_coverage: s.start_coverage,
-                end_coverage: s.end_coverage,
-                payment_rate: s.rate,
-                base_amount: s.base_amount,
-                vat_amount: s.vat_amount,
-                total_amount: s.gross_amount,
-            })),
+            schedules: rows
+                .filter((s) => !s.id)
+                .map((s) => ({
+                    due_date: s.due_date,
+                    start_coverage: s.start_coverage,
+                    end_coverage: s.end_coverage,
+                    payment_rate: s.rate,
+                    base_amount: s.base_amount,
+                    vat_amount: s.vat_amount,
+                    total_amount: s.gross_amount,
+                })),
         };
+
+        if (payload.schedules.length === 0) {
+            setNotification("No new schedules to generate.");
+            setSaving(false);
+            return;
+        }
 
         axiosClient
             .post(`/payments/${paymentId}/schedules`, payload)
@@ -109,6 +138,10 @@ export default function ScheduleBilling() {
             .finally(() => setSaving(false));
     };
 
+    const hasAdjustedDates =
+        assignData?.subscription?.adjusted_start_coverage != null ||
+        assignData?.subscription?.adjusted_end_coverage != null;
+
     const handleSaveChanges = () => {
         // If already saved once before, show warning first
         if (saveCount >= 1) {
@@ -120,6 +153,30 @@ export default function ScheduleBilling() {
 
     const executeSaveChanges = () => {
         setShowSaveWarningModal(false);
+
+        const isProject = assignData?.project !== null;
+        const service = isProject
+            ? assignData.project
+            : assignData.subscription;
+
+        const hardEndDate = isProject
+            ? (service?.adjusted_end_date ?? service?.end_date)
+            : (service?.adjusted_end_coverage ?? service?.end_coverage);
+
+        // Validate dates against service end date
+        if (hardEndDate) {
+            const dateExceeded = schedules.some(
+                (s) =>
+                    s.start_coverage > hardEndDate ||
+                    s.end_coverage > hardEndDate,
+            );
+            if (dateExceeded) {
+                setNotification(
+                    `One or more dates exceed the allowed end date (${hardEndDate}). Please correct them before saving.`,
+                );
+                return;
+            }
+        }
 
         const invalidRows = schedules.reduce((acc, s, i) => {
             const missing = [];
@@ -156,6 +213,7 @@ export default function ScheduleBilling() {
                 base_amount: s.base_amount,
                 vat_amount: s.vat_amount,
                 total_amount: s.gross_amount,
+                status: s.status,
             })),
         };
 
@@ -163,7 +221,7 @@ export default function ScheduleBilling() {
             .put(`/payments/${paymentId}/schedules`, payload)
             .then(() => {
                 setNotification("Schedule updated successfully.");
-                setSaveCount((prev) => prev + 1); // ✅ increment on success
+                setSaveCount((prev) => prev + 1);
                 return axiosClient.get(`/payments/${paymentId}/schedules`);
             })
             .then(({ data }) => {
@@ -183,10 +241,12 @@ export default function ScheduleBilling() {
                         base_amount: s.base_amount,
                         vat_amount: s.vat_amount,
                         gross_amount: s.total_amount,
+                        status: s.status,
                     })),
                 );
                 setIsInvoiceGenerated(
-                    existing.some((s) => s.is_invoice_generated),
+                    existing.length > 0 &&
+                        existing.every((s) => s.is_invoice_generated),
                 );
                 setAssignData((prev) => ({
                     ...prev,
@@ -259,7 +319,18 @@ export default function ScheduleBilling() {
         for (let i = fromIndex; i < result.length; i++) {
             if (i === 0) continue;
 
-            const prevRow = result[i - 1]; // always reads the already-updated prev row
+            const prevRow = result[i - 1];
+
+            // Stop if previous row has no end_coverage
+            if (!prevRow.end_coverage) break;
+
+            // Stop if this row already has a real DB id (saved row) or is a blank new row
+            if (
+                result[i].id ||
+                (!result[i].due_date && !result[i].start_coverage)
+            ) {
+                break;
+            }
 
             const newStartCoverage = new Date(prevRow.end_coverage);
             newStartCoverage.setDate(newStartCoverage.getDate() + 1);
@@ -489,7 +560,7 @@ export default function ScheduleBilling() {
 
         const newRow = {
             id: null,
-            _tempKey: Date.now(),
+            _tempKey: `temp-${Date.now()}-${Math.random()}`,
             due_date: "",
             start_coverage: "",
             end_coverage: "",
@@ -506,22 +577,11 @@ export default function ScheduleBilling() {
         ];
 
         setSchedules(newSchedules);
-        setAssignData((prev) => ({
-            ...prev,
-            payment: { ...prev.payment, number_of_cycles: newSchedules.length },
-        }));
     };
 
     const handleDeleteRow = (index) => {
         setHasChanges(true);
-        setSchedules((prev) => {
-            const filtered = prev.filter((_, i) => i !== index);
-            setAssignData((prev) => ({
-                ...prev,
-                payment: { ...prev.payment, number_of_cycles: filtered.length },
-            }));
-            return filtered;
-        });
+        setSchedules((prev) => prev.filter((_, i) => i !== index));
     };
 
     const handleExceedProceed = () => {
@@ -542,7 +602,6 @@ export default function ScheduleBilling() {
     const handleGenerateAndSave = () => {
         if (!assignData) return;
 
-        // --- run the same generation logic ---
         const isProject = assignData.project !== null;
         const service = isProject
             ? assignData.project
@@ -557,24 +616,61 @@ export default function ScheduleBilling() {
             ? parseFloat(service?.price ?? 0)
             : parseFloat(service?.cost ?? 0);
         const paymentType = service?.payment_type ?? "";
-        const equalRate =
-            paymentType === "installment"
-                ? parseFloat((100 / numberOfCycles).toFixed(2))
-                : 100;
         const firstStart = isProject
             ? (service?.adjusted_start_date ?? service?.start_date)
             : (service?.adjusted_start_coverage ?? service?.start_coverage);
 
         if (!billingStartDate || numberOfCycles === 0) return;
 
+        const existingCount = schedules.filter(
+            (s) => s.id && typeof s.id === "number",
+        ).length;
+        const isRenewal = existingCount > 0 && hasAdjustedDates;
+
+        let cyclesToGenerate = numberOfCycles;
+        if (isRenewal) {
+            const adjustedStart = new Date(
+                service?.adjusted_start_coverage ??
+                    service?.adjusted_start_date,
+            );
+            const adjustedEnd = new Date(
+                service?.adjusted_end_coverage ?? service?.adjusted_end_date,
+            );
+
+            if (paymentType === "one_time") {
+                cyclesToGenerate = 1;
+            } else {
+                let count = 0;
+                let cursor = new Date(adjustedStart);
+                while (cursor <= adjustedEnd) {
+                    cursor = new Date(addPeriod(cursor, recurringType));
+                    count++;
+                }
+                cyclesToGenerate = count;
+            }
+        }
+
+        const effectiveCycles = isRenewal ? cyclesToGenerate : numberOfCycles;
+        const equalRate =
+            paymentType === "installment"
+                ? parseFloat((100 / effectiveCycles).toFixed(2))
+                : 100;
+
         const rows = [];
         let dueDate = new Date(billingStartDate);
 
-        for (let i = 0; i < numberOfCycles; i++) {
+        if (isRenewal && schedules.length > 0) {
+            const lastExisting = schedules[schedules.length - 1];
+            const lastEnd = new Date(lastExisting.end_coverage);
+            lastEnd.setDate(lastEnd.getDate() + 1);
+            dueDate = lastEnd;
+        }
+
+        for (let i = 0; i < cyclesToGenerate; i++) {
             const rate =
-                paymentType === "installment" && i === numberOfCycles - 1
+                paymentType === "installment" && i === effectiveCycles - 1
                     ? parseFloat(
-                          (100 - equalRate * (numberOfCycles - 1)).toFixed(2),
+                          (100 - equalRate * (effectiveCycles - 1)).toFixed(2),
                       )
                     : equalRate;
             const adjustedPrice = (price * rate) / 100;
@@ -583,53 +679,49 @@ export default function ScheduleBilling() {
                 vatType,
             );
 
+            let startCoverage, endCoverage;
+
             if (i === 0) {
                 const firstStartDate = new Date(firstStart ?? dueDate);
                 const firstEndDate = new Date(
                     addPeriod(firstStartDate, recurringType),
                 );
                 firstEndDate.setDate(firstEndDate.getDate() - 1);
-
-                rows.push({
-                    id: i + 1,
-                    due_date: fmtDate(dueDate),
-                    start_coverage: firstStart ?? fmtDate(dueDate),
-                    end_coverage: fmtDate(firstEndDate),
-                    rate,
-                    base_amount,
-                    vat_amount,
-                    gross_amount: total_amount,
-                });
+                startCoverage = firstStart ?? fmtDate(dueDate);
+                endCoverage = fmtDate(firstEndDate);
             } else {
                 const prevEnd = new Date(rows[i - 1].end_coverage);
-                const startCoverage = new Date(prevEnd);
-                startCoverage.setDate(startCoverage.getDate() + 1);
-                const endCoverage = new Date(
-                    addPeriod(startCoverage, recurringType),
-                );
-                endCoverage.setDate(endCoverage.getDate() - 1);
-
-                rows.push({
-                    id: i + 1,
-                    due_date: fmtDate(dueDate),
-                    start_coverage: fmtDate(startCoverage),
-                    end_coverage: fmtDate(endCoverage),
-                    rate,
-                    base_amount,
-                    vat_amount,
-                    gross_amount: total_amount,
-                });
+                const newStart = new Date(prevEnd);
+                newStart.setDate(newStart.getDate() + 1);
+                const newEnd = new Date(addPeriod(newStart, recurringType));
+                newEnd.setDate(newEnd.getDate() - 1);
+                startCoverage = fmtDate(newStart);
+                endCoverage = fmtDate(newEnd);
             }
+
+            if (isRenewal) {
+                const adjustedEnd =
+                    service?.adjusted_end_coverage ??
+                    service?.adjusted_end_date;
+                if (adjustedEnd && endCoverage > adjustedEnd) {
+                    endCoverage = adjustedEnd;
+                }
+            }
+
+            rows.push({
+                due_date: fmtDate(dueDate),
+                start_coverage: startCoverage,
+                end_coverage: endCoverage,
+                rate,
+                base_amount,
+                vat_amount,
+                gross_amount: total_amount,
+            });
 
             dueDate = new Date(rows[i].end_coverage);
             dueDate.setDate(dueDate.getDate() + 1);
         }
 
-        // set in state for table display
-        setSchedules(rows);
-        setGenerated(true);
-
-        // ✅ immediately save with is_invoice_generated: false
         setSaving(true);
         const paymentId = assignData.payment.id;
         const payload = {
@@ -646,8 +738,52 @@ export default function ScheduleBilling() {
 
         axiosClient
             .post(`/payments/${paymentId}/schedules`, payload)
-            .then(() => {
+            .then(({ data: postData }) => {
+                if (postData.message === "No new schedules to add.") {
+                    setNotification("No new schedules to add.");
+                    return null;
+                }
                 setNotification("Billing schedule generated and saved.");
+                return axiosClient.get(`/payments/${paymentId}/schedules`);
+            })
+            .then((res) => {
+                if (!res) return;
+                const { data: scheduleData } = res;
+                const existing = scheduleData.data ?? scheduleData;
+                const newTotalCost = existing.reduce(
+                    (sum, s) => sum + parseFloat(s.total_amount || 0),
+                    0,
+                );
+                setSchedules(
+                    existing.map((s) => ({
+                        id: s.id,
+                        due_date: s.due_date,
+                        start_coverage: s.start_coverage,
+                        end_coverage: s.end_coverage,
+                        rate: s.payment_rate,
+                        base_amount: s.base_amount,
+                        vat_amount: s.vat_amount,
+                        gross_amount: s.total_amount,
+                        status: s.status,
+                    })),
+                );
+                setAssignData((prev) => ({
+                    ...prev,
+                    payment: {
+                        ...prev.payment,
+                        number_of_cycles: existing.length,
+                        total_cost: newTotalCost,
+                    },
+                }));
+                setIsInvoiceGenerated(
+                    existing.length > 0 &&
+                        existing.every((s) => s.is_invoice_generated),
+                );
+                setGenerated(true);
+                setHasChanges(false);
+                if (isRenewal) {
+                    setAdjustedAlreadyGenerated(true);
+                }
             })
             .catch((err) => {
                 const msg =
@@ -656,6 +792,10 @@ export default function ScheduleBilling() {
             })
             .finally(() => setSaving(false));
     };
+
+    const existingSchedules = schedules.filter(
+        (s) => s.id && typeof s.id === "number" && s.id > 100,
+    );
 
     const fmt = (n) =>
         "₱" +
@@ -726,16 +866,31 @@ export default function ScheduleBilling() {
                 </h1>
                 <button
                     onClick={handleGenerateAndSave}
-                    disabled={generated || !assignData || saving}
+                    disabled={
+                        !assignData ||
+                        saving ||
+                        (generated && !hasAdjustedDates) ||
+                        (generated &&
+                            hasAdjustedDates &&
+                            adjustedAlreadyGenerated)
+                    }
                     className={`flex items-center gap-1.5 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
-                        generated || !assignData || saving
+                        !assignData ||
+                        saving ||
+                        (generated && !hasAdjustedDates) ||
+                        (generated &&
+                            hasAdjustedDates &&
+                            adjustedAlreadyGenerated)
                             ? "bg-gray-300 cursor-not-allowed"
                             : "bg-sky-400 hover:bg-sky-500 cursor-pointer"
                     }`}
                 >
                     {saving
                         ? "Generating..."
-                        : generated
+                        : (generated && !hasAdjustedDates) ||
+                            (generated &&
+                                hasAdjustedDates &&
+                                adjustedAlreadyGenerated)
                           ? "Already Generated"
                           : "Generate Billing Schedule"}
                 </button>
@@ -793,7 +948,9 @@ export default function ScheduleBilling() {
                                 Payment Cycle
                             </p>
                             <p className="text-sm font-semibold text-gray-800 capitalize">
-                                {assignData.payment?.number_of_cycles ?? "—"}
+                                {schedules.length ||
+                                    (assignData.payment?.number_of_cycles ??
+                                        "—")}
                             </p>
                         </div>
                         <div>
@@ -880,7 +1037,7 @@ export default function ScheduleBilling() {
                                         schedules.map((s, index) => (
                                             <tr
                                                 key={s._tempKey ?? s.id}
-                                                className="hover:bg-cyan-50 text-center"
+                                                className={`text-center ${s.status === "paid" ? "bg-green-50" : "hover:bg-cyan-50"}`}
                                             >
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     {index + 1}
@@ -889,49 +1046,81 @@ export default function ScheduleBilling() {
                                                     <input
                                                         type="date"
                                                         value={s.due_date}
+                                                        disabled={
+                                                            s.status === "paid"
+                                                        }
                                                         onChange={(e) =>
+                                                            s.status !==
+                                                                "paid" &&
                                                             handleScheduleChange(
                                                                 index,
                                                                 "due_date",
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                        className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                                            s.status === "paid"
+                                                                ? "bg-gray-100 cursor-not-allowed text-gray-500"
+                                                                : ""
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
                                                         type="date"
                                                         value={s.start_coverage}
+                                                        disabled={
+                                                            s.status === "paid"
+                                                        }
                                                         onChange={(e) =>
+                                                            s.status !==
+                                                                "paid" &&
                                                             handleScheduleChange(
                                                                 index,
                                                                 "start_coverage",
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                        className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                                            s.status === "paid"
+                                                                ? "bg-gray-100 cursor-not-allowed text-gray-500"
+                                                                : ""
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
                                                         type="date"
                                                         value={s.end_coverage}
+                                                        disabled={
+                                                            s.status === "paid"
+                                                        }
                                                         onChange={(e) =>
+                                                            s.status !==
+                                                                "paid" &&
                                                             handleScheduleChange(
                                                                 index,
                                                                 "end_coverage",
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                        className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                                            s.status === "paid"
+                                                                ? "bg-gray-100 cursor-not-allowed text-gray-500"
+                                                                : ""
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
                                                         type="number"
                                                         value={s.rate}
+                                                        disabled={
+                                                            s.status === "paid"
+                                                        }
                                                         onChange={(e) =>
+                                                            s.status !==
+                                                                "paid" &&
                                                             handleScheduleChange(
                                                                 index,
                                                                 "rate",
@@ -953,7 +1142,11 @@ export default function ScheduleBilling() {
                                                                 },
                                                             );
                                                         }}
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                        className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                                            s.status === "paid"
+                                                                ? "bg-gray-100 cursor-not-allowed text-gray-500"
+                                                                : ""
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
@@ -969,6 +1162,9 @@ export default function ScheduleBilling() {
                                                                 : fmtNumber(
                                                                       s.base_amount,
                                                                   )
+                                                        }
+                                                        disabled={
+                                                            s.status === "paid"
                                                         }
                                                         onFocus={() => {
                                                             const key = `${index}-base_amount`;
@@ -991,12 +1187,14 @@ export default function ScheduleBilling() {
                                                                     /[^0-9.]/g,
                                                                     "",
                                                                 );
-                                                            setEditingField(
-                                                                (prev) => ({
-                                                                    ...prev,
-                                                                    [key]: raw,
-                                                                }),
-                                                            );
+                                                            s.status !==
+                                                                "paid" &&
+                                                                setEditingField(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        [key]: raw,
+                                                                    }),
+                                                                );
                                                         }}
                                                         onBlur={(e) => {
                                                             const key = `${index}-base_amount`;
@@ -1058,7 +1256,11 @@ export default function ScheduleBilling() {
                                                             );
                                                             setHasChanges(true);
                                                         }}
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                        className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                                            s.status === "paid"
+                                                                ? "bg-gray-100 cursor-not-allowed text-gray-500"
+                                                                : ""
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
@@ -1067,12 +1269,17 @@ export default function ScheduleBilling() {
                                                         value={fmtNumber(
                                                             s.vat_amount,
                                                         )}
+                                                        disabled={
+                                                            s.status === "paid"
+                                                        }
                                                         onFocus={() =>
                                                             setPreEditSchedules(
                                                                 schedules,
                                                             )
                                                         }
                                                         onChange={(e) =>
+                                                            s.status !==
+                                                                "paid" &&
                                                             handleScheduleChange(
                                                                 index,
                                                                 "vat_amount",
@@ -1092,7 +1299,11 @@ export default function ScheduleBilling() {
                                                                 },
                                                             );
                                                         }}
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                        className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                                            s.status === "paid"
+                                                                ? "bg-gray-100 cursor-not-allowed text-gray-500"
+                                                                : ""
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
@@ -1101,12 +1312,17 @@ export default function ScheduleBilling() {
                                                         value={fmtNumber(
                                                             s.gross_amount,
                                                         )}
+                                                        disabled={
+                                                            s.status === "paid"
+                                                        }
                                                         onFocus={() =>
                                                             setPreEditSchedules(
                                                                 schedules,
                                                             )
                                                         }
                                                         onChange={(e) =>
+                                                            s.status !==
+                                                                "paid" &&
                                                             handleScheduleChange(
                                                                 index,
                                                                 "gross_amount",
@@ -1126,107 +1342,120 @@ export default function ScheduleBilling() {
                                                                 },
                                                             );
                                                         }}
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                        className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                                            s.status === "paid"
+                                                                ? "bg-gray-100 cursor-not-allowed text-gray-500"
+                                                                : ""
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="border-b border-gray-200 px-4 py-2">
-                                                    <div className="relative flex justify-center">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const rect =
-                                                                    e.currentTarget.getBoundingClientRect();
-                                                                const dropdownHeight = 65;
-                                                                const spaceBelow =
-                                                                    window.innerHeight -
-                                                                    rect.bottom;
-                                                                setDropdownPos({
-                                                                    top:
-                                                                        spaceBelow <
-                                                                        dropdownHeight
-                                                                            ? rect.top -
-                                                                              dropdownHeight
-                                                                            : rect.bottom,
-                                                                    left: rect.right,
-                                                                });
-                                                                setEditingId(
-                                                                    editingId ===
-                                                                        `action-${s.id}`
-                                                                        ? null
-                                                                        : `action-${s.id}`,
-                                                                );
-                                                            }}
-                                                            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
-                                                        >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                className="h-4 w-4"
-                                                                viewBox="0 0 24 24"
-                                                                fill="currentColor"
-                                                            >
-                                                                <circle
-                                                                    cx="12"
-                                                                    cy="5"
-                                                                    r="1.5"
-                                                                />
-                                                                <circle
-                                                                    cx="12"
-                                                                    cy="12"
-                                                                    r="1.5"
-                                                                />
-                                                                <circle
-                                                                    cx="12"
-                                                                    cy="19"
-                                                                    r="1.5"
-                                                                />
-                                                            </svg>
-                                                        </button>
-
-                                                        {editingId ===
-                                                            `action-${s.id}` && (
-                                                            <div
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
-                                                                }
-                                                                style={{
-                                                                    position:
-                                                                        "fixed",
-                                                                    top: dropdownPos.top,
-                                                                    left: dropdownPos.left,
-                                                                    transform:
-                                                                        "translateX(-100%)",
+                                                    {s.status !== "paid" && (
+                                                        <div className="relative flex justify-center">
+                                                            <button
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    const rect =
+                                                                        e.currentTarget.getBoundingClientRect();
+                                                                    const dropdownHeight = 65;
+                                                                    const spaceBelow =
+                                                                        window.innerHeight -
+                                                                        rect.bottom;
+                                                                    setDropdownPos(
+                                                                        {
+                                                                            top:
+                                                                                spaceBelow <
+                                                                                dropdownHeight
+                                                                                    ? rect.top -
+                                                                                      dropdownHeight
+                                                                                    : rect.bottom,
+                                                                            left: rect.right,
+                                                                        },
+                                                                    );
+                                                                    setEditingId(
+                                                                        editingId ===
+                                                                            `action-${s._tempKey ?? s.id}`
+                                                                            ? null
+                                                                            : `action-${s._tempKey ?? s.id}`,
+                                                                    );
                                                                 }}
-                                                                className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-md min-w-[130px]"
+                                                                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
                                                             >
-                                                                <button
-                                                                    onClick={() => {
-                                                                        handleAddRow(
-                                                                            index,
-                                                                        );
-                                                                        setEditingId(
-                                                                            null,
-                                                                        );
-                                                                    }}
-                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    className="h-4 w-4"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="currentColor"
                                                                 >
-                                                                    + Add Row
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        handleDeleteRow(
-                                                                            index,
-                                                                        );
-                                                                        setEditingId(
-                                                                            null,
-                                                                        );
+                                                                    <circle
+                                                                        cx="12"
+                                                                        cy="5"
+                                                                        r="1.5"
+                                                                    />
+                                                                    <circle
+                                                                        cx="12"
+                                                                        cy="12"
+                                                                        r="1.5"
+                                                                    />
+                                                                    <circle
+                                                                        cx="12"
+                                                                        cy="19"
+                                                                        r="1.5"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+
+                                                            {editingId ===
+                                                                `action-${s._tempKey ?? s.id}` && (
+                                                                <div
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
+                                                                    style={{
+                                                                        position:
+                                                                            "fixed",
+                                                                        top: dropdownPos.top,
+                                                                        left: dropdownPos.left,
+                                                                        transform:
+                                                                            "translateX(-100%)",
                                                                     }}
-                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                                    className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-md min-w-[130px]"
                                                                 >
-                                                                    Delete
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            handleAddRow(
+                                                                                index,
+                                                                            );
+                                                                            setEditingId(
+                                                                                null,
+                                                                            );
+                                                                        }}
+                                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                                                    >
+                                                                        + Add
+                                                                        Row
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            handleDeleteRow(
+                                                                                index,
+                                                                            );
+                                                                            setEditingId(
+                                                                                null,
+                                                                            );
+                                                                        }}
+                                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))

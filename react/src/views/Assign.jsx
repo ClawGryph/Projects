@@ -18,6 +18,7 @@ import { useStateContext } from "../context/ContextProvider";
 import AssignServiceModal from "../components/AssignServiceModal";
 import ScheduleBilling from "./ScheduleBilling";
 import PaymentSchedulesTable from "../components/PaymentSchedulesTable";
+import { calcWithholdingTax } from "../utils/withholdingTax";
 
 export default function Assign() {
     const { id: clientId } = useParams(); // renamed to avoid shadowing in nested callbacks
@@ -52,6 +53,59 @@ export default function Assign() {
             })
             .catch(() => setHasPaymentSchedules(false));
     }, []);
+
+    const updateStatus = (scheduleId, newStatus, currentPayment) => {
+        const wasPaid = currentPayment.status === "paid";
+        const changingToPending = newStatus === "pending";
+
+        const doUpdate = () => {
+            const payload = { status: newStatus };
+
+            if (newStatus === "paid") {
+                const { tax: withholdingTax } = calcWithholdingTax({
+                    clientType:
+                        currentPayment.clientsProject?.client?.company_type ??
+                        "",
+                    annualGross: parseFloat(company?.annual_gross) || 0,
+                    vatType: currentPayment.clientsProject?.vat_type ?? "",
+                    baseAmount: parseFloat(currentPayment.base_amount) || 0,
+                    totalAmount: parseFloat(currentPayment.total_amount) || 0,
+                });
+
+                payload.amount_paid =
+                    parseFloat(currentPayment.total_amount) || 0;
+                payload.wh_tax = withholdingTax;
+            }
+
+            axiosClient
+                .put(`/payment-schedules/${scheduleId}/status`, payload)
+                .then(() => {
+                    getClientPaymentSchedules();
+                    setNotification("Payment status updated");
+                })
+                .catch((err) => {
+                    const response = err.response;
+                    if (!response) return;
+                    setNotification(
+                        response.status === 422
+                            ? (response.data.message ??
+                                  "Failed to update payment status")
+                            : "Failed to update payment status",
+                    );
+                });
+        };
+
+        if (wasPaid && changingToPending && currentPayment.transaction?.id) {
+            axiosClient
+                .delete(`/transactions/${currentPayment.transaction.id}`)
+                .then(() => doUpdate())
+                .catch(() =>
+                    setNotification("Failed to remove paid transaction"),
+                );
+        } else {
+            doUpdate();
+        }
+    };
 
     const getAssigns = (page = 1, refreshRenewId = null) => {
         setLoading(true);
@@ -497,7 +551,18 @@ export default function Assign() {
                                                                                   })()
                                                                                 : false;
 
-                                                                        const canRenew = true;
+                                                                        const canRenew =
+                                                                            a
+                                                                                .payment_schedules
+                                                                                ?.length >
+                                                                                0 &&
+                                                                            a.payment_schedules.every(
+                                                                                (
+                                                                                    s,
+                                                                                ) =>
+                                                                                    s.status ===
+                                                                                    "paid",
+                                                                            );
 
                                                                         return (
                                                                             <button
@@ -569,7 +634,7 @@ export default function Assign() {
                                 manualInvoiceTotals={manualInvoiceTotals}
                                 company={company}
                                 user={user}
-                                onStatusUpdate={() => {}}
+                                onStatusUpdate={updateStatus}
                                 onRefresh={getClientPaymentSchedules}
                                 setNotification={setNotification}
                                 showClientColumn={false}

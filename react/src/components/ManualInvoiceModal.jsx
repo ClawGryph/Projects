@@ -107,22 +107,31 @@ export default function ManualInvoiceModal({
             .finally(() => setLoading(false));
     }, [payment.id]);
 
+    // Calculates by adding up the line items in an invoice
+    const subtotal = lineItems.reduce(
+        (s, i) => s + (parseFloat(i.qty) || 0) * (parseFloat(i.unitPrice) || 0),
+        0,
+    );
+
+    const firstItemSubtotal = (() => {
+        const first = lineItems[0];
+        return (
+            (parseFloat(first?.qty) || 0) * (parseFloat(first?.unitPrice) || 0)
+        );
+    })();
+
+    const vatAmount = isVatExclusive
+        ? subtotal * 0.12
+        : isVatInclusive
+          ? firstItemSubtotal * 0.12
+          : 0;
+    const total = subtotal + vatAmount;
+
     // Save — persists only line items; other fields always come from the schedule
     const handleSave = () => {
         setSaving(true);
         setSaveStatus(null);
 
-        const firstItem = lineItems[0];
-        const firstQty = parseFloat(firstItem?.qty) || 0;
-        const firstUnitPrice = parseFloat(firstItem?.unitPrice) || 0;
-        const firstItemAmount = firstQty * firstUnitPrice;
-
-        // Recalculate base, vat, and total based on the first line item
-        const newBaseAmount = firstItemAmount;
-        const newVatAmount = isVatExclusive ? firstItemAmount * 0.12 : 0;
-        const newTotalAmount = newBaseAmount + newVatAmount;
-
-        // Save manual invoice draft
         const saveDraft = axiosClient.post("/manual-invoices", {
             payment_schedule_id: payment.id,
             invoice_number: invoiceNumber,
@@ -150,13 +159,12 @@ export default function ManualInvoiceModal({
             }),
         });
 
-        // Update the payment schedule amounts based on the first line item
         const updateSchedule = axiosClient.patch(
             `/payment-schedules/${payment.id}`,
             {
-                base_amount: parseFloat(newBaseAmount.toFixed(2)),
-                vat_amount: parseFloat(newVatAmount.toFixed(2)),
-                total_amount: parseFloat(newTotalAmount.toFixed(2)),
+                base_amount: parseFloat(subtotal.toFixed(2)),
+                vat_amount: parseFloat(vatAmount.toFixed(2)),
+                total_amount: parseFloat(total.toFixed(2)),
             },
         );
 
@@ -195,27 +203,6 @@ export default function ManualInvoiceModal({
         );
         markDirty();
     };
-
-    // Calculates by adding up the line items in an invoice
-    const subtotal = lineItems.reduce(
-        (s, i) => s + (parseFloat(i.qty) || 0) * (parseFloat(i.unitPrice) || 0),
-        0,
-    );
-
-    const firstItemSubtotal = (() => {
-        const first = lineItems[0];
-        return (
-            (parseFloat(first?.qty) || 0) * (parseFloat(first?.unitPrice) || 0)
-        );
-    })();
-
-    // Calculates vat amount (12%)
-    const vatAmount = isVatExclusive
-        ? subtotal * 0.12 // all items
-        : isVatInclusive
-          ? firstItemSubtotal * 0.12 // first item only
-          : 0;
-    const total = subtotal + vatAmount;
 
     const {
         rate: withholdingRate,

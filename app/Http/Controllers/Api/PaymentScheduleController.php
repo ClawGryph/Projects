@@ -85,11 +85,11 @@ class PaymentScheduleController extends Controller
             'schedules.*.total_amount'   => 'required|numeric|min:0',
         ]);
 
-        if (PaymentSchedule::where('payment_id', $payment->id)->exists()) {
-            return response()->json([
-                'message' => 'Schedules already generated for this payment.'
-            ], 422);
-        }
+        $existingCount = PaymentSchedule::where('payment_id', $payment->id)->count();
+        $existingDates = PaymentSchedule::where('payment_id', $payment->id)
+            ->pluck('start_coverage')
+            ->map(fn($d) => \Carbon\Carbon::parse($d)->toDateString())
+            ->toArray();
 
         $clientsProject = ClientsProject::select('id', 'client_id', 'project_id', 'subscription_id')
             ->findOrFail($payment->clients_project_id);
@@ -99,29 +99,48 @@ class PaymentScheduleController extends Controller
             ? "P{$clientsProject->project_id}"
             : "S{$clientsProject->subscription_id}";
 
-        $schedules = collect($data['schedules'])->map(function ($s, $index) use ($payment, $clientId, $serviceSegment) {
-            $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+        $schedules = collect($data['schedules'])->filter(function ($s) use ($existingDates) {
+            return !in_array(
+                \Carbon\Carbon::parse($s['start_coverage'])->toDateString(),
+                $existingDates
+            );
+        })->values()->map(function ($s, $index) use ($payment, $clientId, $serviceSegment, $existingCount) {
+            $formattedIndex = str_pad($existingCount + $index + 1, 3, '0', STR_PAD_LEFT);
 
             return [
-                'payment_id'         => $payment->id,
-                'due_date'           => $s['due_date'],
-                'start_coverage'     => $s['start_coverage'],
-                'end_coverage'       => $s['end_coverage'],
-                'payment_rate'       => $s['payment_rate'],
-                'base_amount'        => $s['base_amount'],
-                'vat_amount'         => $s['vat_amount'],
-                'total_amount'       => $s['total_amount'],
-                'status'             => 'pending',
-                'invoice_number'     => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
-                'is_or_issued'       => false,
-                'is_form2307_issued' => false,
+                'payment_id'           => $payment->id,
+                'due_date'             => $s['due_date'],
+                'start_coverage'       => $s['start_coverage'],
+                'end_coverage'         => $s['end_coverage'],
+                'payment_rate'         => $s['payment_rate'],
+                'base_amount'          => $s['base_amount'],
+                'vat_amount'           => $s['vat_amount'],
+                'total_amount'         => $s['total_amount'],
+                'status'               => 'pending',
+                'invoice_number'       => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
+                'is_or_issued'         => false,
+                'is_form2307_issued'   => false,
                 'is_invoice_generated' => false,
-                'created_at'         => now(),
-                'updated_at'         => now(),
+                'created_at'           => now(),
+                'updated_at'           => now(),
             ];
         });
 
+        if ($schedules->isEmpty()) {
+            return response()->json(['message' => 'No new schedules to add.']);
+        }
+
         PaymentSchedule::insert($schedules->toArray());
+
+        // Update payment total_cost and number_of_cycles to reflect new schedules
+        $updatedSchedules = PaymentSchedule::where('payment_id', $payment->id)->get();
+        $newTotalCost = $updatedSchedules->sum('total_amount');
+        $newCycleCount = $updatedSchedules->count();
+
+        Payment::where('id', $payment->id)->update([
+            'total_cost'       => $newTotalCost,
+            'number_of_cycles' => $newCycleCount,
+        ]);
 
         return response()->json(['message' => 'Billing schedule saved successfully.']);
     }
@@ -136,15 +155,15 @@ class PaymentScheduleController extends Controller
             'wh_tax'      => 'nullable|numeric',
         ]);
 
-        // ── SUBSCRIPTION COVERAGE DATE VALIDATION ─────────────────────────────
         if ($request->status === 'paid') {
             $clientsProject = $schedule->payment->clientsProject;
             $subscription   = $clientsProject?->subscription;
+            $project        = $clientsProject?->project;
 
             if ($subscription) {
                 $paidCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
                     $q->where('client_id', $clientsProject->client_id)
-                      ->where('subscription_id', $clientsProject->subscription_id);
+                    ->where('subscription_id', $clientsProject->subscription_id);
                 })
                 ->where('status', 'paid')
                 ->count();
@@ -158,9 +177,42 @@ class PaymentScheduleController extends Controller
                         ], 422);
                     }
                 } else {
-                    if (!$subscription->adjusted_start_coverage || !$subscription->adjusted_end_coverage) {
+                    $originalEnd = $subscription->end_coverage;
+                    $scheduleEnd = $schedule->end_coverage;
+                    $isBeyondOriginal = $originalEnd && $scheduleEnd > $originalEnd;
+
+                    if ($isBeyondOriginal && (!$subscription->adjusted_start_coverage || !$subscription->adjusted_end_coverage)) {
                         return response()->json([
                             'message' => 'Cannot mark as paid. This subscription is missing adjusted coverage dates. Please renew the subscription first.',
+                        ], 422);
+                    }
+                }
+            }
+
+            if ($project) {
+                $paidCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
+                    $q->where('client_id', $clientsProject->client_id)
+                    ->where('project_id', $clientsProject->project_id);
+                })
+                ->where('status', 'paid')
+                ->count();
+
+                $isFirstPayment = $paidCount === 0;
+
+                if ($isFirstPayment) {
+                    if (!$project->start_date || !$project->end_date) {
+                        return response()->json([
+                            'message' => 'Cannot mark as paid. This project is missing start and end dates.',
+                        ], 422);
+                    }
+                } else {
+                    $originalEnd = $project->end_date;
+                    $scheduleEnd = $schedule->end_coverage;
+                    $isBeyondOriginal = $originalEnd && $scheduleEnd > $originalEnd;
+
+                    if ($isBeyondOriginal && (!$project->adjusted_start_date || !$project->adjusted_end_date)) {
+                        return response()->json([
+                            'message' => 'Cannot mark as paid. This project is missing adjusted dates. Please update the project first.',
                         ], 422);
                     }
                 }
@@ -307,6 +359,13 @@ class PaymentScheduleController extends Controller
 
         $schedule->update($data);
 
+        // Recalculate and update the parent Payment's total_cost
+        $payment = $schedule->payment;
+        if ($payment) {
+            $newTotalCost = $payment->paymentSchedules()->sum('total_amount');
+            $payment->update(['total_cost' => $newTotalCost]);
+        }
+
         return response()->json(['message' => 'Schedule amounts updated successfully.']);
     }
 
@@ -324,13 +383,22 @@ class PaymentScheduleController extends Controller
             ->orderBy('due_date', 'asc')
             ->get();
 
-        foreach ($schedules as $index => $schedule) {
-            $formattedIndex = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+        $lastNumber = $schedules
+            ->filter(fn($s) => !empty($s->invoice_number))
+            ->map(function ($s) {
+                if (preg_match('/(\d+)$/', $s->invoice_number, $matches)) {
+                    return (int) $matches[1];
+                }
+                return 0;
+            })
+            ->max() ?? 0;
 
+        foreach ($schedules as $schedule) {
             $schedule->is_invoice_generated = true;
 
-            // Only assign invoice_number if not yet set
             if (empty($schedule->invoice_number)) {
+                $lastNumber++;
+                $formattedIndex = str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
                 $schedule->invoice_number = "C{$clientId}{$serviceSegment}-{$formattedIndex}";
             }
 

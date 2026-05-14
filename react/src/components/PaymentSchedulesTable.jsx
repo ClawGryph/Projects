@@ -160,15 +160,8 @@ export default function PaymentSchedulesTable({
                                                     },
                                                 ).format(
                                                     parseFloat(
-                                                        (
-                                                            (parseFloat(
-                                                                p.total_amount,
-                                                            ) || 0) +
-                                                            (manualInvoiceTotals[
-                                                                p.id
-                                                            ] || 0)
-                                                        ).toFixed(2),
-                                                    ),
+                                                        p.total_amount,
+                                                    ) || 0,
                                                 )}
                                             </div>
                                             {manualInvoiceTotals[p.id] > 0 && (

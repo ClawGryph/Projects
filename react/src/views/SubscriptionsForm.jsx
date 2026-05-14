@@ -89,7 +89,7 @@ export default function SubscriptionsForm() {
         <>
             {subscription.id && (
                 <h2 className="p-6 w-full text-lg font-semibold">
-                    Update subscriptiont: {formData.title}
+                    Update subscription: {formData.title}
                 </h2>
             )}
             {!subscription.id && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import axiosClient from "../axios-client";
 
 const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
@@ -518,7 +518,7 @@ export default function ReportModule() {
                                             const isExpanded = expandedQ === q;
 
                                             return (
-                                                <>
+                                                <Fragment key={q}>
                                                     <tr
                                                         key={q}
                                                         onClick={() =>
@@ -591,7 +591,7 @@ export default function ReportModule() {
                                                             }
                                                         />
                                                     )}
-                                                </>
+                                                </Fragment>
                                             );
                                         })}
 
