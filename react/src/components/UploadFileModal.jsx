@@ -12,7 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function UploadFileModal({ transaction, onClose, onSaved }) {
-    const or = transaction?.official_receipt;
+    const or = transaction?.officialReceipt;
     const has2307 = or?.has_2307;
 
     const [activeTab, setActiveTab] = useState("or"); // "or" | "2307"

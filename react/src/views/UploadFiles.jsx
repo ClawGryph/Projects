@@ -18,18 +18,17 @@ export default function UploadFiles() {
     const [selected2307Status, setSelected2307Status] = useState("");
     const [subscriptions, setSubscriptions] = useState([]);
 
-    const getTransactions = () => {
+    const getTransactions = (callback) => {
         setLoading(true);
         axiosClient
             .get("/transactions")
             .then(({ data }) => {
-                setTransactions(Array.isArray(data) ? data : (data.data ?? []));
-                setLoading(false);
+                const result = Array.isArray(data) ? data : (data.data ?? []);
+                setTransactions(result);
+                if (callback) callback(result);
             })
-            .catch((err) => {
-                console.error(err);
-                setLoading(false);
-            });
+            .catch((err) => console.error(err))
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -49,7 +48,7 @@ export default function UploadFiles() {
     }, []);
 
     const filteredTransactions = transactions.filter((t) => {
-        const or = t.official_receipt;
+        const or = t.officialReceipt;
         const orFileStatus = or?.or_file_url ? "uploaded" : "pending";
         const form2307FileStatus = or?.form2307_file_url
             ? "uploaded"
@@ -282,7 +281,7 @@ export default function UploadFiles() {
                             <tbody>
                                 {filteredTransactions.length > 0 ? (
                                     filteredTransactions.map((t) => {
-                                        const or = t.official_receipt;
+                                        const or = t.officialReceipt;
                                         const siOrAck =
                                             or?.service_invoice_number ||
                                             or?.payment_acknowledgement_number ||
@@ -433,9 +432,13 @@ export default function UploadFiles() {
                     transaction={uploadTransaction}
                     onClose={() => setUploadTransaction(null)}
                     onSaved={() => {
-                        getTransactions();
-                        setUploadTransaction(null);
                         setNotification("File uploaded successfully");
+                        getTransactions((freshData) => {
+                            const updated = freshData.find(
+                                (t) => t.id === uploadTransaction.id,
+                            );
+                            if (updated) setUploadTransaction(updated);
+                        });
                     }}
                 />
             )}

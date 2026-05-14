@@ -53,14 +53,30 @@ class PaymentTransactionResource extends JsonResource
             'payment_type'     => $project?->payment_type ?? $subscription?->frequency ?? null,
         ] : null,
 
-        'official_receipt' => $this->officialReceipt ? [
-            'id'                            => $this->officialReceipt->id,
-            'service_invoice_number'        => $this->officialReceipt->service_invoice_number,
+        'officialReceipt' => $this->officialReceipt ? [
+            'id'                             => $this->officialReceipt->id,
+            'service_invoice_number'         => $this->officialReceipt->service_invoice_number,
             'payment_acknowledgement_number' => $this->officialReceipt->payment_acknowledgement_number,
-            'billing_statement_number'      => $this->officialReceipt->billing_statement_number,
-            'or_file_url'                   => $this->officialReceipt->or_file_url,
-            'form2307_file_url'             => $this->officialReceipt->form2307_file_url,
+            'billing_statement_number'       => $this->officialReceipt->billing_statement_number,
+            'or_date'                        => $this->officialReceipt->or_date,
+            'base_amount'                    => $this->officialReceipt->base_amount,
+            'vat_amount'                     => $this->officialReceipt->vat_amount,
+            'total_amount'                   => $this->officialReceipt->total_amount,
+            'wh_tax'                         => $this->officialReceipt->wh_tax,
+            'other'                          => $this->officialReceipt->other,
+            'other_label'                    => $this->officialReceipt->other_label,
+            'notes'                          => $this->officialReceipt->notes,
+            'or_file_url'                    => $this->officialReceipt->or_file_path
+                ? asset('storage/' . $this->officialReceipt->or_file_path)
+                : null,
+            'form2307_file_url'              => $this->officialReceipt->form2307?->form_file_path
+                ? asset('storage/' . $this->officialReceipt->form2307->form_file_path)
+                : null,
+            'form2307_id'                    => $this->officialReceipt->form2307?->id,
         ] : null,
-    ];
-}
+
+        'is_or_issued'       => (bool) $this->paymentSchedule?->is_or_issued,
+        'is_form2307_issued' => (bool) $this->paymentSchedule?->is_form2307_issued,
+        ];
+    }
 }

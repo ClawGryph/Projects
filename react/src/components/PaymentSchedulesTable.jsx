@@ -59,7 +59,10 @@ export default function PaymentSchedulesTable({
 
     return (
         <>
-            <div className="w-full overflow-auto rounded-lg">
+            <div
+                className="w-full overflow-auto rounded-lg mt-5"
+                style={{ maxHeight: "calc(100vh - 220px)" }}
+            >
                 <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                     <thead className="sticky top-0 z-20 bg-cyan-800">
                         <tr>

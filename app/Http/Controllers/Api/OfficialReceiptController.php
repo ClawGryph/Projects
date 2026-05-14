@@ -32,7 +32,7 @@ class OfficialReceiptController extends Controller
             'service_invoice_number'         => 'nullable|string|unique:official_receipts,service_invoice_number',
             'payment_acknowledgement_number' => 'nullable|string|unique:official_receipts,payment_acknowledgement_number',
             'billing_statement_number'       => 'nullable|string|unique:official_receipts,billing_statement_number',
-            'amount'                         => 'required|numeric',
+            'base_amount'                    => 'required|numeric',
             'vat_amount'                     => 'nullable|numeric',
             'other'                          => 'nullable|numeric',
             'other_label'                    => 'nullable|string',
@@ -41,9 +41,11 @@ class OfficialReceiptController extends Controller
         ]);
 
         $or = OfficialReceipt::create($validated);
-        PaymentTransaction::find($validated['payment_transaction_id'])
-        ->paymentSchedule
-        ->update(['is_or_issued' => true]);
+        $transaction = PaymentTransaction::find($validated['payment_transaction_id']);
+        if ($transaction && $transaction->paymentSchedule) {
+            $transaction->paymentSchedule->update(['is_or_issued' => true]);
+        }
+
         return new OfficialReceiptResource($or->load('form2307'));
     }
 
@@ -54,7 +56,7 @@ class OfficialReceiptController extends Controller
             'service_invoice_number'         => ['nullable', 'string', Rule::unique('official_receipts', 'service_invoice_number')->ignore($id)],
             'payment_acknowledgement_number' => ['nullable', 'string', Rule::unique('official_receipts', 'payment_acknowledgement_number')->ignore($id)],
             'billing_statement_number'       => ['nullable', 'string', Rule::unique('official_receipts', 'billing_statement_number')->ignore($id)],
-            'amount'                         => 'required|numeric',
+            'base_amount'                    => 'required|numeric',
             'vat_amount'                     => 'nullable|numeric',
             'other'                          => 'nullable|numeric',
             'other_label'                    => 'nullable|string',
@@ -65,9 +67,10 @@ class OfficialReceiptController extends Controller
         $or = OfficialReceipt::findOrFail($id);
         $or->update($validated);
 
-       PaymentTransaction::find($or->payment_transaction_id)
-        ->paymentSchedule
-        ->update(['is_or_issued' => true]);
+        $transaction = PaymentTransaction::find($or->payment_transaction_id);
+        if ($transaction && $transaction->paymentSchedule) {
+            $transaction->paymentSchedule->update(['is_or_issued' => true]);
+        }
 
         return new OfficialReceiptResource($or->load('form2307'));
     }

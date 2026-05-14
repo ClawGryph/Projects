@@ -168,9 +168,9 @@ export default function OfficialReceiptModal({
                 billing_statement_number: str(
                     existingOR.billing_statement_number,
                 ),
-                amount: num(existingOR.amount),
+                amount: num(existingOR.base_amount),
                 vat_amount: num(existingOR.vat_amount),
-                other: num(existingOR.other),
+                other: existingOR.other != null ? String(existingOR.other) : "",
                 other_label: str(existingOR.other_label),
                 notes: str(existingOR.notes),
             });
@@ -334,6 +334,7 @@ export default function OfficialReceiptModal({
 
         const payload = {
             ...form,
+            base_amount: parseFloat(form.amount) || 0,
             service_invoice_number: form.service_invoice_number.trim() || null,
             payment_acknowledgement_number:
                 form.payment_acknowledgement_number.trim() || null,
@@ -632,7 +633,9 @@ export default function OfficialReceiptModal({
                                         ? "VAT Amount (Inclusive 12%)"
                                         : vatType === "vat_exclusive"
                                           ? "VAT Amount (Exclusive 12%)"
-                                          : "VAT Amount (Exempt)"
+                                          : vatType === "vat_other"
+                                            ? "VAT Amount (Other)"
+                                            : "VAT Amount (Exempt)"
                                 }
                             >
                                 <div className="relative">

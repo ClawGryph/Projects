@@ -8,6 +8,8 @@ import PaymentSchedulesTable from "../components/PaymentSchedulesTable";
 
 export default function Payments() {
     const [company, setCompany] = useState(null);
+    const [clients, setClients] = useState([]);
+    const [selectedClient, setSelectedClient] = useState("");
     const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [projects, setProjects] = useState([]);
     const [subscriptions, setSubscriptions] = useState([]);
@@ -20,11 +22,18 @@ export default function Payments() {
     const [selectedStatus, setSelectedStatus] = useState("");
     const [selected2307Status, setSelected2307Status] = useState("");
 
+    useEffect(() => {
+        axiosClient.get("/clients").then(({ data }) => setClients(data.data));
+    }, []);
+
     const getPaymentSchedules = () => {
         setLoading(true);
         axiosClient
             .get("/payment-schedules", {
-                params: { month: selectedMonth || undefined },
+                params: {
+                    month: selectedMonth || undefined,
+                    client_id: selectedClient || undefined,
+                },
             })
             .then(({ data }) => {
                 const schedules = data.data;
@@ -74,7 +83,7 @@ export default function Payments() {
 
     useEffect(() => {
         getPaymentSchedules();
-    }, [selectedMonth]);
+    }, [selectedMonth, selectedClient]);
 
     useEffect(() => {
         axiosClient.get("/projects").then(({ data }) => setProjects(data.data));
@@ -167,10 +176,9 @@ export default function Payments() {
                 ? p.clientsProject?.project?.title
                 : p.clientsProject?.subscription?.title;
             const serviceType = isProject ? "Project" : "Subscription";
-            const paymentType =
-                p.clientsProject?.payment?.payment_type === "recurring"
-                    ? p.clientsProject?.payment?.recurring_type
-                    : p.clientsProject?.payment?.payment_type;
+            const paymentType = isProject
+                ? p.clientsProject?.project?.payment_type
+                : p.clientsProject?.subscription?.frequency;
             const isPaid = p.status === "paid";
             const SIOrACKNo = p.is_or_issued
                 ? p.transaction?.officialReceipt?.service_invoice_number ||
@@ -264,112 +272,133 @@ export default function Payments() {
 
     return (
         <>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 mt-5 gap-3">
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 pt-5 mt-5 pb-3">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Payments
                 </h1>
-                <div className="flex flex-wrap items-center gap-4">
-                    {/* Service Type Filter */}
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Service:
-                        </label>
-                        <select
-                            value={selectedServiceType}
-                            onChange={(e) => {
-                                setSelectedServiceType(e.target.value);
-                                setSelectedServiceName("");
-                            }}
-                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                        >
-                            <option value="">All Services</option>
-                            <option value="project">Project</option>
-                            <option value="subscription">Subscription</option>
-                        </select>
-                    </div>
-
-                    {/* Service Name Filter */}
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Service Name:
-                        </label>
-                        <select
-                            value={selectedServiceName}
-                            onChange={(e) =>
-                                setSelectedServiceName(e.target.value)
-                            }
-                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                            disabled={!selectedServiceType}
-                        >
-                            <option value="">
-                                {selectedServiceType
-                                    ? "All Names"
-                                    : "Select a service type first"}
-                            </option>
-                            {selectedServiceType === "project" &&
-                                projects.map((proj) => (
-                                    <option key={proj.id} value={proj.id}>
-                                        {proj.title}
-                                    </option>
-                                ))}
-                            {selectedServiceType === "subscription" &&
-                                subscriptions.map((sub) => (
-                                    <option key={sub.id} value={sub.id}>
-                                        {sub.title}
-                                    </option>
-                                ))}
-                        </select>
-                    </div>
-
-                    {/* Month Filter */}
-                    <div className="flex items-center gap-2">
-                        <label
-                            htmlFor="month-filter"
-                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >
-                            Month:
-                        </label>
-                        <input
-                            id="month-filter"
-                            type="month"
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                        />
-                    </div>
-
-                    {(selectedMonth ||
-                        selectedServiceType ||
-                        selectedServiceName) && (
-                        <button
-                            onClick={() => {
-                                setSelectedMonth("");
-                                setSelectedServiceType("");
-                                setSelectedServiceName("");
-                                setSelectedStatus("");
-                                setSelected2307Status("");
-                            }}
-                            className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
-                        >
-                            Clear Filters
-                        </button>
-                    )}
-
-                    <button
-                        onClick={exportCSV}
-                        disabled={paymentSchedules.length === 0}
-                        className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer"
-                    >
-                        <FontAwesomeIcon icon={faDownload} />
-                        <span className="hidden sm:inline ml-1">
-                            Export CSV
-                        </span>
-                    </button>
-                </div>
+                <button
+                    onClick={exportCSV}
+                    disabled={paymentSchedules.length === 0}
+                    className="flex items-center gap-1.5 bg-sky-400 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
+                >
+                    <FontAwesomeIcon icon={faDownload} />
+                    <span className="ml-1">Export CSV</span>
+                </button>
             </div>
 
-            <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
-                <div className="max-w-[1300px] w-full overflow-auto rounded-lg hide-scrollbar max-height">
+            {/* Filter Bar */}
+            <div className="flex flex-wrap items-center gap-3 px-5 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                    Filters
+                </span>
+
+                {/* Client */}
+                <label className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        Client
+                    </span>
+                    <select
+                        value={selectedClient}
+                        onChange={(e) => {
+                            setSelectedClient(e.target.value);
+                            setSelectedServiceName("");
+                        }}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                    >
+                        <option value="">All</option>
+                        {clients.map((client) => (
+                            <option key={client.id} value={client.id}>
+                                {client.name}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                {/* Service Type */}
+                <label className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        Type
+                    </span>
+                    <select
+                        value={selectedServiceType}
+                        onChange={(e) => {
+                            setSelectedServiceType(e.target.value);
+                            setSelectedServiceName("");
+                        }}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                    >
+                        <option value="">All</option>
+                        <option value="project">Project</option>
+                        <option value="subscription">Subscription</option>
+                    </select>
+                </label>
+
+                {/* Service Name */}
+                <label className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        Service
+                    </span>
+                    <select
+                        value={selectedServiceName}
+                        onChange={(e) => setSelectedServiceName(e.target.value)}
+                        disabled={!selectedServiceType}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <option value="">All</option>
+                        {selectedServiceType === "project" &&
+                            projects.map((proj) => (
+                                <option key={proj.id} value={proj.id}>
+                                    {proj.title}
+                                </option>
+                            ))}
+                        {selectedServiceType === "subscription" &&
+                            subscriptions.map((sub) => (
+                                <option key={sub.id} value={sub.id}>
+                                    {sub.title}
+                                </option>
+                            ))}
+                    </select>
+                </label>
+
+                {/* Month */}
+                <label className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        Month
+                    </span>
+                    <input
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                    />
+                </label>
+
+                {(selectedMonth ||
+                    selectedServiceType ||
+                    selectedServiceName ||
+                    selectedClient ||
+                    selectedStatus ||
+                    selected2307Status) && (
+                    <button
+                        onClick={() => {
+                            setSelectedMonth("");
+                            setSelectedServiceType("");
+                            setSelectedServiceName("");
+                            setSelectedClient("");
+                            setSelectedStatus("");
+                            setSelected2307Status("");
+                        }}
+                        className="ml-auto text-xs text-cyan-700 hover:underline dark:text-cyan-400"
+                    >
+                        Clear Filters
+                    </button>
+                )}
+            </div>
+
+            {/* Table */}
+            <div className="flex flex-col flex-1 min-h-0 justify-start items-center px-5 pb-5">
+                <div className="max-w-[1300px] w-full">
                     {loading ? (
                         <p className="text-center py-6 text-gray-500">
                             Loading...
