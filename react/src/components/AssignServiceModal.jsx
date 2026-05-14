@@ -108,6 +108,8 @@ export default function PaymentModal({
     const [search, setSearch] = useState("");
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
+    const [newBillingStartDate, setNewBillingStartDate] = useState("");
+
     // ── Fetch on open ────────────────────────────────────────────────
     useEffect(() => {
         if (!isOpen) return;
@@ -179,46 +181,12 @@ export default function PaymentModal({
                     setSelectedService(String(service?.id ?? ""));
                     setSearch(service?.title ?? "");
                     setPaymentType("recurring");
-                    setVatType(renewData.vat_type ?? "vat_exempt");
-                    setRecurringType(service?.type ?? "");
+                    setVatType(service?.vat_type ?? "vat_exempt");
+                    setRecurringType(service?.frequency ?? service?.type ?? "");
                 }
             })
             .catch(() => {});
     }, [isOpen, mode]);
-
-    // ── Auto-fill adjusted coverage dates on renew ───────────────────
-    useEffect(() => {
-        if (!renewData || editData) return;
-
-        const prevEndDate =
-            renewData.subscription?.adjusted_end_coverage ??
-            renewData.subscription?.end_coverage;
-        if (!prevEndDate || !recurringType) return;
-
-        const start = new Date(prevEndDate);
-        start.setDate(start.getDate() + 1);
-
-        const end = new Date(start);
-        if (recurringType === "weekly") {
-            end.setDate(end.getDate() + 6);
-        } else if (recurringType === "monthly") {
-            end.setMonth(end.getMonth() + 1);
-            end.setDate(end.getDate() - 1);
-        } else if (recurringType === "quarterly") {
-            end.setMonth(end.getMonth() + 3);
-            end.setDate(end.getDate() - 1);
-        } else if (recurringType === "half_yearly") {
-            end.setMonth(end.getMonth() + 6);
-            end.setDate(end.getDate() - 1);
-        } else if (recurringType === "yearly") {
-            end.setFullYear(end.getFullYear() + 1);
-            end.setDate(end.getDate() - 1);
-        }
-
-        const fmtDate = (d) => d.toLocaleDateString("en-CA");
-        setAdjustedStartCoverage(fmtDate(start));
-        setAdjustedEndCoverage(fmtDate(end));
-    }, [renewData, recurringType]);
 
     // ── Auto-fill payment_type / vat_type from selected service ─────
     useEffect(() => {
@@ -251,6 +219,7 @@ export default function PaymentModal({
         setCrNo("");
         setSearch("");
         setDropdownOpen(false);
+        setNewBillingStartDate("");
     };
 
     const handleClose = () => {
@@ -285,21 +254,17 @@ export default function PaymentModal({
         ? (selectedServiceData?.adjusted_start_date ??
           selectedServiceData?.start_date ??
           "—")
-        : renewData
-          ? adjustedStartCoverage || "—"
-          : (selectedServiceData?.adjusted_start_coverage ??
-            selectedServiceData?.start_coverage ??
-            "—");
+        : (selectedServiceData?.adjusted_start_coverage ??
+          selectedServiceData?.start_coverage ??
+          "—");
 
     const endDateValue = isProject
         ? (selectedServiceData?.adjusted_end_date ??
           selectedServiceData?.end_date ??
           "—")
-        : renewData
-          ? adjustedEndCoverage || "—"
-          : (selectedServiceData?.adjusted_end_coverage ??
-            selectedServiceData?.end_coverage ??
-            "—");
+        : (selectedServiceData?.adjusted_end_coverage ??
+          selectedServiceData?.end_coverage ??
+          "—");
 
     const startDateLabel = isProject ? "Start Date" : "Start Coverage Date";
     const endDateLabel = isProject ? "End Date" : "End Coverage Date";
@@ -374,6 +339,7 @@ export default function PaymentModal({
                         is_renewal: true,
                         adjusted_start_coverage: adjustedStartCoverage || null,
                         adjusted_end_coverage: adjustedEndCoverage || null,
+                        billing_start_date: newBillingStartDate || null,
                         cr_no: crNo || null,
                     }),
                 };
@@ -560,45 +526,14 @@ export default function PaymentModal({
 
                             {/* ── 5. START + END DATE/COVERAGE ────── */}
                             <div className="flex gap-2">
-                                {!isProject && renewData && !editData ? (
-                                    <>
-                                        <FloatField label={startDateLabel}>
-                                            <input
-                                                type="date"
-                                                value={adjustedStartCoverage}
-                                                onChange={(e) =>
-                                                    setAdjustedStartCoverage(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
-                                            />
-                                        </FloatField>
-                                        <FloatField label={endDateLabel}>
-                                            <input
-                                                type="date"
-                                                value={adjustedEndCoverage}
-                                                onChange={(e) =>
-                                                    setAdjustedEndCoverage(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
-                                            />
-                                        </FloatField>
-                                    </>
-                                ) : (
-                                    <>
-                                        <ReadonlyInput
-                                            label={startDateLabel}
-                                            value={startDateValue}
-                                        />
-                                        <ReadonlyInput
-                                            label={endDateLabel}
-                                            value={endDateValue}
-                                        />
-                                    </>
-                                )}
+                                <ReadonlyInput
+                                    label={startDateLabel}
+                                    value={startDateValue}
+                                />
+                                <ReadonlyInput
+                                    label={endDateLabel}
+                                    value={endDateValue}
+                                />
                             </div>
 
                             {/* ── 6. NUMBER OF CYCLES ─────────────── */}
@@ -623,19 +558,64 @@ export default function PaymentModal({
                                 />
                             )}
 
-                            {/* ── CR NO. (subscription renew only) ─── */}
+                            {/* ── RENEW-ONLY FIELDS ───────────────── */}
                             {!isProject && renewData && !editData && (
-                                <FloatField label="CR No.">
-                                    <input
-                                        type="text"
-                                        value={crNo}
-                                        onChange={(e) =>
-                                            setCrNo(e.target.value)
-                                        }
-                                        placeholder="Enter CR number..."
-                                        className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
-                                    />
-                                </FloatField>
+                                <>
+                                    {/* Adjusted Start Coverage */}
+                                    <FloatField label="Adjusted Start Coverage">
+                                        <input
+                                            type="date"
+                                            value={adjustedStartCoverage}
+                                            onChange={(e) =>
+                                                setAdjustedStartCoverage(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                        />
+                                    </FloatField>
+
+                                    {/* Adjusted End Coverage */}
+                                    <FloatField label="Adjusted End Coverage">
+                                        <input
+                                            type="date"
+                                            value={adjustedEndCoverage}
+                                            onChange={(e) =>
+                                                setAdjustedEndCoverage(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                        />
+                                    </FloatField>
+
+                                    {/* New Billing Start Date */}
+                                    <FloatField label="New Billing Start Date">
+                                        <input
+                                            type="date"
+                                            value={newBillingStartDate}
+                                            onChange={(e) =>
+                                                setNewBillingStartDate(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                        />
+                                    </FloatField>
+
+                                    {/* CR No. */}
+                                    <FloatField label="CR No.">
+                                        <input
+                                            type="text"
+                                            value={crNo}
+                                            onChange={(e) =>
+                                                setCrNo(e.target.value)
+                                            }
+                                            placeholder="Enter CR number..."
+                                            className="block w-full border border-gray-300 rounded-md pl-3 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                        />
+                                    </FloatField>
+                                </>
                             )}
                         </>
                     )}

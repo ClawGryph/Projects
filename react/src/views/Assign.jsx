@@ -497,9 +497,7 @@ export default function Assign() {
                                                                                   })()
                                                                                 : false;
 
-                                                                        const canRenew =
-                                                                            isPaid &&
-                                                                            isWithin3Days;
+                                                                        const canRenew = true;
 
                                                                         return (
                                                                             <button

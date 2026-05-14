@@ -82,8 +82,9 @@ class ClientsProjectController extends Controller
             'project_id'              => 'nullable|exists:projects,id',
             'subscription_id'         => 'nullable|exists:subscriptions,id',
             'number_of_cycles'        => 'nullable|integer|min:1',
-            'adjusted_start_coverage' => 'nullable|date',
-            'adjusted_end_coverage'   => 'nullable|date',
+            'adjusted_start_coverage' => 'required_if:is_renewal,true|nullable|date',
+            'adjusted_end_coverage'   => 'required_if:is_renewal,true|nullable|date',
+            'billing_start_date'  => 'nullable|date',
             'cr_no'                   => 'nullable|string',
             'is_renewal'              => 'nullable|boolean',
             'total_cost'              => 'nullable|numeric|min:0',
@@ -107,22 +108,6 @@ class ClientsProjectController extends Controller
 
             $payment = $clientsProject->payments()->latest('id')->firstOrFail();
 
-            $prevAdjustedEnd = $subscription->adjusted_end_coverage
-                ? Carbon::parse($subscription->adjusted_end_coverage)
-                : ($subscription->end_coverage ? Carbon::parse($subscription->end_coverage) : null);
-
-            $newAdjustedStart = $prevAdjustedEnd
-                ? $prevAdjustedEnd->copy()->addDay()
-                : now();
-
-            $recurringType  = $subscription->recurring_type ?? null;
-            $newAdjustedEnd = match ($recurringType) {
-                'weekly'  => $newAdjustedStart->copy()->addWeek()->subDay(),
-                'monthly' => $newAdjustedStart->copy()->addMonth()->subDay(),
-                'yearly'  => $newAdjustedStart->copy()->addYear()->subDay(),
-                default   => $newAdjustedStart->copy()->addMonth()->subDay(),
-            };
-
             $oldStart = $subscription->adjusted_start_coverage
                 ? Carbon::parse($subscription->adjusted_start_coverage)->toDateString()
                 : $subscription->start_coverage?->toDateString();
@@ -131,14 +116,23 @@ class ClientsProjectController extends Controller
                 ? Carbon::parse($subscription->adjusted_end_coverage)->toDateString()
                 : $subscription->end_coverage?->toDateString();
 
-            $subscription->update([
-                'adjusted_start_coverage' => $newAdjustedStart->toDateString(),
-                'adjusted_end_coverage'   => $newAdjustedEnd->toDateString(),
-            ]);
+            $newAdjustedStart = Carbon::parse($data['adjusted_start_coverage'])->toDateString();
+            $newAdjustedEnd   = Carbon::parse($data['adjusted_end_coverage'])->toDateString();
+
+            $subscriptionUpdate = [
+                'adjusted_start_coverage' => $newAdjustedStart,
+                'adjusted_end_coverage'   => $newAdjustedEnd,
+            ];
+
+            if (!empty($data['billing_start_date'])) {
+                $subscriptionUpdate['billing_start_date'] = $data['billing_start_date'];
+            }
+
+            $subscription->update($subscriptionUpdate);
 
             $newValues = [
-                'adjusted_start_coverage' => $newAdjustedStart->toDateString(),
-                'adjusted_end_coverage'   => $newAdjustedEnd->toDateString(),
+                'adjusted_start_coverage' => $newAdjustedStart,
+                'adjusted_end_coverage'   => $newAdjustedEnd,
             ];
             $oldValues = [
                 'adjusted_start_coverage' => $oldStart,
