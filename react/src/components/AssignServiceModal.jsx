@@ -40,11 +40,6 @@ const ReadonlyInput = ({ label, value }) => (
 );
 
 // ── Cycle calculator ─────────────────────────────────────────────────
-// Supported periods:
-//   monthly     → count calendar months
-//   quarterly   → count 3-month blocks
-//   half_yearly → count 6-month blocks
-//   yearly      → count calendar years
 const calcCycles = (startDate, endDate, paymentType, recurringType) => {
     if (!startDate || !endDate) return "—";
 
@@ -54,7 +49,6 @@ const calcCycles = (startDate, endDate, paymentType, recurringType) => {
 
     if (paymentType === "one_time") return 1;
 
-    // Total elapsed months (inclusive) — base unit for month-derived periods
     const totalMonths =
         (end.getFullYear() - start.getFullYear()) * 12 +
         (end.getMonth() - start.getMonth()) +
@@ -63,20 +57,14 @@ const calcCycles = (startDate, endDate, paymentType, recurringType) => {
     switch (recurringType) {
         case "monthly":
             return totalMonths > 0 ? totalMonths : "—";
-
         case "quarterly":
-            // Every 3 months = 1 cycle
             return totalMonths > 0 ? Math.ceil(totalMonths / 3) : "—";
-
         case "half_yearly":
-            // Every 6 months = 1 cycle
             return totalMonths > 0 ? Math.ceil(totalMonths / 6) : "—";
-
         case "yearly": {
             const years = end.getFullYear() - start.getFullYear() + 1;
             return years > 0 ? years : "—";
         }
-
         default:
             return "—";
     }
@@ -116,9 +104,7 @@ export default function PaymentModal({
     const [adjustedEndCoverage, setAdjustedEndCoverage] = useState("");
     const [crNo, setCrNo] = useState("");
 
-    {
-        /* ── 1. SERVICE DROPDOWN (Searchable) ─────────────────────── */
-    }
+    // ── Searchable dropdown ──────────────────────────────────────────
     const [search, setSearch] = useState("");
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -135,7 +121,42 @@ export default function PaymentModal({
         axiosClient
             .get(isProject ? "/projects" : "/subscriptions")
             .then(({ data }) => {
-                setServices(data.data ?? []);
+                const allServices = data.data ?? [];
+
+                // Fetch all assignments then filter to this client to exclude
+                // already-assigned projects/subscriptions from the dropdown
+                axiosClient
+                    .get("/clients-projects")
+                    .then(({ data: assignData }) => {
+                        const assignments = assignData.data ?? assignData ?? []; // ← no client filter
+
+                        const assignedIds = new Set(
+                            assignments.map((a) =>
+                                String(
+                                    isProject
+                                        ? a.project?.id
+                                        : a.subscription?.id,
+                                ),
+                            ),
+                        );
+
+                        const currentId = editData
+                            ? String(
+                                  isProject
+                                      ? editData.project?.id
+                                      : editData.subscription?.id,
+                              )
+                            : null;
+
+                        setServices(
+                            allServices.filter(
+                                (s) =>
+                                    !assignedIds.has(String(s.id)) ||
+                                    String(s.id) === currentId,
+                            ),
+                        );
+                    })
+                    .catch(() => setServices(allServices));
 
                 if (editData) {
                     const service = isProject
@@ -144,7 +165,6 @@ export default function PaymentModal({
 
                     setSelectedService(String(service?.id ?? ""));
                     setSearch(service?.title ?? "");
-                    // Derive payment type from the service, not from payment record
                     setPaymentType(
                         isProject
                             ? (service?.payment_type ?? "one_time")
@@ -258,14 +278,9 @@ export default function PaymentModal({
 
     const today = new Date().toLocaleDateString("en-CA");
 
-    // ── Derived display values from service data ──────────────────────
+    // ── Derived display values ────────────────────────────────────────
     const billingStartDate = selectedServiceData?.billing_start_date ?? "—";
 
-    // Project:      adjusted_start_date ?? start_date
-    //               adjusted_end_date   ?? end_date
-    // Subscription (renew):   adjustedStartCoverage / adjustedEndCoverage (user-editable)
-    // Subscription (normal):  adjusted_start_coverage ?? start_coverage
-    //                         adjusted_end_coverage   ?? end_coverage
     const startDateValue = isProject
         ? (selectedServiceData?.adjusted_start_date ??
           selectedServiceData?.start_date ??
@@ -286,11 +301,9 @@ export default function PaymentModal({
             selectedServiceData?.end_coverage ??
             "—");
 
-    // Labels differ per mode
     const startDateLabel = isProject ? "Start Date" : "Start Coverage Date";
     const endDateLabel = isProject ? "End Date" : "End Coverage Date";
 
-    // Effective period for cycle calculation
     const effectivePeriod = isProject
         ? paymentType === "installment"
             ? "monthly"
@@ -304,10 +317,8 @@ export default function PaymentModal({
         effectivePeriod,
     );
 
-    // ── Cost label ────────────────────────────────────────────────────
     const costLabel = paymentType === "installment" ? "Monthly Cost" : "Cost";
 
-    // ── Payment type display ──────────────────────────────────────────
     const paymentTypeDisplay = isProject
         ? paymentType
         : recurringType
@@ -392,9 +403,6 @@ export default function PaymentModal({
             });
     };
 
-    const selectCls =
-        "block w-full border border-gray-300 rounded-md pl-2 pr-3 pt-5 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500";
-
     if (!isOpen) return null;
 
     return (
@@ -431,7 +439,7 @@ export default function PaymentModal({
                         </div>
                     )}
 
-                    {/* ── 1. SERVICE DROPDOWN (Searchable) ─────────────────────── */}
+                    {/* ── 1. SERVICE DROPDOWN (Searchable) ─────────── */}
                     <FloatField label={isProject ? "Project" : "Subscription"}>
                         <div className="relative">
                             <input
@@ -460,7 +468,6 @@ export default function PaymentModal({
                                         : " bg-white")
                                 }
                             />
-                            {/* Dropdown arrow button */}
                             {!renewData && (
                                 <button
                                     type="button"
@@ -531,7 +538,7 @@ export default function PaymentModal({
                                 value={formatLabel(paymentTypeDisplay)}
                             />
 
-                            {/* ── 3. COST + VAT TYPE (side by side) ── */}
+                            {/* ── 3. COST + VAT TYPE ──────────────── */}
                             <div className="flex gap-2">
                                 <ReadonlyInput
                                     label={costLabel}
@@ -551,11 +558,10 @@ export default function PaymentModal({
                                 value={billingStartDate}
                             />
 
-                            {/* ── 5. START + END DATE/COVERAGE (side by side) ── */}
+                            {/* ── 5. START + END DATE/COVERAGE ────── */}
                             <div className="flex gap-2">
                                 {!isProject && renewData && !editData ? (
                                     <>
-                                        {/* Subscription renew: editable date inputs */}
                                         <FloatField label={startDateLabel}>
                                             <input
                                                 type="date"
@@ -583,7 +589,6 @@ export default function PaymentModal({
                                     </>
                                 ) : (
                                     <>
-                                        {/* Project or normal subscription: readonly, adjusted dates take priority */}
                                         <ReadonlyInput
                                             label={startDateLabel}
                                             value={startDateValue}
