@@ -173,6 +173,16 @@ export default function Assign() {
         axiosClient.get("/company").then(({ data }) => setCompany(data));
     }, []);
 
+    // Automatically open the payment summary when payment summary is clicked in clients
+    useEffect(() => {
+        if (location.state?.activeTab === "payment_summary") {
+            // ← change "payment" to "payment_summary"
+            getClientPaymentSchedules();
+            setFilter("payment");
+            setHasPaymentSchedules(true);
+        }
+    }, []);
+
     const onDelete = (a) => {
         if (!window.confirm("Are you sure you want to delete this service?"))
             return;
@@ -357,8 +367,8 @@ export default function Assign() {
 
             {/* Services Table — hidden when Payment Summary tab is active */}
             {filter !== "payment" && (
-                <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
-                    <div className="max-w-[1100px] w-full overflow-auto rounded-lg max-height">
+                <div className="flex flex-col flex-1 min-h-0 justify-start items-center p-5">
+                    <div className="w-full overflow-auto rounded-lg max-height">
                         <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                             <thead>
                                 <tr className="bg-cyan-800">
@@ -622,8 +632,8 @@ export default function Assign() {
 
             {/* Payment Summary — only shown when Payment Summary tab is active */}
             {filter === "payment" && (
-                <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto px-5 pt-5">
-                    <div className="max-w-[1100px] w-full overflow-auto rounded-lg">
+                <div className="flex flex-col flex-1 min-h-0 justify-start items-center px-5 pt-5">
+                    <div className="w-full rounded-lg">
                         {scheduleLoading ? (
                             <p className="text-center py-6 text-gray-500">
                                 Loading...

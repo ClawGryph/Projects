@@ -6,6 +6,7 @@ import {
     faPen,
     faDiagramProject,
     faTimes,
+    faFileInvoice,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
@@ -21,8 +22,17 @@ export default function Clients() {
     const [clientModalOpen, setClientModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
 
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+
     useEffect(() => {
         getClients();
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = () => setOpenDropdown(null);
+        document.addEventListener("click", handleClickOutside);
+        return () => document.removeEventListener("click", handleClickOutside);
     }, []);
 
     const onDelete = (u) => {
@@ -160,48 +170,134 @@ export default function Clients() {
                                             </td>
                                             {user?.role_name !== "viewer" && (
                                                 <td className="border-b border-gray-200 px-4 py-2 text-center">
-                                                    <div className="flex justify-center items-center gap-2">
-                                                        <Link
-                                                            to={
-                                                                "/clients/assign/" +
-                                                                u.id
-                                                            }
-                                                            className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                    <div className="relative flex justify-center">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const rect =
+                                                                    e.currentTarget.getBoundingClientRect();
+                                                                const dropdownHeight = 160;
+                                                                const spaceBelow =
+                                                                    window.innerHeight -
+                                                                    rect.bottom;
+                                                                setDropdownPos({
+                                                                    top:
+                                                                        spaceBelow <
+                                                                        dropdownHeight
+                                                                            ? rect.top -
+                                                                              dropdownHeight
+                                                                            : rect.bottom,
+                                                                    left: rect.right,
+                                                                });
+                                                                setOpenDropdown(
+                                                                    openDropdown ===
+                                                                        u.id
+                                                                        ? null
+                                                                        : u.id,
+                                                                );
+                                                            }}
+                                                            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
                                                         >
-                                                            <FontAwesomeIcon
-                                                                icon={
-                                                                    faDiagramProject
-                                                                }
-                                                            />{" "}
-                                                            Assign
-                                                        </Link>
-                                                        <Link
-                                                            to={
-                                                                "/clients/" +
-                                                                u.id
-                                                            }
-                                                            className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
-                                                        >
-                                                            <FontAwesomeIcon
-                                                                icon={faPen}
-                                                            />{" "}
-                                                            Edit
-                                                        </Link>
-                                                        {user?.role_name ===
-                                                            "super_admin" && (
-                                                            <button
-                                                                onClick={() =>
-                                                                    onDelete(u)
-                                                                }
-                                                                className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className="h-4 w-4"
+                                                                viewBox="0 0 24 24"
+                                                                fill="currentColor"
                                                             >
-                                                                <FontAwesomeIcon
-                                                                    icon={
-                                                                        faTrash
-                                                                    }
-                                                                />{" "}
-                                                                Delete
-                                                            </button>
+                                                                <circle
+                                                                    cx="12"
+                                                                    cy="5"
+                                                                    r="1.5"
+                                                                />
+                                                                <circle
+                                                                    cx="12"
+                                                                    cy="12"
+                                                                    r="1.5"
+                                                                />
+                                                                <circle
+                                                                    cx="12"
+                                                                    cy="19"
+                                                                    r="1.5"
+                                                                />
+                                                            </svg>
+                                                        </button>
+
+                                                        {openDropdown ===
+                                                            u.id && (
+                                                            <div
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                                style={{
+                                                                    position:
+                                                                        "fixed",
+                                                                    top: dropdownPos.top,
+                                                                    left: dropdownPos.left,
+                                                                    transform:
+                                                                        "translateX(-100%)",
+                                                                }}
+                                                                className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-md min-w-[150px]"
+                                                            >
+                                                                <Link
+                                                                    to={`/clients/assign/${u.id}`}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faDiagramProject
+                                                                        }
+                                                                    />
+                                                                    Assign
+                                                                </Link>
+                                                                <Link
+                                                                    to={`/clients/assign/${u.id}`}
+                                                                    state={{
+                                                                        activeTab:
+                                                                            "payment_summary",
+                                                                    }}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faFileInvoice
+                                                                        }
+                                                                    />
+                                                                    Payment
+                                                                    Summary
+                                                                </Link>
+                                                                <Link
+                                                                    to={`/clients/${u.id}`}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faPen
+                                                                        }
+                                                                    />
+                                                                    Edit
+                                                                </Link>
+                                                                {user?.role_name ===
+                                                                    "super_admin" && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setOpenDropdown(
+                                                                                null,
+                                                                            );
+                                                                            onDelete(
+                                                                                u,
+                                                                            );
+                                                                        }}
+                                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                                    >
+                                                                        <FontAwesomeIcon
+                                                                            icon={
+                                                                                faTrash
+                                                                            }
+                                                                        />
+                                                                        Delete
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </td>
