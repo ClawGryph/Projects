@@ -100,44 +100,6 @@ export default function ScheduleBilling() {
         return () => document.removeEventListener("click", handleClickOutside);
     }, []);
 
-    const handleSaveSchedule = () => {
-        setSaving(true);
-
-        const paymentId = assignData.payment.id;
-
-        const payload = {
-            schedules: rows
-                .filter((s) => !s.id)
-                .map((s) => ({
-                    due_date: s.due_date,
-                    start_coverage: s.start_coverage,
-                    end_coverage: s.end_coverage,
-                    payment_rate: s.rate,
-                    base_amount: s.base_amount,
-                    vat_amount: s.vat_amount,
-                    total_amount: s.gross_amount,
-                })),
-        };
-
-        if (payload.schedules.length === 0) {
-            setNotification("No new schedules to generate.");
-            setSaving(false);
-            return;
-        }
-
-        axiosClient
-            .post(`/payments/${paymentId}/schedules`, payload)
-            .then(() => {
-                setNotification("Billing schedule saved successfully.");
-            })
-            .catch((err) => {
-                const msg =
-                    err.response?.data?.message ?? "Something went wrong.";
-                setNotification(msg);
-            })
-            .finally(() => setSaving(false));
-    };
-
     const hasAdjustedDates =
         assignData?.subscription?.adjusted_start_coverage != null ||
         assignData?.subscription?.adjusted_end_coverage != null;
@@ -213,7 +175,6 @@ export default function ScheduleBilling() {
                 base_amount: s.base_amount,
                 vat_amount: s.vat_amount,
                 total_amount: s.gross_amount,
-                status: s.status,
             })),
         };
 

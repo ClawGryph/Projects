@@ -85,28 +85,17 @@ class PaymentScheduleController extends Controller
             'schedules.*.total_amount'   => 'required|numeric|min:0',
         ]);
 
-        $existingCount = PaymentSchedule::where('payment_id', $payment->id)->count();
         $existingDates = PaymentSchedule::where('payment_id', $payment->id)
             ->pluck('start_coverage')
             ->map(fn($d) => \Carbon\Carbon::parse($d)->toDateString())
             ->toArray();
-
-        $clientsProject = ClientsProject::select('id', 'client_id', 'project_id', 'subscription_id')
-            ->findOrFail($payment->clients_project_id);
-
-        $clientId       = $clientsProject->client_id;
-        $serviceSegment = $clientsProject->project_id
-            ? "P{$clientsProject->project_id}"
-            : "S{$clientsProject->subscription_id}";
 
         $schedules = collect($data['schedules'])->filter(function ($s) use ($existingDates) {
             return !in_array(
                 \Carbon\Carbon::parse($s['start_coverage'])->toDateString(),
                 $existingDates
             );
-        })->values()->map(function ($s, $index) use ($payment, $clientId, $serviceSegment, $existingCount) {
-            $formattedIndex = str_pad($existingCount + $index + 1, 3, '0', STR_PAD_LEFT);
-
+        })->values()->map(function ($s) use ($payment) {
             return [
                 'payment_id'           => $payment->id,
                 'due_date'             => $s['due_date'],
@@ -117,7 +106,7 @@ class PaymentScheduleController extends Controller
                 'vat_amount'           => $s['vat_amount'],
                 'total_amount'         => $s['total_amount'],
                 'status'               => 'pending',
-                'invoice_number'       => "C{$clientId}{$serviceSegment}-{$formattedIndex}",
+                'invoice_number'       => null,
                 'is_or_issued'         => false,
                 'is_form2307_issued'   => false,
                 'is_invoice_generated' => false,
@@ -132,14 +121,11 @@ class PaymentScheduleController extends Controller
 
         PaymentSchedule::insert($schedules->toArray());
 
-        // Update payment total_cost and number_of_cycles to reflect new schedules
         $updatedSchedules = PaymentSchedule::where('payment_id', $payment->id)->get();
-        $newTotalCost = $updatedSchedules->sum('total_amount');
-        $newCycleCount = $updatedSchedules->count();
 
         Payment::where('id', $payment->id)->update([
-            'total_cost'       => $newTotalCost,
-            'number_of_cycles' => $newCycleCount,
+            'total_cost'       => $updatedSchedules->sum('total_amount'),
+            'number_of_cycles' => $updatedSchedules->count(),
         ]);
 
         return response()->json(['message' => 'Billing schedule saved successfully.']);
@@ -294,6 +280,7 @@ class PaymentScheduleController extends Controller
             'schedules.*.base_amount'    => 'required|numeric|min:0',
             'schedules.*.vat_amount'     => 'required|numeric|min:0',
             'schedules.*.total_amount'   => 'required|numeric|min:0',
+            // ← no status field accepted here
         ]);
 
         // Delete rows removed by the user
@@ -304,6 +291,7 @@ class PaymentScheduleController extends Controller
 
         foreach ($data['schedules'] as $s) {
             if (!empty($s['id'])) {
+                // Update only — never touch invoice_number or status
                 PaymentSchedule::where('id', $s['id'])
                     ->where('payment_id', $paymentId)
                     ->update([
@@ -317,6 +305,7 @@ class PaymentScheduleController extends Controller
                         'updated_at'     => now(),
                     ]);
             } else {
+                // New row — no invoice_number, invoice is assigned only on generateInvoice()
                 PaymentSchedule::create([
                     'payment_id'           => $paymentId,
                     'due_date'             => $s['due_date'],
@@ -327,6 +316,7 @@ class PaymentScheduleController extends Controller
                     'vat_amount'           => $s['vat_amount'],
                     'total_amount'         => $s['total_amount'],
                     'status'               => 'pending',
+                    'invoice_number'       => null,  // explicitly no invoice yet
                     'is_or_issued'         => false,
                     'is_form2307_issued'   => false,
                     'is_invoice_generated' => false,
@@ -334,14 +324,10 @@ class PaymentScheduleController extends Controller
             }
         }
 
-        // Recalculate and update payment total_cost and number_of_cycles
         $updatedSchedules = PaymentSchedule::where('payment_id', $paymentId)->get();
-        $newTotalCost = $updatedSchedules->sum('total_amount');
-        $newCycleCount = $updatedSchedules->count();
-
         $payment->update([
-            'total_cost'       => $newTotalCost,
-            'number_of_cycles' => $newCycleCount,
+            'total_cost'       => $updatedSchedules->sum('total_amount'),
+            'number_of_cycles' => $updatedSchedules->count(),
         ]);
 
         return response()->json(['message' => 'Schedules updated successfully.']);
