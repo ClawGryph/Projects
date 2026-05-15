@@ -49,25 +49,33 @@ const calcCycles = (startDate, endDate, paymentType, recurringType) => {
 
     if (paymentType === "one_time") return 1;
 
-    const totalMonths =
-        (end.getFullYear() - start.getFullYear()) * 12 +
-        (end.getMonth() - start.getMonth()) +
-        1;
+    let count = 0;
+    let cursor = new Date(start);
 
-    switch (recurringType) {
-        case "monthly":
-            return totalMonths > 0 ? totalMonths : "—";
-        case "quarterly":
-            return totalMonths > 0 ? Math.ceil(totalMonths / 3) : "—";
-        case "half_yearly":
-            return totalMonths > 0 ? Math.ceil(totalMonths / 6) : "—";
-        case "yearly": {
-            const years = end.getFullYear() - start.getFullYear() + 1;
-            return years > 0 ? years : "—";
+    while (cursor <= end) {
+        count++;
+        switch (recurringType) {
+            case "monthly":
+                cursor.setMonth(cursor.getMonth() + 1);
+                break;
+            case "quarterly":
+                cursor.setMonth(cursor.getMonth() + 3);
+                break;
+            case "half_yearly":
+                cursor.setMonth(cursor.getMonth() + 6);
+                break;
+            case "yearly":
+                cursor.setFullYear(cursor.getFullYear() + 1);
+                break;
+            case "weekly":
+                cursor.setDate(cursor.getDate() + 7);
+                break;
+            default:
+                return "—";
         }
-        default:
-            return "—";
     }
+
+    return count > 0 ? count : "—";
 };
 
 export default function PaymentModal({

@@ -6,6 +6,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { calcVat } from "../utils/vatCalculator";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function ScheduleBilling() {
     const { id, clientsProjectId } = useParams();
@@ -28,6 +29,9 @@ export default function ScheduleBilling() {
     const [showSaveWarningModal, setShowSaveWarningModal] = useState(false);
     const [adjustedAlreadyGenerated, setAdjustedAlreadyGenerated] =
         useState(false);
+    const [showEndDateWarningModal, setShowEndDateWarningModal] =
+        useState(false);
+    const [pendingAction, setPendingAction] = useState(null);
 
     useEffect(() => {
         axiosClient.get(`/clients/${id}`).then(({ data }) => {
@@ -105,7 +109,6 @@ export default function ScheduleBilling() {
         assignData?.subscription?.adjusted_end_coverage != null;
 
     const handleSaveChanges = () => {
-        // If already saved once before, show warning first
         if (saveCount >= 1) {
             setShowSaveWarningModal(true);
             return;
@@ -113,7 +116,7 @@ export default function ScheduleBilling() {
         executeSaveChanges();
     };
 
-    const executeSaveChanges = () => {
+    const executeSaveChanges = (skipEndDateCheck = false) => {
         setShowSaveWarningModal(false);
 
         const isProject = assignData?.project !== null;
@@ -125,17 +128,16 @@ export default function ScheduleBilling() {
             ? (service?.adjusted_end_date ?? service?.end_date)
             : (service?.adjusted_end_coverage ?? service?.end_coverage);
 
-        // Validate dates against service end date
-        if (hardEndDate) {
+        // Warn instead of block if dates exceed end date
+        if (!skipEndDateCheck && hardEndDate) {
             const dateExceeded = schedules.some(
                 (s) =>
                     s.start_coverage > hardEndDate ||
                     s.end_coverage > hardEndDate,
             );
             if (dateExceeded) {
-                setNotification(
-                    `One or more dates exceed the allowed end date (${hardEndDate}). Please correct them before saving.`,
-                );
+                setPendingAction("save");
+                setShowEndDateWarningModal(true);
                 return;
             }
         }
@@ -191,7 +193,6 @@ export default function ScheduleBilling() {
                     (sum, s) => sum + parseFloat(s.total_amount || 0),
                     0,
                 );
-
                 setSchedules(
                     existing.map((s) => ({
                         id: s.id,
@@ -227,7 +228,29 @@ export default function ScheduleBilling() {
             .finally(() => setSaving(false));
     };
 
-    const handleGenerateInvoice = () => {
+    const handleGenerateInvoice = (skipEndDateCheck = false) => {
+        const isProject = assignData?.project !== null;
+        const service = isProject
+            ? assignData.project
+            : assignData.subscription;
+
+        const hardEndDate = isProject
+            ? (service?.adjusted_end_date ?? service?.end_date)
+            : (service?.adjusted_end_coverage ?? service?.end_coverage);
+
+        if (!skipEndDateCheck && hardEndDate) {
+            const dateExceeded = schedules.some(
+                (s) =>
+                    s.start_coverage > hardEndDate ||
+                    s.end_coverage > hardEndDate,
+            );
+            if (dateExceeded) {
+                setPendingAction("invoice");
+                setShowEndDateWarningModal(true);
+                return;
+            }
+        }
+
         setSaving(true);
         const paymentId = assignData.payment.id;
 
@@ -962,7 +985,7 @@ export default function ScheduleBilling() {
 
                         {/* Generate Invoice button */}
                         <button
-                            onClick={handleGenerateInvoice}
+                            onClick={() => handleGenerateInvoice()}
                             disabled={
                                 saving || hasChanges || isInvoiceGenerated
                             }
@@ -1437,93 +1460,53 @@ export default function ScheduleBilling() {
                 </>
             )}
 
-            {showExceedModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-5 w-5 text-yellow-500"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            </div>
-                            <h2 className="text-base font-semibold text-gray-800">
-                                Amount Exceeded
-                            </h2>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-5">
-                            You have exceeded the expected amount. Do you wish
-                            to proceed?
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={handleExceedCancel}
-                                className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleExceedProceed}
-                                className="px-4 py-1.5 text-sm font-medium text-white bg-sky-500 rounded-md hover:bg-sky-600 transition cursor-pointer"
-                            >
-                                Proceed
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Amount Exceeded Modal */}
+            <ConfirmModal
+                isOpen={showExceedModal}
+                onClose={handleExceedCancel}
+                onConfirm={handleExceedProceed}
+                title="Amount Exceeded"
+                message="You have exceeded the expected amount. Do you wish to proceed?"
+                confirmLabel="Proceed"
+                confirmClassName="bg-sky-500 hover:bg-sky-600"
+                iconClassName="bg-yellow-100"
+                iconColor="text-yellow-500"
+            />
 
-            {showSaveWarningModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-100">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-5 w-5 text-orange-500"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            </div>
-                            <h2 className="text-base font-semibold text-gray-800">
-                                Schedule Already Updated
-                            </h2>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-5">
-                            You have already changed the payment schedule once.
-                            Do you still wish to update it?
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setShowSaveWarningModal(false)}
-                                className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={executeSaveChanges}
-                                className="px-4 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600 transition cursor-pointer"
-                            >
-                                Proceed
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Schedule Already Updated Modal */}
+            <ConfirmModal
+                isOpen={showSaveWarningModal}
+                onClose={() => setShowSaveWarningModal(false)}
+                onConfirm={() => executeSaveChanges()}
+                title="Schedule Already Updated"
+                message="You have already changed the payment schedule once. Do you still wish to update it?"
+                confirmLabel="Proceed"
+                confirmClassName="bg-orange-500 hover:bg-orange-600"
+                iconClassName="bg-orange-100"
+                iconColor="text-orange-500"
+            />
+
+            {/* Exceeding End Date Modal */}
+            <ConfirmModal
+                isOpen={showEndDateWarningModal}
+                onClose={() => {
+                    setShowEndDateWarningModal(false);
+                    setPendingAction(null);
+                }}
+                onConfirm={() => {
+                    setShowEndDateWarningModal(false);
+                    if (pendingAction === "save") executeSaveChanges(true);
+                    else if (pendingAction === "invoice")
+                        handleGenerateInvoice(true);
+                    setPendingAction(null);
+                }}
+                title="Exceeding End Date"
+                message="One or more schedules exceed the allowed end date. Do you wish to proceed?"
+                confirmLabel="Proceed"
+                confirmClassName="bg-yellow-500 hover:bg-yellow-600"
+                iconClassName="bg-yellow-100"
+                iconColor="text-yellow-500"
+            />
         </>
     );
 }
