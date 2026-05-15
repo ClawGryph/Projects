@@ -20,7 +20,11 @@ class SubscriptionController extends Controller
     public function index()
     {
         return SubscriptionResource::collection(
-            Subscription::query()->where('company_id', $this->company()->id)->orderBy('subscription_id', 'desc')->paginate(10)
+            Subscription::query()
+                ->where('company_id', $this->company()->id)
+                ->with(['clientsProjects.client'])
+                ->orderBy('id', 'desc')
+                ->paginate(10)
         );
     }
 

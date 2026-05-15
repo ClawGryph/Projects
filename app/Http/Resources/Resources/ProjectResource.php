@@ -33,6 +33,7 @@ class ProjectResource extends JsonResource
             'payment_type' => $this->payment_type,
             'billing_start_date' => $this->billing_start_date ? date('Y-m-d', strtotime($this->billing_start_date)) : null,
             'auto_status' => $this->auto_status,
+            'clients_projects' => ClientsProjectResource::collection($this->whenLoaded('clientsProjects')),
         ];
     }
 }

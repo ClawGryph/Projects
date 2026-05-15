@@ -24,7 +24,11 @@ class ProjectController extends Controller
     public function index()
     {
         return ProjectResource::collection(
-            Project::query()->where('company_id', $this->company()->id)->orderBy('id', 'desc')->paginate(10)
+            Project::query()
+                ->where('company_id', $this->company()->id)
+                ->with(['clientsProjects.client'])
+                ->orderBy('id', 'desc')
+                ->paginate(10)
         );
     }
 

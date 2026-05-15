@@ -125,6 +125,7 @@ export default function Projects() {
         "Start Date",
         "End Date",
         "Payment Type",
+        "Assigned To",
         "Status",
         "Payment View",
         "Actions",
@@ -222,6 +223,18 @@ export default function Projects() {
                                                 {PAYMENT_TYPE_LABELS[
                                                     p.payment_type
                                                 ] ?? "—"}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {p.clients_projects?.length > 0
+                                                    ? p.clients_projects
+                                                          .map(
+                                                              (cp) =>
+                                                                  cp.client
+                                                                      ?.name,
+                                                          )
+                                                          .filter(Boolean)
+                                                          .join(", ")
+                                                    : "—"}
                                             </td>
 
                                             <td className="border-b border-gray-200 px-4 py-2 relative">

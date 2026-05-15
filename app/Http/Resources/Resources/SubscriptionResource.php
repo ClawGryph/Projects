@@ -34,6 +34,7 @@ class SubscriptionResource extends JsonResource
             'isEnded' => $this->end_date && $this->end_date <= now(),
             'created_at' => $this->created_at,
             'auto_status' => $this->auto_status,
+            'clients_projects' => ClientsProjectResource::collection($this->whenLoaded('clientsProjects')),
         ];
     }
 }

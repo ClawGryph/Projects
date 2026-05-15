@@ -121,6 +121,7 @@ export default function Subsciptions() {
         "Start Coverage",
         "End Coverage",
         "Type",
+        "Assigned To",
         "Status",
         "Payment View",
         "Actions",
@@ -218,6 +219,18 @@ export default function Subsciptions() {
                                                 {FREQUENCY_LABELS[
                                                     s.frequency
                                                 ] ?? "—"}
+                                            </td>
+                                            <td className="border-b border-gray-200 px-4 py-2">
+                                                {s.clients_projects?.length > 0
+                                                    ? s.clients_projects
+                                                          .map(
+                                                              (cp) =>
+                                                                  cp.client
+                                                                      ?.name,
+                                                          )
+                                                          .filter(Boolean)
+                                                          .join(", ")
+                                                    : "—"}
                                             </td>
                                             <td className="border-b border-gray-200 px-4 py-2 relative">
                                                 {editingId === s.id ? (
