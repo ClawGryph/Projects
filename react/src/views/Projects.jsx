@@ -149,7 +149,7 @@ export default function Projects() {
             </div>
 
             <div className="flex flex-col flex-1 min-h-0 justify-start items-center overflow-x-auto p-5">
-                <div className="max-w-[1100px] w-full overflow-auto rounded-lg max-height">
+                <div className="w-full overflow-auto rounded-lg max-height">
                     <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                         <thead>
                             <tr className="bg-cyan-800">

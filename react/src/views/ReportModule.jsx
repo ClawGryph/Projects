@@ -360,7 +360,7 @@ export default function ReportModule() {
             </div>
 
             <div className="flex flex-col flex-1 min-h-0 px-5 pb-8 gap-5">
-                <div className="max-w-[1300px] w-full overflow-auto rounded-xl hide-scrollbar">
+                <div className="w-full overflow-auto rounded-xl hide-scrollbar">
                     {/* ── Filters ── */}
                     <div className="flex flex-wrap items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                         <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
