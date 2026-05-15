@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientsProjectController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\CompanyPaymentDetailController;
+use App\Http\Controllers\Api\CompanyTypeController;
 use App\Http\Controllers\Api\Form2307Controller;
 use App\Http\Controllers\Api\ManualInvoiceController;
 use App\Http\Controllers\Api\OfficialReceiptController;
@@ -11,10 +13,9 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentScheduleController;
 use App\Http\Controllers\Api\PaymentTransactionController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\UploadFileController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\CompanyTypeController;
-use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Resources\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -88,6 +89,9 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::get('/projects/{project}/logs', [ProjectController::class, 'logs']);
     Route::get('/subscriptions/{subscription}/logs', [SubscriptionController::class, 'logs']);
     Route::post('/company-types', [CompanyTypeController::class, 'store']);
+    Route::post('/company-payment-details', [CompanyPaymentDetailController::class, 'store']);
+    Route::put('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'update']);
+    Route::delete('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'destroy']);
 });
 
 // All roles can view
@@ -110,4 +114,6 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])-
     Route::get('/projects/{project}/clients-projects', [ProjectController::class, 'payments']);
     Route::get('/official-receipts/{id}', [OfficialReceiptController::class, 'show']);
     Route::get('/company-types', [CompanyTypeController::class, 'index']);
+    Route::get('/company-payment-details', [CompanyPaymentDetailController::class, 'index']);
+    Route::get('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'show']);
 });

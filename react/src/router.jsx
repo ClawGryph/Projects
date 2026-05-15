@@ -22,6 +22,7 @@ import SubscriptionsForm from "./views/SubscriptionsForm.jsx";
 import Assign from "./views/Assign.jsx";
 import ScheduleBilling from "./views/ScheduleBilling.jsx";
 import ClientDashboard from "./views/ClientDashboard.jsx";
+import CompanyPaymentDetails from "./views/CompanyPaymentDetails.jsx";
 
 const router = createBrowserRouter([
     {
@@ -136,6 +137,11 @@ const router = createBrowserRouter([
                 path: "/company-type",
                 element: <CompanyType />,
                 handle: { title: "Company Type" },
+            },
+            {
+                path: "/payment-details",
+                element: <CompanyPaymentDetails />,
+                handle: { title: "Company Payment Details" },
             },
         ],
     },
