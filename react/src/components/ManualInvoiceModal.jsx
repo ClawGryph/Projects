@@ -34,6 +34,14 @@ export default function ManualInvoiceModal({
     const isVatExclusive = vatType === "vat_exclusive";
     const isVatInclusive = vatType === "vat_inclusive";
     const isVatable = isVatExclusive || isVatInclusive;
+    const [paymentDetails, setPaymentDetails] = useState([]);
+
+    useEffect(() => {
+        axiosClient
+            .get("/company-payment-details")
+            .then(({ data }) => setPaymentDetails(data.data ?? data))
+            .catch(() => {});
+    }, []);
 
     // Payment term label
     const getTerms = () => {
@@ -233,6 +241,18 @@ export default function ManualInvoiceModal({
             day: "numeric",
             year: "numeric",
         });
+    };
+
+    const formatTinNo = (val) => {
+        if (!val) return "—";
+        const digits = val.replace(/\D/g, "");
+        return digits.replace(/(\d{3})(?=\d)/g, "$1-");
+    };
+
+    const formatAccountNumber = (val) => {
+        if (!val) return "—";
+        const digits = val.replace(/\D/g, "");
+        return digits.replace(/(\d{4})(?=\d)/g, "$1-");
     };
 
     const handleDownloadPDF = async () => {
@@ -1052,28 +1072,89 @@ export default function ManualInvoiceModal({
                                 >
                                     Bank Details
                                 </div>
-                                <div
-                                    style={{
-                                        fontSize: 13,
-                                        lineHeight: 2,
-                                        color: "#333",
-                                    }}
-                                >
-                                    <strong>Chimes Consulting OPC</strong>
-                                    <br />
-                                    <strong>TIN No:</strong> 744 328 715 000
-                                    <br />
-                                    <br />
-                                    <strong>
-                                        Union Bank of the Philippines
-                                    </strong>
-                                    <br />
-                                    <strong>Account Name:</strong> Chimes
-                                    Consulting OPC
-                                    <br />
-                                    <strong>Account Number:</strong> 0020 8001
-                                    1681
-                                </div>
+                                {paymentDetails.length === 0 ? (
+                                    <div
+                                        style={{ fontSize: 13, color: "#888" }}
+                                    >
+                                        No payment details available.
+                                    </div>
+                                ) : (
+                                    paymentDetails.map((detail, index) => (
+                                        <div
+                                            key={detail.id}
+                                            style={{
+                                                fontSize: 13,
+                                                lineHeight: 2,
+                                                color: "#333",
+                                                marginBottom:
+                                                    index <
+                                                    paymentDetails.length - 1
+                                                        ? 16
+                                                        : 0,
+                                                paddingBottom:
+                                                    index <
+                                                    paymentDetails.length - 1
+                                                        ? 16
+                                                        : 0,
+                                                borderBottom:
+                                                    index <
+                                                    paymentDetails.length - 1
+                                                        ? "1px dashed #d0dce8"
+                                                        : "none",
+                                            }}
+                                        >
+                                            {detail.tin_name && (
+                                                <>
+                                                    <strong>
+                                                        {detail.tin_name}
+                                                    </strong>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {detail.tin_no && (
+                                                <>
+                                                    <strong>TIN No:</strong>{" "}
+                                                    {formatTinNo(detail.tin_no)}
+                                                    <br />
+                                                </>
+                                            )}
+                                            {(detail.tin_name ||
+                                                detail.tin_no) &&
+                                                (detail.bank_name ||
+                                                    detail.account_name ||
+                                                    detail.account_number) && (
+                                                    <br />
+                                                )}
+                                            {detail.bank_name && (
+                                                <>
+                                                    <strong>
+                                                        {detail.bank_name}
+                                                    </strong>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {detail.account_name && (
+                                                <>
+                                                    <strong>
+                                                        Account Name:
+                                                    </strong>{" "}
+                                                    {detail.account_name}
+                                                    <br />
+                                                </>
+                                            )}
+                                            {detail.account_number && (
+                                                <>
+                                                    <strong>
+                                                        Account Number:
+                                                    </strong>{" "}
+                                                    {formatAccountNumber(
+                                                        detail.account_number,
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { calcWithholdingTax } from "../utils/withholdingTax";
 import chimes_logo from "../assets/chimes-logo.png";
+import axiosClient from "../axios-client";
 
 export default function InvoiceModal({
     payment,
@@ -11,6 +12,14 @@ export default function InvoiceModal({
 }) {
     const invoiceRef = useRef();
     const [downloading, setDownloading] = useState(false);
+    const [paymentDetails, setPaymentDetails] = useState([]);
+
+    useEffect(() => {
+        axiosClient
+            .get("/company-payment-details")
+            .then(({ data }) => setPaymentDetails(data.data ?? data))
+            .catch(() => {});
+    }, []);
 
     if (!payment) return null;
 
@@ -30,11 +39,9 @@ export default function InvoiceModal({
     const clientType = client.company_type ?? "";
     const annualGross = parseFloat(company?.annual_gross) || 0;
 
-    // Formats number into a two digit string
     const formattedIndex =
         scheduleIndex != null ? String(scheduleIndex).padStart(2, "0") : "??";
 
-    // Format date
     const formatDate = (dateStr) => {
         if (!dateStr) return "-";
         return new Date(dateStr).toLocaleDateString("en-PH", {
@@ -44,7 +51,6 @@ export default function InvoiceModal({
         });
     };
 
-    // Payment term label
     const getTerms = () => {
         const type = isProject
             ? payment.clientsProject?.project?.payment_type
@@ -75,7 +81,6 @@ export default function InvoiceModal({
     const vatAmount = parseFloat(payment.vat_amount) || 0;
     const total = parseFloat(payment.total_amount) || 0;
 
-    // Converts numbers into philippine peso format with proper decimal places
     const formatPHP = (val) =>
         new Intl.NumberFormat("en-PH", {
             minimumFractionDigits: 2,
@@ -94,6 +99,18 @@ export default function InvoiceModal({
         totalAmount: total,
     });
     const netAmount = total - withholdingTax;
+
+    const formatTinNo = (val) => {
+        if (!val) return "—";
+        const digits = val.replace(/\D/g, "");
+        return digits.replace(/(\d{3})(?=\d)/g, "$1-");
+    };
+
+    const formatAccountNumber = (val) => {
+        if (!val) return "—";
+        const digits = val.replace(/\D/g, "");
+        return digits.replace(/(\d{4})(?=\d)/g, "$1-");
+    };
 
     const handleDownloadPDF = async () => {
         setDownloading(true);
@@ -188,7 +205,7 @@ export default function InvoiceModal({
                     </div>
                 </div>
 
-                {/* Invoice Content — inline styles kept intentionally for accurate PDF rendering */}
+                {/* Invoice Content */}
                 <div className="p-6">
                     <div
                         ref={invoiceRef}
@@ -333,7 +350,6 @@ export default function InvoiceModal({
                                     {client.company_address || ""}
                                 </p>
                             </div>
-
                             <div style={{ textAlign: "right" }}>
                                 <div
                                     style={{
@@ -347,12 +363,7 @@ export default function InvoiceModal({
                                 >
                                     Terms
                                 </div>
-                                <div
-                                    style={{
-                                        fontSize: 13,
-                                        marginTop: 4,
-                                    }}
-                                >
+                                <div style={{ fontSize: 13, marginTop: 4 }}>
                                     <strong>{getTerms()}</strong>
                                 </div>
                             </div>
@@ -694,25 +705,82 @@ export default function InvoiceModal({
                             >
                                 Bank Details
                             </div>
-                            <div
-                                style={{
-                                    fontSize: 13,
-                                    lineHeight: 2,
-                                    color: "#333",
-                                }}
-                            >
-                                <strong>Chimes Consulting OPC</strong>
-                                <br />
-                                <strong>TIN No:</strong> 744 328 715 000
-                                <br />
-                                <br />
-                                <strong>Union Bank of the Philippines</strong>
-                                <br />
-                                <strong>Account Name:</strong> Chimes Consulting
-                                OPC
-                                <br />
-                                <strong>Account Number:</strong> 0020 8001 1681
-                            </div>
+                            {paymentDetails.length === 0 ? (
+                                <div style={{ fontSize: 13, color: "#888" }}>
+                                    No payment details available.
+                                </div>
+                            ) : (
+                                paymentDetails.map((detail, index) => (
+                                    <div
+                                        key={detail.id}
+                                        style={{
+                                            fontSize: 13,
+                                            lineHeight: 2,
+                                            color: "#333",
+                                            marginBottom:
+                                                index <
+                                                paymentDetails.length - 1
+                                                    ? 16
+                                                    : 0,
+                                            paddingBottom:
+                                                index <
+                                                paymentDetails.length - 1
+                                                    ? 16
+                                                    : 0,
+                                            borderBottom:
+                                                index <
+                                                paymentDetails.length - 1
+                                                    ? "1px dashed #d0dce8"
+                                                    : "none",
+                                        }}
+                                    >
+                                        {detail.tin_name && (
+                                            <>
+                                                <strong>
+                                                    {detail.tin_name}
+                                                </strong>
+                                                <br />
+                                            </>
+                                        )}
+                                        {detail.tin_no && (
+                                            <>
+                                                <strong>TIN No:</strong>{" "}
+                                                {formatTinNo(detail.tin_no)}
+                                                <br />
+                                            </>
+                                        )}
+                                        {(detail.tin_name || detail.tin_no) &&
+                                            (detail.bank_name ||
+                                                detail.account_name ||
+                                                detail.account_number) && (
+                                                <br />
+                                            )}
+                                        {detail.bank_name && (
+                                            <>
+                                                <strong>
+                                                    {detail.bank_name}
+                                                </strong>
+                                                <br />
+                                            </>
+                                        )}
+                                        {detail.account_name && (
+                                            <>
+                                                <strong>Account Name:</strong>{" "}
+                                                {detail.account_name}
+                                                <br />
+                                            </>
+                                        )}
+                                        {detail.account_number && (
+                                            <>
+                                                <strong>Account Number:</strong>{" "}
+                                                {formatAccountNumber(
+                                                    detail.account_number,
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
