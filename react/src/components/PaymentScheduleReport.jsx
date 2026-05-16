@@ -32,6 +32,125 @@ function unique(arr) {
     return [...new Set(arr)].sort();
 }
 
+function daysPast(dateStr) {
+    if (!dateStr) return 0;
+    return Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Calculate withholding tax based on client type, annual gross, and vat type.
+ */
+function calcWithholdingTax({
+    clientType,
+    annualGross,
+    vatType,
+    baseAmount,
+    totalAmount,
+}) {
+    if (vatType === "vat_other") {
+        return { rate: 0, tax: 0, base: 0 };
+    }
+    if (clientType === "Government") {
+        const rate = 0.01;
+        const base = totalAmount;
+        return { rate, base, tax: Math.round(base * rate * 100) / 100 };
+    }
+    if (clientType === "Private Corporation") {
+        const rate = annualGross >= 3_000_000 ? 0.02 : 0.01;
+        const base = baseAmount;
+        return { rate, base, tax: Math.round(base * rate * 100) / 100 };
+    }
+    return { rate: 0, tax: 0, base: 0 };
+}
+
+/**
+ * Get WHT for a non-paid schedule row using its schedule fields.
+ */
+function getScheduleWht(s) {
+    return calcWithholdingTax({
+        clientType: s.clientsProject?.client?.company_type ?? "",
+        annualGross: parseFloat(s.clientsProject?.client?.annual_gross ?? 0),
+        vatType: s.clientsProject?.vat_type ?? "vat_exempt",
+        baseAmount: parseFloat(s.base_amount ?? 0),
+        totalAmount: parseFloat(s.total_amount ?? 0),
+    });
+}
+
+// ── CSV Export ────────────────────────────────────────────────────────────────
+function exportCSV(filtered, activeFilters, variant) {
+    const isPaid = variant === "paid";
+
+    const headers = [
+        "Quarter",
+        "Client",
+        "Type",
+        "Service",
+        "Due Date",
+        "Paid At",
+        "Expected",
+        "Gross Paid",
+        "WHT",
+        "Net Received",
+        "O.R. Issued",
+        "2307 Issued",
+    ];
+
+    const escape = (val) => {
+        const str = String(val ?? "");
+        return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+    };
+
+    const rows = filtered.map((s) => {
+        const wht = isPaid ? null : getScheduleWht(s);
+        const grossPaid = isPaid
+            ? Number(s.transaction?.gross_amount || 0)
+            : Number(s.total_amount || 0);
+        const whtAmt = isPaid
+            ? Number(s.transaction?.wh_tax || 0)
+            : (wht?.tax ?? 0);
+        const netAmt = isPaid
+            ? Number(s.transaction?.net_amount || 0)
+            : grossPaid - whtAmt;
+
+        return [
+            s.quarter,
+            s.clientsProject?.client?.name ?? "",
+            s.clientsProject?.project ? "Project" : "Subscription",
+            s.clientsProject?.project?.title ??
+                s.clientsProject?.subscription?.title ??
+                "",
+            s.due_date ?? "",
+            isPaid && s.transaction?.paid_at
+                ? new Date(s.transaction.paid_at).toISOString().split("T")[0]
+                : "",
+            Number(s.total_amount || 0).toFixed(2),
+            grossPaid.toFixed(2),
+            whtAmt.toFixed(2),
+            netAmt.toFixed(2),
+            s.is_or_issued ? "Yes" : "No",
+            s.is_form2307_issued ? "Yes" : "No",
+        ];
+    });
+
+    const csv = [headers, ...rows]
+        .map((row) => row.map(escape).join(","))
+        .join("\n");
+    const year = activeFilters.year !== "All" ? activeFilters.year : "All";
+    const quarter =
+        activeFilters.quarter !== "All" ? `_${activeFilters.quarter}` : "";
+    const filename = `${variant}_report_${year}${quarter}.csv`;
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
 // ── Badge ────────────────────────────────────────────────────────────────────
 function Badge({ complete, count, total }) {
     const color = complete
@@ -47,15 +166,26 @@ function Badge({ complete, count, total }) {
 }
 
 // ── Drill-down drawer ─────────────────────────────────────────────────────────
-function DrillDown({ quarter, rows, onClose }) {
+function DrillDown({ quarter, rows, onClose, variant, theme, isPaid }) {
     if (!rows) return null;
+    const isOverdue = variant === "overdue";
+
     return (
         <tr>
             <td colSpan={9} className="p-0">
-                <div className="bg-cyan-50 dark:bg-cyan-950/30 border-t border-b border-cyan-200 dark:border-cyan-800 px-6 py-3 animate-fadeIn">
+                <div
+                    className={`${theme.drillBg} border-t border-b ${theme.drillBorder} px-6 py-3 animate-fadeIn`}
+                >
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 uppercase tracking-widest">
-                            {quarter} — {rows.length} transaction
+                        <span
+                            className={`text-xs font-semibold ${theme.drillLabel} uppercase tracking-widest`}
+                        >
+                            {quarter} — {rows.length}{" "}
+                            {variant === "paid"
+                                ? "transaction"
+                                : isOverdue
+                                  ? "overdue item"
+                                  : "receivable"}
                             {rows.length !== 1 ? "s" : ""}
                         </span>
                         <button
@@ -65,9 +195,12 @@ function DrillDown({ quarter, rows, onClose }) {
                             ✕ Close
                         </button>
                     </div>
+
                     <table className="w-full text-xs">
                         <thead>
-                            <tr className="text-gray-500 dark:text-gray-400 border-b border-cyan-200 dark:border-cyan-800">
+                            <tr
+                                className={`text-gray-500 dark:text-gray-400 border-b ${theme.drillBorder}`}
+                            >
                                 <th className="text-left py-1 pr-3 font-medium">
                                     Client
                                 </th>
@@ -80,9 +213,11 @@ function DrillDown({ quarter, rows, onClose }) {
                                 <th className="text-left py-1 pr-3 font-medium">
                                     Due Date
                                 </th>
-                                <th className="text-left py-1 pr-3 font-medium">
-                                    Paid At
-                                </th>
+                                {isPaid && (
+                                    <th className="text-left py-1 pr-3 font-medium">
+                                        Paid At
+                                    </th>
+                                )}
                                 <th className="text-right py-1 pr-3 font-medium">
                                     Expected
                                 </th>
@@ -104,79 +239,107 @@ function DrillDown({ quarter, rows, onClose }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {rows.map((s) => (
-                                <tr
-                                    key={s.id}
-                                    className="border-b border-cyan-100 dark:border-cyan-900/50 last:border-0"
-                                >
-                                    <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300">
-                                        {s.clientsProject?.client?.name ?? "—"}
-                                    </td>
-                                    <td className="py-1.5 pr-3">
-                                        {s.clientsProject?.project ? (
-                                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                                                Project
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                                                Subscription
-                                            </span>
+                            {rows.map((s) => {
+                                const wht = isPaid ? null : getScheduleWht(s);
+                                const grossPaid = isPaid
+                                    ? (s.transaction?.gross_amount ?? 0)
+                                    : (s.total_amount ?? 0);
+                                const whtAmt = isPaid
+                                    ? (s.transaction?.wh_tax ?? 0)
+                                    : (wht?.tax ?? 0);
+                                const netAmt = isPaid
+                                    ? (s.transaction?.net_amount ?? 0)
+                                    : grossPaid - whtAmt;
+
+                                const dueDateClass = isOverdue
+                                    ? "text-red-500 font-semibold"
+                                    : "text-gray-500";
+
+                                return (
+                                    <tr
+                                        key={s.id}
+                                        className={`border-b ${theme.drillRowBorder} last:border-0`}
+                                    >
+                                        <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300">
+                                            {s.clientsProject?.client?.name ??
+                                                "—"}
+                                        </td>
+                                        <td className="py-1.5 pr-3">
+                                            {s.clientsProject?.project ? (
+                                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                                    Project
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                                                    Subscription
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300 max-w-[160px] truncate">
+                                            {s.clientsProject?.project?.title ??
+                                                s.clientsProject?.subscription
+                                                    ?.title ??
+                                                "—"}
+                                        </td>
+                                        <td
+                                            className={`py-1.5 pr-3 ${dueDateClass}`}
+                                        >
+                                            {s.due_date ?? "—"}
+                                        </td>
+                                        {isPaid && (
+                                            <td className="py-1.5 pr-3 text-gray-500">
+                                                {s.transaction?.paid_at
+                                                    ? new Date(
+                                                          s.transaction.paid_at,
+                                                      )
+                                                          .toISOString()
+                                                          .split("T")[0]
+                                                    : "—"}
+                                            </td>
                                         )}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300 max-w-[160px] truncate">
-                                        {s.clientsProject?.project?.title ??
-                                            s.clientsProject?.subscription
-                                                ?.title ??
-                                            "—"}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-gray-500">
-                                        {s.due_date ?? "—"}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-gray-500">
-                                        {s.transaction?.paid_at
-                                            ? new Date(s.transaction.paid_at)
-                                                  .toISOString()
-                                                  .split("T")[0]
-                                            : "—"}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
-                                        {php(s.total_amount)}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
-                                        {php(s.transaction?.gross_amount)}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-right text-red-500 tabular-nums">
-                                        {s.transaction?.wh_tax > 0
-                                            ? `- ${php(s.transaction.wh_tax)}`
-                                            : "—"}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                                        {php(s.transaction?.net_amount)}
-                                    </td>
-                                    <td className="py-1.5 pr-3 text-center">
-                                        {!!s.is_or_issued ? (
-                                            <span className="text-emerald-600 dark:text-emerald-400">
-                                                ✓
-                                            </span>
-                                        ) : (
-                                            <span className="text-gray-300">
-                                                —
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="py-1.5 text-center">
-                                        {!!s.is_form2307_issued ? (
-                                            <span className="text-emerald-600 dark:text-emerald-400">
-                                                ✓
-                                            </span>
-                                        ) : (
-                                            <span className="text-gray-300">
-                                                —
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
+                                        {/* Expected = always total_amount from schedule */}
+                                        <td className="py-1.5 pr-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
+                                            {php(s.total_amount)}
+                                        </td>
+                                        {/* Gross Paid = transaction gross (paid) | total_amount (pending/overdue) */}
+                                        <td className="py-1.5 pr-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
+                                            {php(grossPaid)}
+                                        </td>
+                                        {/* WHT */}
+                                        <td className="py-1.5 pr-3 text-right text-red-500 tabular-nums">
+                                            {whtAmt > 0
+                                                ? `- ${php(whtAmt)}`
+                                                : "—"}
+                                        </td>
+                                        {/* Net Received */}
+                                        <td className="py-1.5 pr-3 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                            {php(netAmt)}
+                                        </td>
+                                        <td className="py-1.5 pr-3 text-center">
+                                            {!!s.is_or_issued ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400">
+                                                    ✓
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-1.5 text-center">
+                                            {!!s.is_form2307_issued ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400">
+                                                    ✓
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -185,8 +348,65 @@ function DrillDown({ quarter, rows, onClose }) {
     );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export default function ReportModule() {
+// ── Theme map ─────────────────────────────────────────────────────────────────
+const THEMES = {
+    paid: {
+        header: "bg-cyan-800",
+        ring: "focus:ring-cyan-600",
+        resetLink: "text-cyan-700 dark:text-cyan-400",
+        exportBtn: "bg-cyan-700 hover:bg-cyan-800",
+        rowHover: "hover:bg-cyan-50 dark:hover:bg-cyan-950/20",
+        rowExpanded: "bg-cyan-50 dark:bg-cyan-950/20",
+        totalRow:
+            "bg-cyan-50 dark:bg-cyan-950/30 border-t-2 border-cyan-200 dark:border-cyan-800",
+        drillBg: "bg-cyan-50 dark:bg-cyan-950/30",
+        drillBorder: "border-cyan-200 dark:border-cyan-800",
+        drillLabel: "text-cyan-700 dark:text-cyan-400",
+        drillRowBorder: "border-cyan-100 dark:border-cyan-900/50",
+        amountColor: "text-emerald-700 dark:text-emerald-400",
+    },
+    pending: {
+        header: "bg-amber-700",
+        ring: "focus:ring-amber-500",
+        resetLink: "text-amber-700 dark:text-amber-400",
+        exportBtn: "bg-amber-700 hover:bg-amber-800",
+        rowHover: "hover:bg-amber-50 dark:hover:bg-amber-950/20",
+        rowExpanded: "bg-amber-50 dark:bg-amber-950/20",
+        totalRow:
+            "bg-amber-50 dark:bg-amber-950/30 border-t-2 border-amber-200 dark:border-amber-800",
+        drillBg: "bg-amber-50 dark:bg-amber-950/30",
+        drillBorder: "border-amber-200 dark:border-amber-800",
+        drillLabel: "text-amber-700 dark:text-amber-400",
+        drillRowBorder: "border-amber-100 dark:border-amber-900/50",
+        amountColor: "text-amber-700 dark:text-amber-400",
+    },
+    overdue: {
+        header: "bg-red-700",
+        ring: "focus:ring-red-500",
+        resetLink: "text-red-700 dark:text-red-400",
+        exportBtn: "bg-red-700 hover:bg-red-800",
+        rowHover: "hover:bg-red-50 dark:hover:bg-red-950/20",
+        rowExpanded: "bg-red-50 dark:bg-red-950/20",
+        totalRow:
+            "bg-red-50 dark:bg-red-950/30 border-t-2 border-red-200 dark:border-red-800",
+        drillBg: "bg-red-50 dark:bg-red-950/30",
+        drillBorder: "border-red-200 dark:border-red-800",
+        drillLabel: "text-red-700 dark:text-red-400",
+        drillRowBorder: "border-red-100 dark:border-red-900/50",
+        amountColor: "text-red-700 dark:text-red-400",
+    },
+};
+
+// ── Main shared component ─────────────────────────────────────────────────────
+export default function PaymentScheduleReport({
+    variant,
+    title,
+    subtitle,
+    headerBadge,
+}) {
+    const theme = THEMES[variant];
+    const isPaid = variant === "paid";
+
     const [schedules, setSchedules] = useState([]);
     const [loading, setLoading] = useState(false);
     const [expandedQ, setExpandedQ] = useState(null);
@@ -207,7 +427,9 @@ export default function ReportModule() {
                 setSchedules(
                     items.map((s) => ({
                         ...s,
+                        base_amount: parseFloat(s.base_amount || 0),
                         total_amount: parseFloat(s.total_amount || 0),
+                        vat_amount: parseFloat(s.vat_amount || 0),
                         transaction: s.transaction
                             ? {
                                   ...s.transaction,
@@ -227,33 +449,38 @@ export default function ReportModule() {
             .finally(() => setLoading(false));
     }, []);
 
-    const paidSchedules = useMemo(
-        () => schedules.filter((s) => s.transaction?.paid_at),
-        [schedules],
-    );
+    // ── Filter source rows by variant ──
+    const sourceSchedules = useMemo(() => {
+        if (isPaid) return schedules.filter((s) => s.transaction?.paid_at);
+        return schedules.filter((s) => s.status === variant);
+    }, [schedules, variant, isPaid]);
+
+    const getDateKey = (s) => (isPaid ? s.transaction?.paid_at : s.due_date);
 
     const allYears = useMemo(
         () =>
             unique(
-                paidSchedules.map((s) => String(getY(s.transaction.paid_at))),
+                sourceSchedules
+                    .filter((s) => getDateKey(s))
+                    .map((s) => String(getY(getDateKey(s)))),
             ).reverse(),
-        [paidSchedules],
+        [sourceSchedules],
     );
 
     const allClients = useMemo(
         () =>
             unique(
-                paidSchedules
+                sourceSchedules
                     .map((s) => s.clientsProject?.client?.name)
                     .filter(Boolean),
             ),
-        [paidSchedules],
+        [sourceSchedules],
     );
 
     const allServices = useMemo(
         () =>
             unique(
-                paidSchedules
+                sourceSchedules
                     .filter((s) => {
                         if (filters.serviceType === "project")
                             return !!s.clientsProject?.project;
@@ -268,21 +495,23 @@ export default function ReportModule() {
                     )
                     .filter(Boolean),
             ),
-        [paidSchedules, filters.serviceType],
+        [sourceSchedules, filters.serviceType],
     );
 
     const filtered = useMemo(() => {
-        return paidSchedules
+        return sourceSchedules
             .filter((s) => {
-                const paidAt = s.transaction.paid_at;
+                const dateKey = getDateKey(s);
+                if (!dateKey)
+                    return filters.year === "All" && filters.quarter === "All";
                 if (
                     filters.year !== "All" &&
-                    String(getY(paidAt)) !== filters.year
+                    String(getY(dateKey)) !== filters.year
                 )
                     return false;
                 if (
                     filters.quarter !== "All" &&
-                    getQ(paidAt) !== filters.quarter
+                    getQ(dateKey) !== filters.quarter
                 )
                     return false;
                 if (
@@ -305,13 +534,18 @@ export default function ReportModule() {
                     return false;
                 return true;
             })
-            .map((s) => ({ ...s, quarter: getQ(s.transaction.paid_at) }))
-            .sort(
-                (a, b) =>
-                    new Date(a.transaction.paid_at) -
-                    new Date(b.transaction.paid_at),
-            );
-    }, [paidSchedules, filters]);
+            .map((s) => ({
+                ...s,
+                quarter: getDateKey(s) ? getQ(getDateKey(s)) : "Q1",
+            }))
+            .sort((a, b) => {
+                const da = getDateKey(a),
+                    db = getDateKey(b);
+                if (!da) return 1;
+                if (!db) return -1;
+                return new Date(da) - new Date(db);
+            });
+    }, [sourceSchedules, filters]);
 
     const grouped = useMemo(() => {
         const g = {};
@@ -320,12 +554,28 @@ export default function ReportModule() {
         return g;
     }, [filtered]);
 
-    const grandGross = filtered.reduce(
-        (s, r) => s + r.transaction.gross_amount,
-        0,
-    );
-    const grandWht = filtered.reduce((s, r) => s + r.transaction.wh_tax, 0);
-    const grandNet = filtered.reduce((s, r) => s + r.transaction.net_amount, 0);
+    // ── Grand totals ──
+    const { grandGross, grandWht, grandNet } = useMemo(() => {
+        if (isPaid) {
+            return {
+                grandGross: filtered.reduce(
+                    (s, r) => s + (r.transaction?.gross_amount ?? 0),
+                    0,
+                ),
+                grandWht: filtered.reduce(
+                    (s, r) => s + (r.transaction?.wh_tax ?? 0),
+                    0,
+                ),
+                grandNet: filtered.reduce(
+                    (s, r) => s + (r.transaction?.net_amount ?? 0),
+                    0,
+                ),
+            };
+        }
+        const gGross = filtered.reduce((s, r) => s + r.total_amount, 0);
+        const gWht = filtered.reduce((s, r) => s + getScheduleWht(r).tax, 0);
+        return { grandGross: gGross, grandWht: gWht, grandNet: gGross - gWht };
+    }, [filtered, isPaid]);
 
     const set = (key, val) => setFilters((f) => ({ ...f, [key]: val }));
     const clearFilters = () =>
@@ -351,11 +601,35 @@ export default function ReportModule() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 pt-6 pb-2 gap-3">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                        Report
+                        {title}
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                        Quarterly income summary
+                        {subtitle}
                     </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {headerBadge}
+                    <button
+                        onClick={() => exportCSV(filtered, filters, variant)}
+                        disabled={filtered.length === 0}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${theme.exportBtn} text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors`}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Export CSV
+                    </button>
                 </div>
             </div>
 
@@ -366,7 +640,6 @@ export default function ReportModule() {
                         <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
                             Filters
                         </span>
-
                         {[
                             {
                                 key: "year",
@@ -408,7 +681,7 @@ export default function ReportModule() {
                                         if (key === "serviceType")
                                             set("service", "All");
                                     }}
-                                    className="border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                                    className={`border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 ${theme.ring} dark:bg-gray-800 dark:text-white dark:border-gray-600`}
                                 >
                                     {opts.map((o) => (
                                         <option key={o} value={o}>
@@ -418,11 +691,10 @@ export default function ReportModule() {
                                 </select>
                             </label>
                         ))}
-
                         {hasActiveFilter && (
                             <button
                                 onClick={clearFilters}
-                                className="ml-auto text-xs text-cyan-700 hover:underline dark:text-cyan-400"
+                                className={`ml-auto text-xs ${theme.resetLink} hover:underline`}
                             >
                                 Reset Filters
                             </button>
@@ -431,7 +703,7 @@ export default function ReportModule() {
 
                     {/* ── Table ── */}
                     <table className="w-full bg-white dark:bg-gray-900 shadow-sm rounded-xl border-separate border-spacing-0 overflow-hidden">
-                        <thead className="sticky top-0 z-20 bg-cyan-800">
+                        <thead className={`sticky top-0 z-20 ${theme.header}`}>
                             <tr>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-left uppercase tracking-wider w-8" />
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-left uppercase tracking-wider">
@@ -482,7 +754,7 @@ export default function ReportModule() {
                                             colSpan={9}
                                             className="text-center py-12 text-gray-400 dark:text-gray-500"
                                         >
-                                            No paid transactions match the
+                                            No {variant} schedules match the
                                             selected filters.
                                         </td>
                                     </tr>
@@ -492,23 +764,46 @@ export default function ReportModule() {
                                             const rows = grouped[q];
                                             if (!rows.length) return null;
 
-                                            const totalGross = rows.reduce(
-                                                (s, r) =>
-                                                    s +
-                                                    r.transaction.gross_amount,
-                                                0,
-                                            );
-                                            const totalWht = rows.reduce(
-                                                (s, r) =>
-                                                    s + r.transaction.wh_tax,
-                                                0,
-                                            );
-                                            const totalNet = rows.reduce(
-                                                (s, r) =>
-                                                    s +
-                                                    r.transaction.net_amount,
-                                                0,
-                                            );
+                                            let totalGross, totalWht, totalNet;
+                                            if (isPaid) {
+                                                totalGross = rows.reduce(
+                                                    (s, r) =>
+                                                        s +
+                                                        (r.transaction
+                                                            ?.gross_amount ??
+                                                            0),
+                                                    0,
+                                                );
+                                                totalWht = rows.reduce(
+                                                    (s, r) =>
+                                                        s +
+                                                        (r.transaction
+                                                            ?.wh_tax ?? 0),
+                                                    0,
+                                                );
+                                                totalNet = rows.reduce(
+                                                    (s, r) =>
+                                                        s +
+                                                        (r.transaction
+                                                            ?.net_amount ?? 0),
+                                                    0,
+                                                );
+                                            } else {
+                                                totalGross = rows.reduce(
+                                                    (s, r) =>
+                                                        s + r.total_amount,
+                                                    0,
+                                                );
+                                                totalWht = rows.reduce(
+                                                    (s, r) =>
+                                                        s +
+                                                        getScheduleWht(r).tax,
+                                                    0,
+                                                );
+                                                totalNet =
+                                                    totalGross - totalWht;
+                                            }
+
                                             const withOR = rows.filter(
                                                 (r) => !!r.is_or_issued,
                                             ).length;
@@ -520,12 +815,11 @@ export default function ReportModule() {
                                             return (
                                                 <Fragment key={q}>
                                                     <tr
-                                                        key={q}
                                                         onClick={() =>
                                                             toggleQ(q)
                                                         }
                                                         className={`border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors
-                                                            ${isExpanded ? "bg-cyan-50 dark:bg-cyan-950/20" : qi % 2 === 1 ? "bg-gray-50 dark:bg-gray-800/40 hover:bg-cyan-50 dark:hover:bg-cyan-950/20" : "bg-white dark:bg-gray-900 hover:bg-cyan-50 dark:hover:bg-cyan-950/20"}`}
+                                                            ${isExpanded ? theme.rowExpanded : qi % 2 === 1 ? `bg-gray-50 dark:bg-gray-800/40 ${theme.rowHover}` : `bg-white dark:bg-gray-900 ${theme.rowHover}`}`}
                                                     >
                                                         <td className="px-3 py-3 text-center">
                                                             <span
@@ -551,7 +845,9 @@ export default function ReportModule() {
                                                                 ? `- ${php(totalWht)}`
                                                                 : "—"}
                                                         </td>
-                                                        <td className="px-4 py-3 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                                        <td
+                                                            className={`px-4 py-3 text-right font-semibold ${theme.amountColor} tabular-nums`}
+                                                        >
                                                             {php(totalNet)}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
@@ -589,6 +885,9 @@ export default function ReportModule() {
                                                                     null,
                                                                 )
                                                             }
+                                                            variant={variant}
+                                                            theme={theme}
+                                                            isPaid={isPaid}
                                                         />
                                                     )}
                                                 </Fragment>
@@ -596,7 +895,7 @@ export default function ReportModule() {
                                         })}
 
                                         {/* Grand total row */}
-                                        <tr className="bg-cyan-50 dark:bg-cyan-950/30 border-t-2 border-cyan-200 dark:border-cyan-800">
+                                        <tr className={theme.totalRow}>
                                             <td className="px-3 py-3" />
                                             <td
                                                 colSpan={2}
@@ -615,7 +914,9 @@ export default function ReportModule() {
                                                     ? `- ${php(grandWht)}`
                                                     : "—"}
                                             </td>
-                                            <td className="px-4 py-3 text-right font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                            <td
+                                                className={`px-4 py-3 text-right font-bold ${theme.amountColor} tabular-nums`}
+                                            >
                                                 {php(grandNet)}
                                             </td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">

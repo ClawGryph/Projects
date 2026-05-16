@@ -42,14 +42,25 @@ export default function DefaultLayout() {
     const [openSidebar, setOpenSidebar] = useState(false);
     const [loadingLogout, setLoadingLogout] = useState(false);
     const [servicesOpen, setServicesOpen] = useState(false);
+    const [reportsOpen, setReportsOpen] = useState(false); // ← separate state
     const [adminOpen, setAdminOpen] = useState(false);
     const matches = useMatches();
     const location = useLocation();
 
-    // Auto-open Services dropdown if a child route is active
+    // Auto-open dropdowns based on active route
     useEffect(() => {
-        if (location.pathname.startsWith("/projects")) {
+        if (
+            location.pathname.startsWith("/projects") ||
+            location.pathname.startsWith("/subscriptions")
+        ) {
             setServicesOpen(true);
+        }
+        if (
+            location.pathname.startsWith("/sales-report") ||
+            location.pathname.startsWith("/receivables-report") ||
+            location.pathname.startsWith("/overdue-report")
+        ) {
+            setReportsOpen(true);
         }
         if (
             location.pathname.startsWith("/users") ||
@@ -97,6 +108,11 @@ export default function DefaultLayout() {
         location.pathname.startsWith("/subscriptions") ||
         location.pathname.startsWith("/assign");
 
+    const isReportsActive =
+        location.pathname.startsWith("/sales-report") ||
+        location.pathname.startsWith("/receivables-report") ||
+        location.pathname.startsWith("/overdue-report");
+
     return (
         <div className="bg-gray-100 font-family-karla flex">
             <aside
@@ -137,7 +153,7 @@ export default function DefaultLayout() {
                         Clients
                     </NavLink>
 
-                    {/* Services Dropdown */}
+                    {/* ── Services Dropdown ── */}
                     <div>
                         <button
                             onClick={() => setServicesOpen((prev) => !prev)}
@@ -153,17 +169,12 @@ export default function DefaultLayout() {
                             </span>
                             <FontAwesomeIcon
                                 icon={faChevronDown}
-                                className={`text-xs transition-transform duration-300 ${
-                                    servicesOpen ? "rotate-180" : "rotate-0"
-                                }`}
+                                className={`text-xs transition-transform duration-300 ${servicesOpen ? "rotate-180" : "rotate-0"}`}
                             />
                         </button>
 
-                        {/* Dropdown Items */}
                         <div
-                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                                servicesOpen ? "max-h-40" : "max-h-0"
-                            }`}
+                            className={`overflow-hidden transition-all duration-300 ease-in-out ${servicesOpen ? "max-h-40" : "max-h-0"}`}
                         >
                             <div className="bg-cyan-950 bg-opacity-40">
                                 <NavLink
@@ -227,20 +238,87 @@ export default function DefaultLayout() {
                         />{" "}
                         Upload Files
                     </NavLink>
-                    <NavLink
-                        to="/report"
-                        onClick={() => setOpenSidebar(false)}
-                        className={({ isActive }) =>
-                            `flex items-center py-4 pl-6 nav-item transition-all ${isActive ? "bg-cyan-900 text-white" : "text-white opacity-75 hover:opacity-100"}`
-                        }
-                    >
-                        <FontAwesomeIcon
-                            icon={faClipboardList}
-                            className="mr-3"
-                        />{" "}
-                        Report Module
-                    </NavLink>
+
+                    {/* ── Report Module Dropdown ── */}
+                    <div>
+                        <button
+                            onClick={() => setReportsOpen((prev) => !prev)} // ← uses reportsOpen
+                            className={`w-full flex items-center justify-between py-4 pl-6 pr-4 nav-item transition-all ${
+                                isReportsActive
+                                    ? "bg-cyan-900 text-white"
+                                    : "text-white opacity-75 hover:opacity-100"
+                            }`}
+                        >
+                            <span className="flex items-center gap-3">
+                                <FontAwesomeIcon icon={faClipboardList} />
+                                Report Module
+                            </span>
+                            <FontAwesomeIcon
+                                icon={faChevronDown}
+                                className={`text-xs transition-transform duration-300 ${reportsOpen ? "rotate-180" : "rotate-0"}`}
+                            />
+                        </button>
+
+                        <div
+                            className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? "max-h-40" : "max-h-0"}`}
+                        >
+                            <div className="bg-cyan-950 bg-opacity-40">
+                                <NavLink
+                                    to="/sales-report"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faDiagramProject}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Sales Report
+                                </NavLink>
+                                <NavLink
+                                    to="/receivables-report"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faDiagramProject}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Receivables Report
+                                </NavLink>
+                                <NavLink
+                                    to="/overdue-report"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faDiagramProject}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Overdue Report
+                                </NavLink>
+                            </div>
+                        </div>
+                    </div>
                 </nav>
+
                 {user?.role_name !== "viewer" && (
                     <div className="border-t border-cyan-700 bg-cyan-900">
                         {/* Admin Dropdown */}
@@ -261,16 +339,12 @@ export default function DefaultLayout() {
                             </span>
                             <FontAwesomeIcon
                                 icon={faChevronDown}
-                                className={`text-xs transition-transform duration-300 ${
-                                    adminOpen ? "rotate-180" : "rotate-0"
-                                }`}
+                                className={`text-xs transition-transform duration-300 ${adminOpen ? "rotate-180" : "rotate-0"}`}
                             />
                         </button>
 
                         <div
-                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                                adminOpen ? "max-h-100" : "max-h-0"
-                            }`}
+                            className={`overflow-hidden transition-all duration-300 ease-in-out ${adminOpen ? "max-h-100" : "max-h-0"}`}
                         >
                             <div className="bg-cyan-950 bg-opacity-40 pb-2">
                                 {user?.role_name === "super_admin" && (
