@@ -86,13 +86,15 @@ function exportCSV(filtered, activeFilters, variant) {
         "Type",
         "Service",
         "Due Date",
-        "Paid At",
+        "Paid On",
         "Expected",
         "Gross Paid",
         "WHT",
         "Net Received",
         "O.R. Issued",
         "2307 Issued",
+        "O.R. File",
+        "2307 File",
     ];
 
     const escape = (val) => {
@@ -131,6 +133,12 @@ function exportCSV(filtered, activeFilters, variant) {
             netAmt.toFixed(2),
             s.is_or_issued ? "Yes" : "No",
             s.is_form2307_issued ? "Yes" : "No",
+            s.transaction?.officialReceipt?.or_file_url
+                ? "Uploaded"
+                : "Pending",
+            s.transaction?.officialReceipt?.form2307_file_url
+                ? "Uploaded"
+                : "Pending",
         ];
     });
 
@@ -172,7 +180,7 @@ function DrillDown({ quarter, rows, onClose, variant, theme, isPaid }) {
 
     return (
         <tr>
-            <td colSpan={9} className="p-0">
+            <td colSpan={11} className="p-0">
                 <div
                     className={`${theme.drillBg} border-t border-b ${theme.drillBorder} px-6 py-3 animate-fadeIn`}
                 >
@@ -215,7 +223,7 @@ function DrillDown({ quarter, rows, onClose, variant, theme, isPaid }) {
                                 </th>
                                 {isPaid && (
                                     <th className="text-left py-1 pr-3 font-medium">
-                                        Paid At
+                                        Paid On
                                     </th>
                                 )}
                                 <th className="text-right py-1 pr-3 font-medium">
@@ -235,6 +243,12 @@ function DrillDown({ quarter, rows, onClose, variant, theme, isPaid }) {
                                 </th>
                                 <th className="text-center py-1 font-medium">
                                     2307
+                                </th>
+                                <th className="text-center py-1 pr-3 font-medium">
+                                    O.R. File
+                                </th>
+                                <th className="text-center py-1 font-medium">
+                                    2307 File
                                 </th>
                             </tr>
                         </thead>
@@ -328,6 +342,30 @@ function DrillDown({ quarter, rows, onClose, variant, theme, isPaid }) {
                                         </td>
                                         <td className="py-1.5 text-center">
                                             {!!s.is_form2307_issued ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400">
+                                                    ✓
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-1.5 pr-3 text-center">
+                                            {!!s.transaction?.officialReceipt
+                                                ?.or_file_url ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400">
+                                                    ✓
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-1.5 text-center">
+                                            {!!s.transaction?.officialReceipt
+                                                ?.form2307_file_url ? (
                                                 <span className="text-emerald-600 dark:text-emerald-400">
                                                     ✓
                                                 </span>
@@ -730,6 +768,12 @@ export default function PaymentScheduleReport({
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
                                     2307
                                 </th>
+                                <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
+                                    O.R. File
+                                </th>
+                                <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
+                                    2307 File
+                                </th>
                             </tr>
                         </thead>
 
@@ -737,7 +781,7 @@ export default function PaymentScheduleReport({
                             <tbody>
                                 <tr>
                                     <td
-                                        colSpan={9}
+                                        colSpan={11}
                                         className="text-center py-4"
                                     >
                                         Loading...
@@ -751,7 +795,7 @@ export default function PaymentScheduleReport({
                                 {filtered.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={9}
+                                            colSpan={11}
                                             className="text-center py-12 text-gray-400 dark:text-gray-500"
                                         >
                                             No {variant} schedules match the
@@ -811,6 +855,18 @@ export default function PaymentScheduleReport({
                                                 (r) => !!r.is_form2307_issued,
                                             ).length;
                                             const isExpanded = expandedQ === q;
+                                            const withORFile = rows.filter(
+                                                (r) =>
+                                                    !!r.transaction
+                                                        ?.officialReceipt
+                                                        ?.or_file_url,
+                                            ).length;
+                                            const with2307File = rows.filter(
+                                                (r) =>
+                                                    !!r.transaction
+                                                        ?.officialReceipt
+                                                        ?.form2307_file_url,
+                                            ).length;
 
                                             return (
                                                 <Fragment key={q}>
@@ -874,6 +930,34 @@ export default function PaymentScheduleReport({
                                                                 }
                                                             />
                                                         </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <Badge
+                                                                complete={
+                                                                    withORFile ===
+                                                                    rows.length
+                                                                }
+                                                                count={
+                                                                    withORFile
+                                                                }
+                                                                total={
+                                                                    rows.length
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <Badge
+                                                                complete={
+                                                                    with2307File ===
+                                                                    rows.length
+                                                                }
+                                                                count={
+                                                                    with2307File
+                                                                }
+                                                                total={
+                                                                    rows.length
+                                                                }
+                                                            />
+                                                        </td>
                                                     </tr>
 
                                                     {isExpanded && (
@@ -932,6 +1016,28 @@ export default function PaymentScheduleReport({
                                                     filtered.filter(
                                                         (s) =>
                                                             !!s.is_form2307_issued,
+                                                    ).length
+                                                }
+                                                /{filtered.length}
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                                                {
+                                                    filtered.filter(
+                                                        (s) =>
+                                                            !!s.transaction
+                                                                ?.officialReceipt
+                                                                ?.or_file_url,
+                                                    ).length
+                                                }
+                                                /{filtered.length}
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                                                {
+                                                    filtered.filter(
+                                                        (s) =>
+                                                            !!s.transaction
+                                                                ?.officialReceipt
+                                                                ?.form2307_file_url,
                                                     ).length
                                                 }
                                                 /{filtered.length}

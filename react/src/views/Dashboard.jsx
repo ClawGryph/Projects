@@ -273,45 +273,30 @@ export default function Dashboard() {
         return { overallStatus, cycleLabel, totalCostPaid };
     };
 
-    const get2307Status = (transaction) => {
-        if (!transaction.official_receipt) return "no_or";
-        const or = transaction.official_receipt;
-        const hasSI =
-            or.service_invoice_number !== null &&
-            or.service_invoice_number !== "";
-        if (!hasSI) return "not_applicable";
-        if (!or.form2307_id) return "pending";
-        return "issued";
-    };
-
+    // No O.R. Issued — paid but no official_receipt record at all
     const noORPayments = transactions.filter(
-        (t) => t.paid_at && get2307Status(t) === "no_or",
+        (t) => t.paid_at && !t.is_or_issued,
     );
 
-    const pendingForm2307Payments = transactions.filter((t) => {
-        if (!t.paid_at) return false;
-        if (!t.official_receipt) return true;
-        return get2307Status(t) === "pending";
-    });
+    // Pending BIR 2307 — has O.R. with SI number, but no form2307 linked
+    const pendingForm2307Payments = transactions.filter(
+        (t) => t.paid_at && t.is_or_issued && !t.is_form2307_issued,
+    );
 
     const active2307List =
         pending2307Filter === "no_or" ? noORPayments : pendingForm2307Payments;
 
-    // ── No O.R. File uploaded list ──
+    // O.R. File not uploaded — has an official_receipt record but no file
     const noORFilePayments = transactions.filter(
-        (t) =>
-            t.paid_at &&
-            (!t.official_receipt?.or_file_url || !t.official_receipt?.id),
+        (t) => t.paid_at && t.is_or_issued && !t.officialReceipt?.or_file_url,
     );
 
-    // ── No 2307 File uploaded list ──
+    // 2307 File not uploaded — has form2307 linked but no file uploaded
     const no2307FilePayments = transactions.filter(
         (t) =>
             t.paid_at &&
-            t.official_receipt?.service_invoice_number !== null &&
-            t.official_receipt?.service_invoice_number !== "" &&
-            (!t.official_receipt?.form2307_id ||
-                !t.official_receipt?.form2307_file_url),
+            t.is_form2307_issued &&
+            !t.officialReceipt?.form2307_file_url,
     );
 
     const totalNoORPages = Math.ceil(noORPayments.length / rowsPerPage);
@@ -1143,8 +1128,8 @@ export default function Dashboard() {
                                     const count = transactions.filter(
                                         (t) =>
                                             t.paid_at &&
-                                            t.official_receipt &&
-                                            !t.official_receipt.or_file_url,
+                                            t.is_or_issued &&
+                                            !t.officialReceipt?.or_file_url,
                                     ).length;
                                     return `${count} ${count === 1 ? "payment" : "payments"}`;
                                 })()}
@@ -1204,15 +1189,9 @@ export default function Dashboard() {
                                     const count = transactions.filter(
                                         (t) =>
                                             t.paid_at &&
-                                            t.official_receipt &&
-                                            t.official_receipt
-                                                .service_invoice_number !==
-                                                null &&
-                                            t.official_receipt
-                                                .service_invoice_number !==
-                                                "" &&
-                                            !t.official_receipt
-                                                .form2307_file_url,
+                                            t.is_form2307_issued &&
+                                            !t.officialReceipt
+                                                ?.form2307_file_url,
                                     ).length;
                                     return `${count} ${count === 1 ? "payment" : "payments"}`;
                                 })()}
@@ -1673,7 +1652,9 @@ export default function Dashboard() {
                                         <th className="px-4 py-2">Project</th>
                                         <th className="px-4 py-2">Amount</th>
                                         <th className="px-4 py-2">Paid At</th>
-                                        <th className="px-4 py-2">OR No.</th>
+                                        <th className="px-4 py-2">
+                                            S.I/ACK No.
+                                        </th>
                                         <th className="px-4 py-2">
                                             2307 Status
                                         </th>
@@ -1717,14 +1698,16 @@ export default function Dashboard() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {t.official_receipt
-                                                        ?.or_number ? (
+                                                    {t.officialReceipt
+                                                        ?.service_invoice_number ||
+                                                    t.officialReceipt
+                                                        ?.payment_acknowledgement_number ? (
                                                         <span className="text-xs font-mono text-gray-700">
-                                                            {
+                                                            {t.officialReceipt
+                                                                ?.service_invoice_number ||
                                                                 t
-                                                                    .official_receipt
-                                                                    .or_number
-                                                            }
+                                                                    .officialReceipt
+                                                                    ?.payment_acknowledgement_number}
                                                         </span>
                                                     ) : (
                                                         <span className="text-xs text-gray-400 italic">
@@ -1734,9 +1717,11 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <StatusBadge
-                                                        status={get2307Status(
-                                                            t,
-                                                        )}
+                                                        status={
+                                                            t.is_form2307_issued
+                                                                ? "issued"
+                                                                : "pending"
+                                                        }
                                                     />
                                                 </td>
                                             </tr>
@@ -2019,7 +2004,7 @@ export default function Dashboard() {
                                                 <td className="px-4 py-2 font-semibold">
                                                     ₱
                                                     {Number(
-                                                        t.amount_paid,
+                                                        t.net_amount,
                                                     ).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -2030,12 +2015,12 @@ export default function Dashboard() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {t.official_receipt
+                                                    {t.officialReceipt
                                                         ?.service_invoice_number ? (
                                                         <span className="text-xs font-mono text-gray-700">
                                                             {
                                                                 t
-                                                                    .official_receipt
+                                                                    .officialReceipt
                                                                     .service_invoice_number
                                                             }
                                                         </span>
@@ -2047,9 +2032,11 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <StatusBadge
-                                                        status={get2307Status(
-                                                            t,
-                                                        )}
+                                                        status={
+                                                            t.is_form2307_issued
+                                                                ? "issued"
+                                                                : "pending"
+                                                        }
                                                     />
                                                 </td>
                                             </tr>
@@ -2103,7 +2090,9 @@ export default function Dashboard() {
                                         <th className="px-4 py-2">Project</th>
                                         <th className="px-4 py-2">Amount</th>
                                         <th className="px-4 py-2">Paid At</th>
-                                        <th className="px-4 py-2">OR No.</th>
+                                        <th className="px-4 py-2">
+                                            S.I/ACK No.
+                                        </th>
                                         <th className="px-4 py-2">
                                             File Status
                                         </th>
@@ -2147,14 +2136,16 @@ export default function Dashboard() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {t.official_receipt
-                                                        ?.or_number ? (
+                                                    {t.officialReceipt
+                                                        ?.service_invoice_number ||
+                                                    t.officialReceipt
+                                                        ?.payment_acknowledgement_number ? (
                                                         <span className="text-xs font-mono text-gray-700">
-                                                            {
+                                                            {t.officialReceipt
+                                                                ?.service_invoice_number ||
                                                                 t
-                                                                    .official_receipt
-                                                                    .or_number
-                                                            }
+                                                                    .officialReceipt
+                                                                    ?.payment_acknowledgement_number}
                                                         </span>
                                                     ) : (
                                                         <span className="text-xs text-gray-400 italic">
@@ -2264,12 +2255,12 @@ export default function Dashboard() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {t.official_receipt
+                                                    {t.officialReceipt
                                                         ?.service_invoice_number ? (
                                                         <span className="text-xs font-mono text-gray-700">
                                                             {
                                                                 t
-                                                                    .official_receipt
+                                                                    .officialReceipt
                                                                     .service_invoice_number
                                                             }
                                                         </span>
