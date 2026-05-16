@@ -73,6 +73,9 @@ class PaymentTransactionResource extends JsonResource
                 ? asset('storage/' . $this->officialReceipt->form2307->form_file_path)
                 : null,
             'form2307_id'                    => $this->officialReceipt->form2307?->id,
+            'form2307' => $this->officialReceipt->form2307
+                    ? new Form2307Resource($this->officialReceipt->form2307)
+                    : null,
         ] : null,
 
         'is_or_issued'       => (bool) $this->paymentSchedule?->is_or_issued,
