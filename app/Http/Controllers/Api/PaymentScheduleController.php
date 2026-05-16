@@ -25,6 +25,7 @@ class PaymentScheduleController extends Controller
             'payment.clientsProject.subscription',
             'payment.clientsProject.payments',
             'transaction.officialReceipt.form2307',
+            'manualInvoice',
         ])
         ->whereHas('payment', function ($q) {
             $q->where('company_id', $this->company()->id);

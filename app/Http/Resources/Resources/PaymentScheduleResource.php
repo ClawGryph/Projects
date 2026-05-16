@@ -65,6 +65,16 @@ class PaymentScheduleResource extends JsonResource
                 'number_of_cycles' => $payment->number_of_cycles,
             ] : null,
         ] : null,
+
+        'manualInvoice' => $this->whenLoaded('manualInvoice', function () {
+            $items = $this->manualInvoice?->line_items ?? [];
+            $total = collect($items)
+                ->filter(fn($item) => !empty($item['is_additional']))
+                ->sum(fn($item) =>
+                    (float) ($item['amount'] ?? 0) + (float) ($item['vat_amount'] ?? 0)
+                );
+            return ['total' => $total];
+        }),
     ];
 }
 }
