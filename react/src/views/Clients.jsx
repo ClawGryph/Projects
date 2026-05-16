@@ -21,12 +21,24 @@ export default function Clients() {
     // --- CLIENT DETAIL MODAL STATE ---
     const [clientModalOpen, setClientModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
+    const [clientsWithSchedules, setClientsWithSchedules] = useState(new Set());
 
     const [openDropdown, setOpenDropdown] = useState(null);
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
         getClients();
+    }, []);
+
+    useEffect(() => {
+        axiosClient.get("/payment-schedules").then(({ data }) => {
+            const ids = new Set(
+                data.data
+                    .map((s) => s.clientsProject?.client?.id)
+                    .filter(Boolean),
+            );
+            setClientsWithSchedules(ids);
+        });
     }, []);
 
     useEffect(() => {
@@ -255,7 +267,23 @@ export default function Clients() {
                                                                         activeTab:
                                                                             "payment_summary",
                                                                     }}
-                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) => {
+                                                                        if (
+                                                                            !clientsWithSchedules.has(
+                                                                                u.id,
+                                                                            )
+                                                                        )
+                                                                            e.preventDefault();
+                                                                    }}
+                                                                    className={`flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                                                        clientsWithSchedules.has(
+                                                                            u.id,
+                                                                        )
+                                                                            ? "text-gray-700 dark:text-gray-200"
+                                                                            : "text-gray-300 dark:text-gray-600 cursor-not-allowed pointer-events-none"
+                                                                    }`}
                                                                 >
                                                                     <FontAwesomeIcon
                                                                         icon={
