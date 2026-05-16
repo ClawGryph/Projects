@@ -54,6 +54,11 @@ class PaymentSchedule extends Model
             'id'                   // Local key on payment_transactions
         );
     }
+    
+    public function manualInvoice()
+    {
+        return $this->hasOne(ManualInvoice::class, 'payment_schedule_id');
+    }
 
     public function getClientsProjectAttribute()
     {

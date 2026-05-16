@@ -50,6 +50,8 @@ export default function PaymentSchedulesTable({
         { key: "Status" },
         { key: "S.I/ACK No." },
         { key: "2307 Status" },
+        { key: "O.R. File" },
+        { key: "2307 File" },
         { key: "Action" },
     ];
 
@@ -297,6 +299,48 @@ export default function PaymentSchedulesTable({
                                                 <div className="flex justify-center">
                                                     <StatusBadge
                                                         status={form2307Status}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        {/* O.R. File  */}
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            {isPaid ? (
+                                                <div className="flex justify-center">
+                                                    <StatusBadge
+                                                        status={
+                                                            p.transaction
+                                                                ?.officialReceipt
+                                                                ?.or_file_url
+                                                                ? "uploaded"
+                                                                : "pending"
+                                                        }
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        {/* 2307 File */}
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            {isPaid ? (
+                                                <div className="flex justify-center">
+                                                    <StatusBadge
+                                                        status={
+                                                            p.transaction
+                                                                ?.officialReceipt
+                                                                ?.form2307_file_url
+                                                                ? "uploaded"
+                                                                : "pending"
+                                                        }
                                                     />
                                                 </div>
                                             ) : (

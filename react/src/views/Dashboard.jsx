@@ -34,6 +34,13 @@ export default function Dashboard() {
         overduePayments: 0,
         overdueCount: 0,
     });
+
+    // ── New modal states for file upload cards ──
+    const [showNoORFileModal, setShowNoORFileModal] = useState(false);
+    const [noORFilePage, setNoORFilePage] = useState(1);
+    const [showNo2307FileModal, setShowNo2307FileModal] = useState(false);
+    const [no2307FilePage, setNo2307FilePage] = useState(1);
+
     const rowsPerPage = 5;
     const navigate = useNavigate();
 
@@ -110,11 +117,8 @@ export default function Dashboard() {
         const lastMonthYear =
             currentMonth === 0 ? currentYear - 1 : currentYear;
 
-        // Only count transactions that are actually paid (have a paid_at date)
         const paidTransactions = transactionsData.filter((t) => !!t.paid_at);
 
-        // Calculates total revenue for the current month from paid transactions
-        //Filters transactions by month and year, then sums the amounts
         const currentMonthRevenue = paidTransactions
             .filter((t) => {
                 const date = new Date(t.paid_at);
@@ -125,8 +129,6 @@ export default function Dashboard() {
             })
             .reduce((sum, t) => sum + Number(t.net_amount || 0), 0);
 
-        // Calculates total revenue for the previous month from paid transactions
-        // Handles year boundary cases (e.g., January vs December of previous year)
         const lastMonthRevenue = paidTransactions
             .filter((t) => {
                 const date = new Date(t.paid_at);
@@ -137,8 +139,6 @@ export default function Dashboard() {
             })
             .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-        // Calculates month-over-month revenue growth percentage
-        // Handles edge cases like no previous revenue or zero values
         const revenueChangePercent =
             lastMonthRevenue > 0
                 ? (
@@ -150,14 +150,11 @@ export default function Dashboard() {
                   ? 100
                   : 0;
 
-        // Gets all overdue payment schedules for the current month
         const overdueSchedulesThisMonth = clientsProjectsData
             .flatMap((cp) => cp.payment_schedules || [])
             .filter((s) => {
                 if (!s.due_date) return false;
-
                 const dueDate = new Date(s.due_date);
-
                 return (
                     s.status === "overdue" &&
                     dueDate.getMonth() === currentMonth &&
@@ -165,13 +162,11 @@ export default function Dashboard() {
                 );
             });
 
-        // Gets the count of overdue payment schedules for the current month
         const overdueCount =
             overdueSchedulesThisMonth.length > 0
                 ? overdueSchedulesThisMonth.length
                 : 0;
 
-        // Filters clients who were created in the current month and year
         const currentMonthClients = clientData.filter((c) => {
             if (!c.created_at) return false;
             const createdDate = new Date(c.created_at);
@@ -181,7 +176,6 @@ export default function Dashboard() {
             );
         });
 
-        // Filters projects that were created in the current month and year
         const currentMonthProjects = clientsProjectsData.filter((cp) => {
             if (!cp.created_at) return false;
             const date = new Date(cp.created_at);
@@ -200,24 +194,18 @@ export default function Dashboard() {
         });
     };
 
-    // View for all successful payments and filter
     const paidTransactions = transactions.filter((t) => t.paid_at);
 
-    // Filters paid transactions by selected month and year
     const filteredPayments = paidTransactions.filter((t) => {
         const paidDate = new Date(t.paid_at);
-
         const matchMonth =
             selectedMonth === "all"
                 ? true
                 : paidDate.getMonth() === Number(selectedMonth);
-
         const matchYear = paidDate.getFullYear() === Number(selectedYear);
-
         return matchMonth && matchYear;
     });
 
-    // View for all overdue payments and filter
     const overduePayments = clientsProject.flatMap((cp) =>
         (cp.payment_schedules || [])
             .filter((s) => s.status === "overdue")
@@ -231,19 +219,14 @@ export default function Dashboard() {
             })),
     );
 
-    // Filters overdue payments by selected due date month and year
     const filteredOverduePayments = overduePayments.filter((o) => {
         if (!o.due_date) return false;
-
         const dueDate = new Date(o.due_date);
-
         const matchMonth =
             overdueMonth === "all"
                 ? true
                 : dueDate.getMonth() === Number(overdueMonth);
-
         const matchYear = dueDate.getFullYear() === Number(overdueYear);
-
         return matchMonth && matchYear;
     });
 
@@ -255,7 +238,6 @@ export default function Dashboard() {
         const anyEnded = schedules.some((s) => s.status === "ended");
         const allPaid = total > 0 && paid === total;
 
-        // Overall status
         const overallStatus = allPaid
             ? "paid"
             : anyEnded
@@ -266,18 +248,13 @@ export default function Dashboard() {
                   ? "active"
                   : "pending";
 
-        // Cycle progress label
         const paymentType = project.payment?.payment_type;
         const recurringType = project.payment?.recurring_type;
 
         let cycleLabel = "";
         if (paymentType === "one_time") {
-            // One-time payment: simple paid/unpaid status
             cycleLabel = paid > 0 ? "Paid" : "Unpaid";
         } else {
-            // Recurring or installment payments: show progress (e.g., "3 / 12 installments paid")
-
-            // Determine the unit label based on payment frequency
             const unit =
                 paymentType === "installment"
                     ? "installment"
@@ -286,12 +263,9 @@ export default function Dashboard() {
                       : recurringType === "yearly"
                         ? "year"
                         : "month";
-
-            // Format progress with proper pluralization
             cycleLabel = `${paid} / ${total} ${unit}${total !== 1 ? "s" : ""} paid`;
         }
 
-        // Total cost paid
         const totalCostPaid = schedules
             .filter((s) => s.status === "paid")
             .reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
@@ -299,38 +273,31 @@ export default function Dashboard() {
         return { overallStatus, cycleLabel, totalCostPaid };
     };
 
-    // Determines the Form 2307 (Tax Withholding Certificate) status for a transaction
-    // Status flow: no OR → not applicable → pending → issued
-    const get2307Status = (transaction) => {
-        if (!transaction.official_receipt) return "no_or";
-
-        const or = transaction.official_receipt;
-        const hasSI =
-            or.service_invoice_number !== null &&
-            or.service_invoice_number !== "";
-
-        if (!hasSI) return "not_applicable";
-        if (!or.form2307_id) return "pending";
-        return "issued";
-    };
-
-    // Filters transactions that have been paid but are missing Official Receipt (OR)
-    // These are transactions that need an OR to be generated for compliance
+    // No O.R. Issued — paid but no official_receipt record at all
     const noORPayments = transactions.filter(
-        (t) => t.paid_at && get2307Status(t) === "no_or",
+        (t) => t.paid_at && !t.is_or_issued,
     );
 
-    //Filters transactions that need Form 2307 (Tax Certificate) issuance
-    const pendingForm2307Payments = transactions.filter((t) => {
-        if (!t.paid_at) return false; // Only paid transactions
-        if (!t.official_receipt) return true; // Missing OR - needs attention
-        return get2307Status(t) === "pending"; // Has OR but needs 2307
-    });
+    // Pending BIR 2307 — has O.R. with SI number, but no form2307 linked
+    const pendingForm2307Payments = transactions.filter(
+        (t) => t.paid_at && t.is_or_issued && !t.is_form2307_issued,
+    );
 
-    // Switch between transaction lists based on selected filter
-    // "no_or" = missing OR only, otherwise = all pending 2307 items
     const active2307List =
         pending2307Filter === "no_or" ? noORPayments : pendingForm2307Payments;
+
+    // O.R. File not uploaded — has an official_receipt record but no file
+    const noORFilePayments = transactions.filter(
+        (t) => t.paid_at && t.is_or_issued && !t.officialReceipt?.or_file_url,
+    );
+
+    // 2307 File not uploaded — has form2307 linked but no file uploaded
+    const no2307FilePayments = transactions.filter(
+        (t) =>
+            t.paid_at &&
+            t.is_form2307_issued &&
+            !t.officialReceipt?.form2307_file_url,
+    );
 
     const totalNoORPages = Math.ceil(noORPayments.length / rowsPerPage);
     const paginatedNoOR = noORPayments.slice(
@@ -346,13 +313,25 @@ export default function Dashboard() {
         pending2307Page * rowsPerPage,
     );
 
+    // ── Pagination for new modals ──
+    const totalNoORFilePages = Math.ceil(noORFilePayments.length / rowsPerPage);
+    const paginatedNoORFile = noORFilePayments.slice(
+        (noORFilePage - 1) * rowsPerPage,
+        noORFilePage * rowsPerPage,
+    );
+
+    const totalNo2307FilePages = Math.ceil(
+        no2307FilePayments.length / rowsPerPage,
+    );
+    const paginatedNo2307File = no2307FilePayments.slice(
+        (no2307FilePage - 1) * rowsPerPage,
+        no2307FilePage * rowsPerPage,
+    );
+
     // Function to export CSV
     const exportDashboardCSV = () => {
         const rows = [];
 
-        // =========================
-        // DASHBOARD SUMMARY
-        // =========================
         rows.push(["DASHBOARD SUMMARY"]);
         rows.push(["Total Clients", client.length]);
         rows.push(["Active Services", activeServicesCount]);
@@ -360,9 +339,6 @@ export default function Dashboard() {
         rows.push(["Overdue Payments", metrics.overdueCount]);
         rows.push([]);
 
-        // =========================
-        // CLIENTS
-        // =========================
         rows.push(["CLIENTS"]);
         rows.push(["Name", "Email", "Created At"]);
         client.forEach((c) => {
@@ -370,9 +346,6 @@ export default function Dashboard() {
         });
         rows.push([]);
 
-        // =========================
-        // PROJECTS
-        // =========================
         rows.push(["SERVICES"]);
         rows.push(["Title", "End Date", "Created At"]);
         clientsProject
@@ -388,9 +361,6 @@ export default function Dashboard() {
                 rows.push([title, endDate, cp.created_at || ""]);
             });
 
-        // =========================
-        // CLIENT PROJECTS
-        // =========================
         rows.push(["CLIENT PROJECTS"]);
         rows.push([
             "Client",
@@ -402,7 +372,6 @@ export default function Dashboard() {
 
         clientsProject.forEach((cp) => {
             const summary = getPaymentSummary(cp);
-
             rows.push([
                 cp.client?.name || "",
                 cp.project?.title || "",
@@ -418,12 +387,8 @@ export default function Dashboard() {
 
         rows.push([]);
 
-        // =========================
-        // SUCCESSFUL PAYMENTS
-        // =========================
         rows.push(["SUCCESSFUL PAYMENTS"]);
         rows.push(["Client", "Project", "Amount", "Paid At"]);
-
         transactions
             .filter((t) => t.paid_at)
             .forEach((t) => {
@@ -437,12 +402,8 @@ export default function Dashboard() {
 
         rows.push([]);
 
-        // =========================
-        // OVERDUE PAYMENTS
-        // =========================
         rows.push(["OVERDUE PAYMENTS"]);
         rows.push(["Client", "Project", "Amount Due", "Due Date"]);
-
         overduePayments.forEach((o) => {
             rows.push([
                 o.client?.name || "",
@@ -452,7 +413,6 @@ export default function Dashboard() {
             ]);
         });
 
-        // Convert to CSV
         const csvContent = rows
             .map((row) =>
                 row
@@ -464,14 +424,11 @@ export default function Dashboard() {
         const blob = new Blob([csvContent], {
             type: "text/csv;charset=utf-8;",
         });
-
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-
         const today = new Date().toISOString().split("T")[0];
         link.setAttribute("download", `dashboard_export_${today}.csv`);
-
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -479,18 +436,13 @@ export default function Dashboard() {
 
     const formatPaymentType = (type) => {
         if (!type) return "";
-
-        // Replace underscores with spaces
         const formatted = type.replace(/_/g, " ");
-
-        // Capitalize first letter of every word
         return formatted
             .split(" ")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
     };
 
-    // Helper function to format the change display
     const renderChangeIndicator = (value, isPercentage = false) => {
         const numValue = Number(value);
         const isPositive = numValue >= 0;
@@ -500,7 +452,6 @@ export default function Dashboard() {
         const colorClass = isPositive
             ? "text-green-600 bg-green-50"
             : "text-red-600 bg-red-50";
-
         return (
             <span
                 className={`text-sm font-semibold ${colorClass} px-2 py-1 rounded-lg`}
@@ -510,7 +461,6 @@ export default function Dashboard() {
         );
     };
 
-    // UPCOMING PAYMENTS
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -541,7 +491,6 @@ export default function Dashboard() {
         )
         .slice(0, 8);
 
-    // LATE PAYMENTS
     const latePaymentsThisMonth = clientsProject
         .flatMap((project) => {
             const schedules = project.payment_schedules || [];
@@ -559,10 +508,8 @@ export default function Dashboard() {
     const buildActivities = () => {
         const activities = [];
 
-        // New Projects
         clientsProject.forEach((cp) => {
             if (!cp.created_at) return;
-
             activities.push({
                 id: `project-${cp.id}`,
                 type: "project_created",
@@ -573,10 +520,8 @@ export default function Dashboard() {
             });
         });
 
-        // Payments Received
         transactions.forEach((t) => {
             if (!t.paid_at) return;
-
             activities.push({
                 id: `payment-${t.id}`,
                 type: "payment_received",
@@ -587,7 +532,6 @@ export default function Dashboard() {
             });
         });
 
-        // Overdue Payments
         clientsProject.forEach((cp) => {
             if (
                 cp.payment?.next_payment_date &&
@@ -605,8 +549,7 @@ export default function Dashboard() {
             }
         });
 
-        // Sort newest first
-        return activities.sort((a, b) => b.date - a.date).slice(0, 6); // show latest 6
+        return activities.sort((a, b) => b.date - a.date).slice(0, 6);
     };
 
     const activities = buildActivities().slice(0, 5);
@@ -635,6 +578,7 @@ export default function Dashboard() {
     useEffect(() => {
         setPaymentsPage(1);
     }, [selectedMonth, selectedYear]);
+
     useEffect(() => {
         setOverdueModalPage(1);
     }, [overdueMonth, overdueYear]);
@@ -652,6 +596,32 @@ export default function Dashboard() {
         (overdueModalPage - 1) * rowsPerPage,
         overdueModalPage * rowsPerPage,
     );
+
+    // ── Reusable pagination controls ──
+    function Pagination({ page, total, onPrev, onNext }) {
+        if (total <= 1) return null;
+        return (
+            <div className="flex justify-between items-center mt-4">
+                <button
+                    onClick={onPrev}
+                    disabled={page === 1}
+                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                >
+                    Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                    Page {page} of {total}
+                </span>
+                <button
+                    onClick={onNext}
+                    disabled={page === total}
+                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
+                >
+                    Next
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6">
@@ -810,7 +780,6 @@ export default function Dashboard() {
                                 </h3>
                             </div>
                         </div>
-
                         <button
                             onClick={() => setShowPaymentsModal(true)}
                             className="bg-sky-400 text-white text-sm font-semibold hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
@@ -819,10 +788,7 @@ export default function Dashboard() {
                             <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
-
-                    {/* Overview Breakdown */}
                     <div className="space-y-2 border-t border-gray-100 pt-3">
-                        {/* Count of paid payments this month */}
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500 flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
@@ -845,8 +811,6 @@ export default function Dashboard() {
                                 payments
                             </span>
                         </div>
-
-                        {/* Sum of paid payments this month */}
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500 flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
@@ -857,7 +821,6 @@ export default function Dashboard() {
                             </span>
                         </div>
                     </div>
-
                     <div className="flex items-center gap-2 mt-3">
                         {renderChangeIndicator(metrics.revenueChange, true)}
                         <span className="text-sm text-gray-500">
@@ -927,7 +890,6 @@ export default function Dashboard() {
                                 </h3>
                             </div>
                         </div>
-
                         <button
                             onClick={() => setShowOverdueModal(true)}
                             className="bg-sky-400 text-white text-sm font-semibold hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
@@ -936,10 +898,7 @@ export default function Dashboard() {
                             <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
-
-                    {/* Overview Breakdown */}
                     <div className="space-y-2 border-t border-gray-100 pt-3">
-                        {/* Count of overdue payments this month */}
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500 flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
@@ -973,7 +932,6 @@ export default function Dashboard() {
                             </span>
                         </div>
                     </div>
-
                     <div className="flex items-center gap-2 mt-auto mt-3">
                         <span className="text-sm font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-lg">
                             {metrics.overdueCount}{" "}
@@ -1017,7 +975,6 @@ export default function Dashboard() {
                                 </h3>
                             </div>
                         </div>
-
                         <button
                             onClick={() => {
                                 setShowNoORModal(true);
@@ -1029,7 +986,6 @@ export default function Dashboard() {
                             <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
-
                     <div className="space-y-2 border-t border-gray-100 pt-3">
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500 flex items-center gap-1.5">
@@ -1044,7 +1000,6 @@ export default function Dashboard() {
                             </span>
                         </div>
                     </div>
-
                     <div className="flex items-center gap-2 mt-3">
                         <span className="text-sm font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">
                             {noORPayments.length}{" "}
@@ -1084,7 +1039,6 @@ export default function Dashboard() {
                                 </h3>
                             </div>
                         </div>
-
                         <button
                             onClick={() => {
                                 setShowPending2307Modal(true);
@@ -1096,7 +1050,6 @@ export default function Dashboard() {
                             <span className="hidden sm:inline ml-1">View</span>
                         </button>
                     </div>
-
                     <div className="space-y-2 border-t border-gray-100 pt-3">
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500 flex items-center gap-1.5">
@@ -1111,7 +1064,6 @@ export default function Dashboard() {
                             </span>
                         </div>
                     </div>
-
                     <div className="flex items-center gap-2 mt-3">
                         <span className="text-sm font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
                             {pendingForm2307Payments.length}{" "}
@@ -1125,7 +1077,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* O.R. File Upload Pending */}
+                {/* O.R. File Not Uploaded */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -1149,20 +1101,22 @@ export default function Dashboard() {
                                     O.R. File Not Uploaded
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    {
-                                        transactions.filter(
-                                            (t) =>
-                                                t.paid_at &&
-                                                (!t.official_receipt
-                                                    ?.or_file_url ||
-                                                    !t.official_receipt?.id),
-                                        ).length
-                                    }
+                                    {noORFilePayments.length}
                                 </h3>
                             </div>
                         </div>
+                        {/* ── NEW View button ── */}
+                        <button
+                            onClick={() => {
+                                setShowNoORFileModal(true);
+                                setNoORFilePage(1);
+                            }}
+                            className="bg-sky-400 text-white text-sm font-semibold hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                        >
+                            <FontAwesomeIcon icon={faEye} className="pr-1" />
+                            <span className="hidden sm:inline ml-1">View</span>
+                        </button>
                     </div>
-
                     <div className="space-y-2 border-t border-gray-100 pt-3">
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500 flex items-center gap-1.5">
@@ -1174,8 +1128,8 @@ export default function Dashboard() {
                                     const count = transactions.filter(
                                         (t) =>
                                             t.paid_at &&
-                                            t.official_receipt &&
-                                            !t.official_receipt.or_file_url,
+                                            t.is_or_issued &&
+                                            !t.officialReceipt?.or_file_url,
                                     ).length;
                                     return `${count} ${count === 1 ? "payment" : "payments"}`;
                                 })()}
@@ -1184,7 +1138,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* 2307 File Upload Pending */}
+                {/* 2307 File Not Uploaded */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -1208,25 +1162,21 @@ export default function Dashboard() {
                                     2307 File Not Uploaded
                                 </p>
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    {
-                                        transactions.filter(
-                                            (t) =>
-                                                t.paid_at &&
-                                                (!t.official_receipt
-                                                    ?.form2307_id ||
-                                                    !t.official_receipt
-                                                        .form2307_file_url) &&
-                                                t.official_receipt
-                                                    ?.service_invoice_number !==
-                                                    null &&
-                                                t.official_receipt
-                                                    ?.service_invoice_number !==
-                                                    "",
-                                        ).length
-                                    }
+                                    {no2307FilePayments.length}
                                 </h3>
                             </div>
                         </div>
+                        {/* ── NEW View button ── */}
+                        <button
+                            onClick={() => {
+                                setShowNo2307FileModal(true);
+                                setNo2307FilePage(1);
+                            }}
+                            className="bg-sky-400 text-white text-sm font-semibold hover:bg-sky-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                        >
+                            <FontAwesomeIcon icon={faEye} className="pr-1" />
+                            <span className="hidden sm:inline ml-1">View</span>
+                        </button>
                     </div>
                     <div className="space-y-2 border-t border-gray-100 pt-3">
                         <div className="flex items-center justify-between">
@@ -1239,15 +1189,9 @@ export default function Dashboard() {
                                     const count = transactions.filter(
                                         (t) =>
                                             t.paid_at &&
-                                            t.official_receipt &&
-                                            t.official_receipt
-                                                .service_invoice_number !==
-                                                null &&
-                                            t.official_receipt
-                                                .service_invoice_number !==
-                                                "" &&
-                                            !t.official_receipt
-                                                .form2307_file_url,
+                                            t.is_form2307_issued &&
+                                            !t.officialReceipt
+                                                ?.form2307_file_url,
                                     ).length;
                                     return `${count} ${count === 1 ? "payment" : "payments"}`;
                                 })()}
@@ -1316,21 +1260,12 @@ export default function Dashboard() {
                                 return (
                                     <tr
                                         key={project.id}
-                                        className={`border-b border-gray-200 text-center ${
-                                            isOverdue
-                                                ? "bg-red-50 hover:bg-red-100"
-                                                : "hover:bg-cyan-50"
-                                        }`}
+                                        className={`border-b border-gray-200 text-center ${isOverdue ? "bg-red-50 hover:bg-red-100" : "hover:bg-cyan-50"}`}
                                     >
-                                        {/* Client */}
                                         <td className="px-4 py-2">
-                                            {project.client &&
-                                            project.client.name
-                                                ? project.client.name
-                                                : "No Client"}
+                                            {project.client?.name ||
+                                                "No Client"}
                                         </td>
-
-                                        {/* Project Name */}
                                         <td className="px-4 py-2">
                                             <button
                                                 onClick={() =>
@@ -1349,8 +1284,6 @@ export default function Dashboard() {
                                                     "Untitled"}
                                             </button>
                                         </td>
-
-                                        {/* Project End Date */}
                                         <td className="px-4 py-2">
                                             {project.project?.end_date ||
                                                 project.subscription
@@ -1359,8 +1292,6 @@ export default function Dashboard() {
                                                     ?.end_coverage ||
                                                 "-"}
                                         </td>
-
-                                        {/* Payment Type */}
                                         <td className="px-4 py-2">
                                             {formatPaymentType(
                                                 isProject
@@ -1370,19 +1301,12 @@ export default function Dashboard() {
                                                           ?.frequency,
                                             )}
                                         </td>
-
-                                        {/* Payment Progress */}
                                         <td className="px-4 py-2">
                                             {(() => {
-                                                const isProject =
-                                                    !!project.project;
-
                                                 if (isProject) {
-                                                    // Project: payment_type is one_time or installment
                                                     const paymentType =
                                                         project.project
                                                             ?.payment_type;
-
                                                     if (
                                                         paymentType ===
                                                         "installment"
@@ -1404,7 +1328,6 @@ export default function Dashboard() {
                                                             </span>
                                                         );
                                                     }
-
                                                     if (
                                                         paymentType ===
                                                         "one_time"
@@ -1415,23 +1338,18 @@ export default function Dashboard() {
                                                             </span>
                                                         );
                                                     }
-
                                                     return <span>-</span>;
                                                 } else {
-                                                    // Subscription: frequency is monthly, quarterly, half_yearly, yearly
                                                     const frequency =
                                                         project.subscription
                                                             ?.frequency;
-
                                                     if (!frequency)
                                                         return <span>-</span>;
-
                                                     const unit = frequency
                                                         .replace(/_/g, " ")
                                                         .replace(/\b\w/g, (c) =>
                                                             c.toUpperCase(),
                                                         );
-
                                                     return (
                                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-blue-50 text-blue-600 border-blue-100">
                                                             <span className="font-semibold">
@@ -1451,16 +1369,12 @@ export default function Dashboard() {
                                                 }
                                             })()}
                                         </td>
-
-                                        {/* Total Cost Paid */}
                                         <td className="px-4 py-2">
                                             ₱
                                             {getPaymentSummary(
                                                 project,
                                             ).totalCostPaid.toLocaleString()}
                                         </td>
-
-                                        {/* Status */}
                                         <td className="px-4 py-2">
                                             <StatusBadge
                                                 status={
@@ -1476,44 +1390,23 @@ export default function Dashboard() {
                     </tbody>
                 </table>
                 {totalPages > 1 && (
-                    <div className="flex justify-between items-center mt-4">
-                        <button
-                            onClick={() =>
-                                setCurrentPage((prev) => Math.max(prev - 1, 1))
-                            }
-                            disabled={currentPage === 1}
-                            className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                        >
-                            Previous
-                        </button>
-
-                        <span className="text-sm text-gray-600">
-                            Page {currentPage} of {totalPages}
-                        </span>
-
-                        <button
-                            onClick={() =>
-                                setCurrentPage((prev) =>
-                                    Math.min(prev + 1, totalPages),
-                                )
-                            }
-                            disabled={currentPage === totalPages}
-                            className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                        >
-                            Next
-                        </button>
-                    </div>
+                    <Pagination
+                        page={currentPage}
+                        total={totalPages}
+                        onPrev={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                        onNext={() =>
+                            setCurrentPage((p) => Math.min(p + 1, totalPages))
+                        }
+                    />
                 )}
             </div>
 
             {/* UPCOMING & LATE PAYMENTS */}
             <div className="min-w-full bg-white rounded-xl overflow-hidden shadow-sm p-6 mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* UPCOMING PAYMENTS */}
                 <div className="bg-white rounded-xl overflow-hidden flex flex-col shadow-sm p-6 h-[500px]">
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                         Upcoming Payments
                     </h2>
-
                     <div className="flex-1 overflow-y-auto pr-1">
                         {upcomingPayments.length === 0 ? (
                             <p className="text-center text-gray-500 py-6">
@@ -1524,20 +1417,13 @@ export default function Dashboard() {
                                 const nextPayment = new Date(
                                     project._upcomingSchedule.due_date,
                                 );
-
                                 const dayFromNow = new Date();
                                 dayFromNow.setDate(today.getDate() + 1);
-
                                 const isUrgent = nextPayment <= dayFromNow;
-
                                 return (
                                     <div
                                         key={`${project.id}-${project._upcomingSchedule.id}`}
-                                        className={`flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 ${
-                                            isUrgent
-                                                ? "bg-red-50 hover:bg-red-100"
-                                                : "hover:bg-cyan-50"
-                                        } transition-colors`}
+                                        className={`flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 ${isUrgent ? "bg-red-50 hover:bg-red-100" : "hover:bg-cyan-50"} transition-colors`}
                                     >
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-800">
@@ -1551,7 +1437,6 @@ export default function Dashboard() {
                                                     "No Client"}
                                             </p>
                                         </div>
-
                                         <div className="text-right">
                                             <p className="text-gray-800 font-bold">
                                                 ₱
@@ -1574,7 +1459,6 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* OVERDUE PAYMENTS */}
                 <div className="bg-white rounded-xl overflow-hidden flex flex-col shadow-sm p-6 h-[500px]">
                     <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
                         Overdue Payments
@@ -1589,17 +1473,14 @@ export default function Dashboard() {
                                 const dueDate = new Date(
                                     project._lateSchedule.due_date,
                                 );
-
                                 const now = new Date();
                                 const MS_PER_DAY = 86400000;
-
                                 const daysLate =
                                     now > dueDate
                                         ? Math.floor(
                                               (now - dueDate) / MS_PER_DAY,
                                           )
                                         : 0;
-
                                 return (
                                     <div
                                         key={`${project.id}-${project._lateSchedule.id}`}
@@ -1621,7 +1502,6 @@ export default function Dashboard() {
                                                 {daysLate !== 1 ? "s" : ""} late
                                             </span>
                                         </div>
-
                                         <div className="text-right">
                                             <p className="text-red-600 font-bold">
                                                 ₱
@@ -1660,14 +1540,12 @@ export default function Dashboard() {
                             activities.map((activity) => {
                                 const isPositive =
                                     activity.type === "payment_received";
-
                                 const iconColor =
                                     activity.type === "payment_received"
                                         ? "bg-green-100 text-green-600"
                                         : activity.type === "payment_overdue"
                                           ? "bg-red-100 text-red-600"
                                           : "bg-purple-100 text-purple-600";
-
                                 return (
                                     <div
                                         key={activity.id}
@@ -1686,7 +1564,6 @@ export default function Dashboard() {
                                                       : "✓"}
                                             </span>
                                         </div>
-
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-gray-900">
                                                 {activity.title}
@@ -1698,14 +1575,9 @@ export default function Dashboard() {
                                                 {activity.date.toLocaleString()}
                                             </p>
                                         </div>
-
                                         {activity.amount && (
                                             <span
-                                                className={`text-sm font-semibold ${
-                                                    isPositive
-                                                        ? "text-green-600"
-                                                        : "text-red-600"
-                                                }`}
+                                                className={`text-sm font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
                                             >
                                                 {isPositive ? "+" : ""}₱
                                                 {Number(
@@ -1721,11 +1593,14 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* MODALS */}
+            {/* ══════════════════════════════════════════════════════════════════
+                MODALS
+            ══════════════════════════════════════════════════════════════════ */}
+
+            {/* Successful Payments Modal */}
             {showPaymentsModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
-                        {/* Header */}
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold">
                                 Successful Payments
@@ -1737,10 +1612,7 @@ export default function Dashboard() {
                                 ✕
                             </button>
                         </div>
-
-                        {/* Filters */}
                         <div className="flex gap-4 mb-4">
-                            {/* Month */}
                             <select
                                 value={selectedMonth}
                                 onChange={(e) =>
@@ -1753,15 +1625,11 @@ export default function Dashboard() {
                                     <option key={i} value={i}>
                                         {new Date(0, i).toLocaleString(
                                             "default",
-                                            {
-                                                month: "long",
-                                            },
+                                            { month: "long" },
                                         )}
                                     </option>
                                 ))}
                             </select>
-
-                            {/* Year */}
                             <select
                                 value={selectedYear}
                                 onChange={(e) =>
@@ -1776,8 +1644,6 @@ export default function Dashboard() {
                                 ))}
                             </select>
                         </div>
-
-                        {/* Table */}
                         <div className="max-h-96 overflow-y-auto">
                             <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
                                 <thead className="bg-cyan-800 text-white text-center">
@@ -1786,7 +1652,9 @@ export default function Dashboard() {
                                         <th className="px-4 py-2">Project</th>
                                         <th className="px-4 py-2">Amount</th>
                                         <th className="px-4 py-2">Paid At</th>
-                                        <th className="px-4 py-2">OR No.</th>
+                                        <th className="px-4 py-2">
+                                            S.I/ACK No.
+                                        </th>
                                         <th className="px-4 py-2">
                                             2307 Status
                                         </th>
@@ -1796,7 +1664,7 @@ export default function Dashboard() {
                                     {paginatedPayments.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan="4"
+                                                colSpan="6"
                                                 className="text-center py-4 text-gray-500"
                                             >
                                                 No payments found
@@ -1830,14 +1698,16 @@ export default function Dashboard() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {t.official_receipt
-                                                        ?.or_number ? (
+                                                    {t.officialReceipt
+                                                        ?.service_invoice_number ||
+                                                    t.officialReceipt
+                                                        ?.payment_acknowledgement_number ? (
                                                         <span className="text-xs font-mono text-gray-700">
-                                                            {
+                                                            {t.officialReceipt
+                                                                ?.service_invoice_number ||
                                                                 t
-                                                                    .official_receipt
-                                                                    .or_number
-                                                            }
+                                                                    .officialReceipt
+                                                                    ?.payment_acknowledgement_number}
                                                         </span>
                                                     ) : (
                                                         <span className="text-xs text-gray-400 italic">
@@ -1847,9 +1717,11 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <StatusBadge
-                                                        status={get2307Status(
-                                                            t,
-                                                        )}
+                                                        status={
+                                                            t.is_form2307_issued
+                                                                ? "issued"
+                                                                : "pending"
+                                                        }
                                                     />
                                                 </td>
                                             </tr>
@@ -1858,50 +1730,26 @@ export default function Dashboard() {
                                 </tbody>
                             </table>
                         </div>
-                        {totalPaymentsPages > 1 && (
-                            <div className="flex justify-between items-center mt-4">
-                                <button
-                                    onClick={() =>
-                                        setPaymentsPage((prev) =>
-                                            Math.max(prev - 1, 1),
-                                        )
-                                    }
-                                    disabled={paymentsPage === 1}
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Previous
-                                </button>
-
-                                <span className="text-sm text-gray-600">
-                                    Page {paymentsPage} of {totalPaymentsPages}
-                                </span>
-
-                                <button
-                                    onClick={() =>
-                                        setPaymentsPage((prev) =>
-                                            Math.min(
-                                                prev + 1,
-                                                totalPaymentsPages,
-                                            ),
-                                        )
-                                    }
-                                    disabled={
-                                        paymentsPage === totalPaymentsPages
-                                    }
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
+                        <Pagination
+                            page={paymentsPage}
+                            total={totalPaymentsPages}
+                            onPrev={() =>
+                                setPaymentsPage((p) => Math.max(p - 1, 1))
+                            }
+                            onNext={() =>
+                                setPaymentsPage((p) =>
+                                    Math.min(p + 1, totalPaymentsPages),
+                                )
+                            }
+                        />
                     </div>
                 </div>
             )}
 
+            {/* Overdue Payments Modal */}
             {showOverdueModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
-                        {/* Header */}
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold">
                                 Overdue Payments
@@ -1913,10 +1761,7 @@ export default function Dashboard() {
                                 ✕
                             </button>
                         </div>
-
-                        {/* Filters */}
                         <div className="flex gap-4 mb-4">
-                            {/* Month */}
                             <select
                                 value={overdueMonth}
                                 onChange={(e) =>
@@ -1929,15 +1774,11 @@ export default function Dashboard() {
                                     <option key={i} value={i}>
                                         {new Date(0, i).toLocaleString(
                                             "default",
-                                            {
-                                                month: "long",
-                                            },
+                                            { month: "long" },
                                         )}
                                     </option>
                                 ))}
                             </select>
-
-                            {/* Year */}
                             <select
                                 value={overdueYear}
                                 onChange={(e) => setOverdueYear(e.target.value)}
@@ -1950,8 +1791,6 @@ export default function Dashboard() {
                                 ))}
                             </select>
                         </div>
-
-                        {/* Table */}
                         <div className="max-h-96 overflow-y-auto">
                             <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
                                 <thead className="bg-cyan-800 text-white text-center">
@@ -2007,49 +1846,23 @@ export default function Dashboard() {
                                 </tbody>
                             </table>
                         </div>
-                        {totalOverdueModalPages > 1 && (
-                            <div className="flex justify-between items-center mt-4">
-                                <button
-                                    onClick={() =>
-                                        setOverdueModalPage((prev) =>
-                                            Math.max(prev - 1, 1),
-                                        )
-                                    }
-                                    disabled={overdueModalPage === 1}
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Previous
-                                </button>
-
-                                <span className="text-sm text-gray-600">
-                                    Page {overdueModalPage} of{" "}
-                                    {totalOverdueModalPages}
-                                </span>
-
-                                <button
-                                    onClick={() =>
-                                        setOverdueModalPage((prev) =>
-                                            Math.min(
-                                                prev + 1,
-                                                totalOverdueModalPages,
-                                            ),
-                                        )
-                                    }
-                                    disabled={
-                                        overdueModalPage ===
-                                        totalOverdueModalPages
-                                    }
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
+                        <Pagination
+                            page={overdueModalPage}
+                            total={totalOverdueModalPages}
+                            onPrev={() =>
+                                setOverdueModalPage((p) => Math.max(p - 1, 1))
+                            }
+                            onNext={() =>
+                                setOverdueModalPage((p) =>
+                                    Math.min(p + 1, totalOverdueModalPages),
+                                )
+                            }
+                        />
                     </div>
                 </div>
             )}
 
-            {/* O.R. MODAL */}
+            {/* No O.R. Issued Modal */}
             {showNoORModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
@@ -2064,7 +1877,6 @@ export default function Dashboard() {
                                 ✕
                             </button>
                         </div>
-
                         <div className="max-h-96 overflow-y-auto">
                             <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
                                 <thead className="bg-cyan-800 text-white text-center">
@@ -2118,41 +1930,23 @@ export default function Dashboard() {
                                 </tbody>
                             </table>
                         </div>
-
-                        {totalNoORPages > 1 && (
-                            <div className="flex justify-between items-center mt-4">
-                                <button
-                                    onClick={() =>
-                                        setNoORPage((prev) =>
-                                            Math.max(prev - 1, 1),
-                                        )
-                                    }
-                                    disabled={noORPage === 1}
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Previous
-                                </button>
-                                <span className="text-sm text-gray-600">
-                                    Page {noORPage} of {totalNoORPages}
-                                </span>
-                                <button
-                                    onClick={() =>
-                                        setNoORPage((prev) =>
-                                            Math.min(prev + 1, totalNoORPages),
-                                        )
-                                    }
-                                    disabled={noORPage === totalNoORPages}
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
+                        <Pagination
+                            page={noORPage}
+                            total={totalNoORPages}
+                            onPrev={() =>
+                                setNoORPage((p) => Math.max(p - 1, 1))
+                            }
+                            onNext={() =>
+                                setNoORPage((p) =>
+                                    Math.min(p + 1, totalNoORPages),
+                                )
+                            }
+                        />
                     </div>
                 </div>
             )}
 
-            {/* 2307 M0DAL */}
+            {/* Pending BIR 2307 Modal */}
             {showPending2307Modal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
@@ -2167,7 +1961,6 @@ export default function Dashboard() {
                                 ✕
                             </button>
                         </div>
-
                         <div className="max-h-96 overflow-y-auto">
                             <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
                                 <thead className="bg-cyan-800 text-white text-center">
@@ -2211,7 +2004,7 @@ export default function Dashboard() {
                                                 <td className="px-4 py-2 font-semibold">
                                                     ₱
                                                     {Number(
-                                                        t.amount_paid,
+                                                        t.net_amount,
                                                     ).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -2222,12 +2015,12 @@ export default function Dashboard() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {t.official_receipt
+                                                    {t.officialReceipt
                                                         ?.service_invoice_number ? (
                                                         <span className="text-xs font-mono text-gray-700">
                                                             {
                                                                 t
-                                                                    .official_receipt
+                                                                    .officialReceipt
                                                                     .service_invoice_number
                                                             }
                                                         </span>
@@ -2239,9 +2032,11 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <StatusBadge
-                                                        status={get2307Status(
-                                                            t,
-                                                        )}
+                                                        status={
+                                                            t.is_form2307_issued
+                                                                ? "issued"
+                                                                : "pending"
+                                                        }
                                                     />
                                                 </td>
                                             </tr>
@@ -2250,43 +2045,254 @@ export default function Dashboard() {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination
+                            page={pending2307Page}
+                            total={totalPending2307Pages}
+                            onPrev={() =>
+                                setPending2307Page((p) => Math.max(p - 1, 1))
+                            }
+                            onNext={() =>
+                                setPending2307Page((p) =>
+                                    Math.min(p + 1, totalPending2307Pages),
+                                )
+                            }
+                        />
+                    </div>
+                </div>
+            )}
 
-                        {totalPending2307Pages > 1 && (
-                            <div className="flex justify-between items-center mt-4">
-                                <button
-                                    onClick={() =>
-                                        setPending2307Page((prev) =>
-                                            Math.max(prev - 1, 1),
-                                        )
-                                    }
-                                    disabled={pending2307Page === 1}
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Previous
-                                </button>
-                                <span className="text-sm text-gray-600">
-                                    Page {pending2307Page} of{" "}
-                                    {totalPending2307Pages}
-                                </span>
-                                <button
-                                    onClick={() =>
-                                        setPending2307Page((prev) =>
-                                            Math.min(
-                                                prev + 1,
-                                                totalPending2307Pages,
-                                            ),
-                                        )
-                                    }
-                                    disabled={
-                                        pending2307Page ===
-                                        totalPending2307Pages
-                                    }
-                                    className="px-4 py-2 bg-cyan-800 text-white rounded-lg disabled:opacity-50 cursor-pointer"
-                                >
-                                    Next
-                                </button>
+            {/* ── O.R. File Not Uploaded Modal ── */}
+            {showNoORFileModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 className="text-xl font-bold">
+                                    O.R. File Not Uploaded
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                    Paid transactions missing an O.R. file
+                                    attachment
+                                </p>
                             </div>
-                        )}
+                            <button
+                                onClick={() => setShowNoORFileModal(false)}
+                                className="text-gray-500 hover:text-gray-800 cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                            <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
+                                <thead className="bg-rose-700 text-white text-center">
+                                    <tr>
+                                        <th className="px-4 py-2">Client</th>
+                                        <th className="px-4 py-2">Project</th>
+                                        <th className="px-4 py-2">Amount</th>
+                                        <th className="px-4 py-2">Paid At</th>
+                                        <th className="px-4 py-2">
+                                            S.I/ACK No.
+                                        </th>
+                                        <th className="px-4 py-2">
+                                            File Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-center">
+                                    {paginatedNoORFile.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="6"
+                                                className="text-center py-4 text-gray-500"
+                                            >
+                                                All O.R. files are uploaded 🎉
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        paginatedNoORFile.map((t) => (
+                                            <tr
+                                                key={t.id}
+                                                className="border-b border-gray-200 bg-rose-50"
+                                            >
+                                                <td className="px-4 py-2">
+                                                    {t.client?.name || "Client"}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.project?.title ||
+                                                        t.subscription?.title ||
+                                                        "—"}
+                                                </td>
+                                                <td className="px-4 py-2 font-semibold">
+                                                    ₱
+                                                    {Number(
+                                                        t.net_amount || 0,
+                                                    ).toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {new Date(
+                                                        t.paid_at,
+                                                    ).toLocaleDateString(
+                                                        "en-CA",
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.officialReceipt
+                                                        ?.service_invoice_number ||
+                                                    t.officialReceipt
+                                                        ?.payment_acknowledgement_number ? (
+                                                        <span className="text-xs font-mono text-gray-700">
+                                                            {t.officialReceipt
+                                                                ?.service_invoice_number ||
+                                                                t
+                                                                    .officialReceipt
+                                                                    ?.payment_acknowledgement_number}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">
+                                                            No O.R. issued
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                                        File Missing
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination
+                            page={noORFilePage}
+                            total={totalNoORFilePages}
+                            onPrev={() =>
+                                setNoORFilePage((p) => Math.max(p - 1, 1))
+                            }
+                            onNext={() =>
+                                setNoORFilePage((p) =>
+                                    Math.min(p + 1, totalNoORFilePages),
+                                )
+                            }
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* ── 2307 File Not Uploaded Modal ── */}
+            {showNo2307FileModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl w-full max-w-3xl p-6 shadow-lg">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 className="text-xl font-bold">
+                                    2307 File Not Uploaded
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                    Transactions with a linked 2307 but no file
+                                    attached
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowNo2307FileModal(false)}
+                                className="text-gray-500 hover:text-gray-800 cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                            <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse">
+                                <thead className="bg-violet-700 text-white text-center">
+                                    <tr>
+                                        <th className="px-4 py-2">Client</th>
+                                        <th className="px-4 py-2">Project</th>
+                                        <th className="px-4 py-2">Amount</th>
+                                        <th className="px-4 py-2">Paid At</th>
+                                        <th className="px-4 py-2">
+                                            S.I/ACK No.
+                                        </th>
+                                        <th className="px-4 py-2">
+                                            File Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-center">
+                                    {paginatedNo2307File.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="6"
+                                                className="text-center py-4 text-gray-500"
+                                            >
+                                                All 2307 files are uploaded 🎉
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        paginatedNo2307File.map((t) => (
+                                            <tr
+                                                key={t.id}
+                                                className="border-b border-gray-200 bg-violet-50"
+                                            >
+                                                <td className="px-4 py-2">
+                                                    {t.client?.name || "Client"}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.project?.title ||
+                                                        t.subscription?.title ||
+                                                        "—"}
+                                                </td>
+                                                <td className="px-4 py-2 font-semibold">
+                                                    ₱
+                                                    {Number(
+                                                        t.net_amount || 0,
+                                                    ).toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {new Date(
+                                                        t.paid_at,
+                                                    ).toLocaleDateString(
+                                                        "en-CA",
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {t.officialReceipt
+                                                        ?.service_invoice_number ? (
+                                                        <span className="text-xs font-mono text-gray-700">
+                                                            {
+                                                                t
+                                                                    .officialReceipt
+                                                                    .service_invoice_number
+                                                            }
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                                                        File Missing
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination
+                            page={no2307FilePage}
+                            total={totalNo2307FilePages}
+                            onPrev={() =>
+                                setNo2307FilePage((p) => Math.max(p - 1, 1))
+                            }
+                            onNext={() =>
+                                setNo2307FilePage((p) =>
+                                    Math.min(p + 1, totalNo2307FilePages),
+                                )
+                            }
+                        />
                     </div>
                 </div>
             )}

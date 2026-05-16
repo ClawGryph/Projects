@@ -64,6 +64,46 @@ export default function ClientDashboard() {
         return status === "complete";
     });
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcomingPayments = assigns
+        .flatMap((a) => {
+            const schedules = a.payment_schedules || [];
+            return schedules
+                .filter((s) => {
+                    if (
+                        !s.due_date ||
+                        s.status === "paid" ||
+                        s.status === "ended"
+                    )
+                        return false;
+                    const due = new Date(s.due_date);
+                    due.setHours(0, 0, 0, 0);
+                    return due >= today;
+                })
+                .map((s) => ({ ...a, _upcomingSchedule: s }));
+        })
+        .sort(
+            (a, b) =>
+                new Date(a._upcomingSchedule.due_date) -
+                new Date(b._upcomingSchedule.due_date),
+        )
+        .slice(0, 8);
+
+    const overduePayments = assigns
+        .flatMap((a) => {
+            const schedules = a.payment_schedules || [];
+            return schedules
+                .filter((s) => s.status === "overdue")
+                .map((s) => ({ ...a, _lateSchedule: s }));
+        })
+        .sort(
+            (a, b) =>
+                new Date(b._lateSchedule.due_date) -
+                new Date(a._lateSchedule.due_date),
+        );
+
     const PAYMENT_TYPE_LABELS = {
         one_time: "One Time",
         installment: "Installment",
@@ -339,6 +379,126 @@ export default function ClientDashboard() {
                                 emptyMessage="No ended services"
                             />
                         )}
+                    </div>
+                </div>
+
+                {/* UPCOMING & OVERDUE PAYMENTS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-5 pb-8">
+                    {/* Upcoming */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col h-[500px]">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                            Upcoming Payments
+                        </h2>
+                        <div className="flex-1 overflow-y-auto pr-1">
+                            {upcomingPayments.length === 0 ? (
+                                <p className="text-center text-gray-500 py-6">
+                                    No upcoming payments
+                                </p>
+                            ) : (
+                                upcomingPayments.map((a) => {
+                                    const due = new Date(
+                                        a._upcomingSchedule.due_date,
+                                    );
+                                    const dayFromNow = new Date(today);
+                                    dayFromNow.setDate(today.getDate() + 1);
+                                    const isUrgent = due <= dayFromNow;
+                                    return (
+                                        <div
+                                            key={`${a.id}-${a._upcomingSchedule.id}`}
+                                            className={`flex items-center justify-between mb-4 border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 ${isUrgent ? "bg-red-50 hover:bg-red-100" : "hover:bg-cyan-50"} transition-colors`}
+                                        >
+                                            <div>
+                                                <h3 className="text-base font-semibold text-gray-800">
+                                                    {a.project?.title ??
+                                                        a.subscription?.title ??
+                                                        "Untitled"}
+                                                </h3>
+                                                <p className="text-xs text-gray-500">
+                                                    {a._upcomingSchedule.status}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-gray-800 font-bold">
+                                                    ₱
+                                                    {Number(
+                                                        a._upcomingSchedule
+                                                            .total_amount || 0,
+                                                    ).toLocaleString()}
+                                                </p>
+                                                <p className="text-gray-500 text-sm">
+                                                    Due:{" "}
+                                                    {due.toLocaleDateString(
+                                                        "en-CA",
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Overdue */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col h-[500px]">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                            Overdue Payments
+                        </h2>
+                        <div className="flex-1 overflow-y-auto pr-1">
+                            {overduePayments.length === 0 ? (
+                                <p className="text-center text-gray-500 py-6">
+                                    No overdue payments
+                                </p>
+                            ) : (
+                                overduePayments.map((a) => {
+                                    const due = new Date(
+                                        a._lateSchedule.due_date,
+                                    );
+                                    const MS_PER_DAY = 86400000;
+                                    const daysLate =
+                                        new Date() > due
+                                            ? Math.floor(
+                                                  (new Date() - due) /
+                                                      MS_PER_DAY,
+                                              )
+                                            : 0;
+                                    return (
+                                        <div
+                                            key={`${a.id}-${a._lateSchedule.id}`}
+                                            className="flex items-center justify-between border-b border-gray-200 pb-2 mt-5 rounded-lg p-3 bg-red-50 hover:bg-red-100 transition-colors"
+                                        >
+                                            <div>
+                                                <h3 className="text-base font-semibold text-gray-800">
+                                                    {a.project?.title ??
+                                                        a.subscription?.title ??
+                                                        "Untitled"}
+                                                </h3>
+                                                <span className="text-xs font-semibold text-red-500">
+                                                    {daysLate} day
+                                                    {daysLate !== 1 ? "s" : ""}{" "}
+                                                    late
+                                                </span>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-red-600 font-bold">
+                                                    ₱
+                                                    {Number(
+                                                        a._lateSchedule
+                                                            .total_amount || 0,
+                                                    ).toLocaleString()}
+                                                </p>
+                                                <p className="text-gray-500 text-sm">
+                                                    Due:{" "}
+                                                    {due.toLocaleDateString(
+                                                        "en-CA",
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

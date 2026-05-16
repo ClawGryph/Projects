@@ -38,40 +38,17 @@ export default function Payments() {
             .then(({ data }) => {
                 const schedules = data.data;
                 setPaymentSchedules(schedules);
-                setLoading(false);
 
-                const requests = schedules.map((p) =>
-                    axiosClient
-                        .get("/manual-invoices", {
-                            params: { schedule_id: p.id },
-                        })
-                        .then(({ data }) => {
-                            const items = data.data?.line_items ?? [];
-                            const total = items.reduce((sum, item) => {
-                                if (!item.is_additional) return sum;
-                                return (
-                                    sum +
-                                    (parseFloat(item.amount) || 0) +
-                                    (parseFloat(item.vat_amount) || 0)
-                                );
-                            }, 0);
-                            return { id: p.id, total };
-                        })
-                        .catch(() => ({ id: p.id, total: 0 })),
-                );
-
-                Promise.all(requests).then((results) => {
-                    const totalsMap = {};
-                    results.forEach(({ id, total }) => {
-                        totalsMap[id] = total;
-                    });
-                    setManualInvoiceTotals(totalsMap);
+                const totalsMap = {};
+                schedules.forEach((p) => {
+                    totalsMap[p.id] = p.manualInvoice?.total ?? 0;
                 });
+                setManualInvoiceTotals(totalsMap);
             })
             .catch((err) => {
                 console.error(err);
-                setLoading(false);
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {

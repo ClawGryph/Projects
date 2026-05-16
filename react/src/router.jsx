@@ -13,7 +13,6 @@ import Payments from "./views/Payments.jsx";
 import Users from "./views/Users.jsx";
 import UserForm from "./views/UserForm.jsx";
 import UploadFiles from "./views/UploadFiles.jsx";
-import ReportModule from "./views/ReportModule.jsx";
 import Company from "./views/Company.jsx";
 import CompanyManagement from "./views/CompanyManagement.jsx";
 import CompanyType from "./views/CompanyType.jsx";
@@ -23,6 +22,9 @@ import Assign from "./views/Assign.jsx";
 import ScheduleBilling from "./views/ScheduleBilling.jsx";
 import ClientDashboard from "./views/ClientDashboard.jsx";
 import CompanyPaymentDetails from "./views/CompanyPaymentDetails.jsx";
+import SalesReport from "./views/SalesReport.jsx";
+import ReceivablesReport from "./views/ReceivablesReport.jsx";
+import OverdueReport from "./views/OverdueReport.jsx";
 
 const router = createBrowserRouter([
     {
@@ -124,9 +126,19 @@ const router = createBrowserRouter([
                 handle: { title: "Upload Files" },
             },
             {
-                path: "/report",
-                element: <ReportModule />,
-                handle: { title: "Report" },
+                path: "/sales-report",
+                element: <SalesReport />,
+                handle: { title: "Sales Report" },
+            },
+            {
+                path: "/receivables-report",
+                element: <ReceivablesReport />,
+                handle: { title: "Receivables Report" },
+            },
+            {
+                path: "/overdue-report",
+                element: <OverdueReport />,
+                handle: { title: "Overdue Report" },
             },
             {
                 path: "/company-management",
