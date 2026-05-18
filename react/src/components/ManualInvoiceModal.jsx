@@ -1103,52 +1103,62 @@ export default function ManualInvoiceModal({
                                                         : "none",
                                             }}
                                         >
-                                            {detail.tin_name && (
+                                            {detail.type === "tin" ? (
                                                 <>
-                                                    <strong>
-                                                        {detail.tin_name}
-                                                    </strong>
-                                                    <br />
+                                                    {detail.account_name && (
+                                                        <>
+                                                            <strong>
+                                                                {
+                                                                    detail.account_name
+                                                                }
+                                                            </strong>
+                                                            <br />
+                                                        </>
+                                                    )}
+                                                    {detail.account_number && (
+                                                        <>
+                                                            <strong>
+                                                                TIN No:
+                                                            </strong>{" "}
+                                                            {formatTinNo(
+                                                                detail.account_number,
+                                                            )}
+                                                            <br />
+                                                        </>
+                                                    )}
                                                 </>
-                                            )}
-                                            {detail.tin_no && (
+                                            ) : (
                                                 <>
-                                                    <strong>TIN No:</strong>{" "}
-                                                    {formatTinNo(detail.tin_no)}
-                                                    <br />
-                                                </>
-                                            )}
-                                            {(detail.tin_name ||
-                                                detail.tin_no) &&
-                                                (detail.bank_name ||
-                                                    detail.account_name ||
-                                                    detail.account_number) && (
-                                                    <br />
-                                                )}
-                                            {detail.bank_name && (
-                                                <>
-                                                    <strong>
-                                                        {detail.bank_name}
-                                                    </strong>
-                                                    <br />
-                                                </>
-                                            )}
-                                            {detail.account_name && (
-                                                <>
-                                                    <strong>
-                                                        Account Name:
-                                                    </strong>{" "}
-                                                    {detail.account_name}
-                                                    <br />
-                                                </>
-                                            )}
-                                            {detail.account_number && (
-                                                <>
-                                                    <strong>
-                                                        Account Number:
-                                                    </strong>{" "}
-                                                    {formatAccountNumber(
-                                                        detail.account_number,
+                                                    {detail.bank_name && (
+                                                        <>
+                                                            <strong>
+                                                                {
+                                                                    detail.bank_name
+                                                                }
+                                                            </strong>
+                                                            <br />
+                                                        </>
+                                                    )}
+                                                    {detail.account_name && (
+                                                        <>
+                                                            <strong>
+                                                                Account Name:
+                                                            </strong>{" "}
+                                                            {
+                                                                detail.account_name
+                                                            }
+                                                            <br />
+                                                        </>
+                                                    )}
+                                                    {detail.account_number && (
+                                                        <>
+                                                            <strong>
+                                                                Account Number:
+                                                            </strong>{" "}
+                                                            {formatAccountNumber(
+                                                                detail.account_number,
+                                                            )}
+                                                        </>
                                                     )}
                                                 </>
                                             )}
