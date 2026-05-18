@@ -28,6 +28,9 @@ import {
     faBuilding,
     faLayerGroup,
     faBuildingColumns,
+    faChartLine,
+    faFileInvoiceDollar,
+    faCalendarXmark,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function DefaultLayout() {
@@ -276,7 +279,7 @@ export default function DefaultLayout() {
                                     }
                                 >
                                     <FontAwesomeIcon
-                                        icon={faDiagramProject}
+                                        icon={faChartLine}
                                         className="mr-3 text-xs"
                                     />
                                     Sales Report
@@ -293,7 +296,7 @@ export default function DefaultLayout() {
                                     }
                                 >
                                     <FontAwesomeIcon
-                                        icon={faDiagramProject}
+                                        icon={faFileInvoiceDollar}
                                         className="mr-3 text-xs"
                                     />
                                     Receivables Report
@@ -310,7 +313,7 @@ export default function DefaultLayout() {
                                     }
                                 >
                                     <FontAwesomeIcon
-                                        icon={faDiagramProject}
+                                        icon={faCalendarXmark}
                                         className="mr-3 text-xs"
                                     />
                                     Overdue Report
