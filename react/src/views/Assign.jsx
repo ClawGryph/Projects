@@ -38,6 +38,8 @@ export default function Assign() {
     const [company, setCompany] = useState(null);
     const [scheduleLoading, setScheduleLoading] = useState(false);
     const [hasPaymentSchedules, setHasPaymentSchedules] = useState(false);
+    const [paymentPagination, setPaymentPagination] = useState(null);
+    const [paymentPage, setPaymentPage] = useState(1);
 
     useEffect(() => {
         axiosClient.get(`/clients/${clientId}`).then(({ data }) => {
@@ -49,7 +51,9 @@ export default function Assign() {
         axiosClient
             .get("/payment-schedules", { params: { client_id: clientId } })
             .then(({ data }) => {
-                setHasPaymentSchedules((data.data?.length ?? 0) > 0);
+                setHasPaymentSchedules(
+                    (data.pagination?.total ?? data.data?.length ?? 0) > 0,
+                ); // ← updated
             })
             .catch(() => setHasPaymentSchedules(false));
     }, []);
@@ -126,45 +130,23 @@ export default function Assign() {
             .catch(() => setLoading(false));
     };
 
-    const getClientPaymentSchedules = () => {
+    const getClientPaymentSchedules = (page = paymentPage) => {
         setScheduleLoading(true);
         axiosClient
-            .get("/payment-schedules", { params: { client_id: clientId } })
+            .get("/payment-schedules", {
+                params: { client_id: clientId, page },
+            })
             .then(({ data }) => {
                 const schedules = data.data;
                 setPaymentSchedules(schedules);
-                setScheduleLoading(false);
+                setPaymentPagination(data.pagination); // ← extract pagination
 
-                const requests = schedules.map((p) =>
-                    axiosClient
-                        .get("/manual-invoices", {
-                            params: { schedule_id: p.id },
-                        })
-                        // renamed 'data' -> 'invoiceData' to avoid shadowing outer 'data'
-                        .then(({ data: invoiceData }) => {
-                            const items = invoiceData.data?.line_items ?? [];
-                            const total = items.reduce((sum, item) => {
-                                if (!item.is_additional) return sum;
-                                return (
-                                    sum +
-                                    (parseFloat(item.amount) || 0) +
-                                    (parseFloat(item.vat_amount) || 0)
-                                );
-                            }, 0);
-                            // renamed 'id' -> 'scheduleId' to avoid shadowing clientId
-                            return { scheduleId: p.id, total };
-                        })
-                        .catch(() => ({ scheduleId: p.id, total: 0 })),
-                );
-
-                Promise.all(requests).then((results) => {
-                    const totalsMap = {};
-                    // renamed destructured 'id' -> 'scheduleId' to avoid shadowing clientId
-                    results.forEach(({ scheduleId, total }) => {
-                        totalsMap[scheduleId] = total;
-                    });
-                    setManualInvoiceTotals(totalsMap);
+                const totalsMap = {};
+                schedules.forEach((p) => {
+                    totalsMap[p.id] = p.manualInvoice?.total ?? 0;
                 });
+                setManualInvoiceTotals(totalsMap);
+                setScheduleLoading(false);
             })
             .catch(() => setScheduleLoading(false));
     };
@@ -172,6 +154,12 @@ export default function Assign() {
     useEffect(() => {
         axiosClient.get("/company").then(({ data }) => setCompany(data));
     }, []);
+
+    useEffect(() => {
+        if (filter === "payment") {
+            getClientPaymentSchedules(paymentPage);
+        }
+    }, [paymentPage]);
 
     // Automatically open the payment summary when payment summary is clicked in clients
     useEffect(() => {
@@ -251,7 +239,8 @@ export default function Assign() {
 
     const handleTabChange = (tab) => {
         if (tab === "payment" && filter !== "payment") {
-            getClientPaymentSchedules();
+            setPaymentPage(1);
+            getClientPaymentSchedules(1);
         }
         setFilter(tab);
     };
@@ -641,11 +630,15 @@ export default function Assign() {
                         ) : (
                             <PaymentSchedulesTable
                                 paymentSchedules={paymentSchedules}
+                                pagination={paymentPagination}
+                                onPageChange={(p) => setPaymentPage(p)}
                                 manualInvoiceTotals={manualInvoiceTotals}
                                 company={company}
                                 user={user}
                                 onStatusUpdate={updateStatus}
-                                onRefresh={getClientPaymentSchedules}
+                                onRefresh={() =>
+                                    getClientPaymentSchedules(paymentPage)
+                                }
                                 setNotification={setNotification}
                                 showClientColumn={false}
                             />

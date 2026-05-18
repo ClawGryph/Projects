@@ -538,7 +538,7 @@ export default function PaymentSchedulesTable({
                                                                                 />{" "}
                                                                                 {p.is_form2307_issued
                                                                                     ? "Edit 2307"
-                                                                                    : "Issue 2307"}
+                                                                                    : "Assign 2307"}
                                                                             </button>
                                                                         )}
                                                                 </div>

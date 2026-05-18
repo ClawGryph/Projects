@@ -1269,7 +1269,7 @@ export default function Dashboard() {
                                         <td className="px-4 py-2">
                                             <button
                                                 onClick={() =>
-                                                    navigate("/assign", {
+                                                    navigate("/clients", {
                                                         state: {
                                                             openService:
                                                                 project,
