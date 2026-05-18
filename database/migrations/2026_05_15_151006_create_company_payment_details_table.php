@@ -13,11 +13,10 @@ return new class extends Migration
     {
         Schema::create('company_payment_details', function (Blueprint $table) {
             $table->id();
-            $table->string('tin_no')->nullable();
-            $table->string('tin_name')->nullable();
+            $table->string('type');
             $table->string('bank_name')->nullable();
-            $table->string('account_name')->nullable();
-            $table->string('account_number')->nullable();
+            $table->string('account_name');
+            $table->string('account_number');
             $table->timestamps();
         });
     }

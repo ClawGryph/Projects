@@ -22,11 +22,10 @@ class UpdateCompanyPaymentDetailRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tin_no' => 'nullable|string|max:15',
-            'tin_name' => 'nullable|string|max:150',
+            'type' => 'required|in:tin,bank',
             'bank_name' => 'nullable|string|max:150',
-            'account_name' => 'nullable|string|max:150',
-            'account_number' => 'nullable|string|max:20',
+            'account_name' => 'required|string|max:150',
+            'account_number' => 'required|string|max:20',
         ];
     }
 }

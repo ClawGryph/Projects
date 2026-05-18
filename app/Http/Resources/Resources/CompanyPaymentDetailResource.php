@@ -17,8 +17,7 @@ class CompanyPaymentDetailResource extends JsonResource
     {
         return [
             'id'=> $this->id,
-            'tin_no'=> $this->tin_no,
-            'tin_name'=> $this->tin_name,
+            'type'=> $this->type,
             'bank_name'=> $this->bank_name,
             'account_name'=> $this->account_name,
             'account_number'=> $this->account_number,

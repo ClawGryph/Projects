@@ -8,7 +8,6 @@ import {
     faXmark,
     faTrash,
     faPen,
-    faCreditCard,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function CompanyPaymentDetails() {
@@ -20,8 +19,7 @@ export default function CompanyPaymentDetails() {
     const [editId, setEditId] = useState(null);
 
     const emptyForm = {
-        tin_no: "",
-        tin_name: "",
+        type: "tin",
         bank_name: "",
         account_name: "",
         account_number: "",
@@ -31,8 +29,6 @@ export default function CompanyPaymentDetails() {
     const [editEntry, setEditEntry] = useState(emptyForm);
 
     const fieldConfig = {
-        tin_no: { inputMode: "numeric", pattern: "[0-9]*", maxLength: 15 },
-        tin_name: { maxLength: 150 },
         bank_name: { maxLength: 150 },
         account_name: { maxLength: 150 },
         account_number: {
@@ -122,21 +118,110 @@ export default function CompanyPaymentDetails() {
     };
 
     const tableHeaders = [
-        "TIN No",
-        "TIN Name",
+        "Type",
         "Bank Name",
         "Account Name",
         "Account Number",
         "Actions",
     ];
+    const fields = ["type", "bank_name", "account_name", "account_number"];
 
-    const fields = [
-        "tin_no",
-        "tin_name",
-        "bank_name",
-        "account_name",
-        "account_number",
-    ];
+    const TypeDropdown = ({ value, onChange, onKeyDown }) => (
+        <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={onKeyDown}
+            className="w-full border border-cyan-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+        >
+            <option value="tin">TIN</option>
+            <option value="bank">Bank</option>
+        </select>
+    );
+
+    const renderAddCell = (field) => {
+        if (field === "type") {
+            return (
+                <TypeDropdown
+                    value={newEntry.type}
+                    onChange={(val) =>
+                        setNewEntry((prev) => ({ ...prev, type: val }))
+                    }
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") onAdd();
+                        if (e.key === "Escape") onCancelAdd();
+                    }}
+                />
+            );
+        }
+        const config = fieldConfig[field];
+        return (
+            <input
+                type="text"
+                inputMode={config.inputMode}
+                pattern={config.pattern}
+                maxLength={config.maxLength}
+                value={newEntry[field]}
+                onChange={(e) =>
+                    setNewEntry((prev) => ({
+                        ...prev,
+                        [field]: e.target.value,
+                    }))
+                }
+                onKeyDown={(e) => {
+                    if (config.inputMode === "numeric") onlyNumbers(e);
+                    if (e.key === "Enter") onAdd();
+                    if (e.key === "Escape") onCancelAdd();
+                }}
+                placeholder={tableHeaders[fields.indexOf(field)]}
+                className="w-full border border-cyan-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+        );
+    };
+
+    const renderEditCell = (field, detail) => {
+        if (field === "type") {
+            return (
+                <TypeDropdown
+                    value={editEntry.type}
+                    onChange={(val) =>
+                        setEditEntry((prev) => ({ ...prev, type: val }))
+                    }
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") onEditSave(detail.id);
+                        if (e.key === "Escape") {
+                            setEditId(null);
+                            setEditEntry(emptyForm);
+                        }
+                    }}
+                />
+            );
+        }
+        const config = fieldConfig[field];
+        return (
+            <input
+                type="text"
+                inputMode={config.inputMode}
+                pattern={config.pattern}
+                maxLength={config.maxLength}
+                value={editEntry[field]}
+                onChange={(e) =>
+                    setEditEntry((prev) => ({
+                        ...prev,
+                        [field]: e.target.value,
+                    }))
+                }
+                onKeyDown={(e) => {
+                    if (config.inputMode === "numeric") onlyNumbers(e);
+                    if (e.key === "Enter") onEditSave(detail.id);
+                    if (e.key === "Escape") {
+                        setEditId(null);
+                        setEditEntry(emptyForm);
+                    }
+                }}
+                className="w-full border border-cyan-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+        );
+    };
 
     return (
         <div className="p-6">
@@ -189,40 +274,7 @@ export default function CompanyPaymentDetails() {
                             <tr className="bg-cyan-50">
                                 {fields.map((field) => (
                                     <td key={field} className="px-4 py-3">
-                                        <input
-                                            autoFocus={field === "tin_no"}
-                                            type="text"
-                                            inputMode={
-                                                fieldConfig[field].inputMode
-                                            }
-                                            pattern={fieldConfig[field].pattern}
-                                            maxLength={
-                                                fieldConfig[field].maxLength
-                                            }
-                                            value={newEntry[field]}
-                                            onChange={(e) =>
-                                                setNewEntry((prev) => ({
-                                                    ...prev,
-                                                    [field]: e.target.value,
-                                                }))
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (
-                                                    fieldConfig[field]
-                                                        .inputMode === "numeric"
-                                                )
-                                                    onlyNumbers(e);
-                                                if (e.key === "Enter") onAdd();
-                                                if (e.key === "Escape")
-                                                    onCancelAdd();
-                                            }}
-                                            placeholder={
-                                                tableHeaders[
-                                                    fields.indexOf(field)
-                                                ]
-                                            }
-                                            className="w-full border border-cyan-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                        />
+                                        {renderAddCell(field)}
                                     </td>
                                 ))}
                                 <td className="px-4 py-3">
@@ -285,56 +337,19 @@ export default function CompanyPaymentDetails() {
                                             className="px-4 py-3 text-gray-800 font-medium text-center"
                                         >
                                             {editId === detail.id ? (
-                                                <input
-                                                    autoFocus={
-                                                        field === "tin_no"
-                                                    }
-                                                    type="text"
-                                                    inputMode={
-                                                        fieldConfig[field]
-                                                            .inputMode
-                                                    }
-                                                    pattern={
-                                                        fieldConfig[field]
-                                                            .pattern
-                                                    }
-                                                    maxLength={
-                                                        fieldConfig[field]
-                                                            .maxLength
-                                                    }
-                                                    value={editEntry[field]}
-                                                    onChange={(e) =>
-                                                        setEditEntry(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                [field]:
-                                                                    e.target
-                                                                        .value,
-                                                            }),
-                                                        )
-                                                    }
-                                                    onKeyDown={(e) => {
-                                                        if (
-                                                            fieldConfig[field]
-                                                                .inputMode ===
-                                                            "numeric"
-                                                        )
-                                                            onlyNumbers(e);
-                                                        if (e.key === "Enter")
-                                                            onEditSave(
-                                                                detail.id,
-                                                            );
-                                                        if (
-                                                            e.key === "Escape"
-                                                        ) {
-                                                            setEditId(null);
-                                                            setEditEntry(
-                                                                emptyForm,
-                                                            );
-                                                        }
-                                                    }}
-                                                    className="w-full border border-cyan-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                                />
+                                                renderEditCell(field, detail)
+                                            ) : field === "type" ? (
+                                                <span
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                        detail.type === "tin"
+                                                            ? "bg-purple-100 text-purple-700"
+                                                            : "bg-blue-100 text-blue-700"
+                                                    }`}
+                                                >
+                                                    {detail.type === "tin"
+                                                        ? "TIN"
+                                                        : "Bank"}
+                                                </span>
                                             ) : (
                                                 detail[field]
                                             )}
@@ -381,9 +396,7 @@ export default function CompanyPaymentDetails() {
                                                                     detail.id,
                                                                 );
                                                                 setEditEntry({
-                                                                    tin_no: detail.tin_no,
-                                                                    tin_name:
-                                                                        detail.tin_name,
+                                                                    type: detail.type,
                                                                     bank_name:
                                                                         detail.bank_name,
                                                                     account_name:
