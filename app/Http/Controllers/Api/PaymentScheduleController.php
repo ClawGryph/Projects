@@ -41,17 +41,44 @@ class PaymentScheduleController extends Controller
             });
         }
 
-        if ($request->filled('project_id')) {
-            $query->whereHas('payment.clientsProject.project', function ($q) use ($request) {
-                $q->where('id', $request->project_id);
-            });
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('form2307_status')) {
+            $query->where('is_form2307_issued', $request->form2307_status === 'issued');
+        }
+
+        if ($request->filled('service_type') && $request->filled('service_id')) {
+            if ($request->service_type === 'project') {
+                $query->whereHas('payment.clientsProject', fn($q) =>
+                    $q->where('project_id', $request->service_id)
+                );
+            } else {
+                $query->whereHas('payment.clientsProject', fn($q) =>
+                    $q->where('subscription_id', $request->service_id)
+                );
+            }
+        } elseif ($request->filled('service_type')) {
+            if ($request->service_type === 'project') {
+                $query->whereHas('payment.clientsProject', fn($q) =>
+                    $q->whereNotNull('project_id')
+                );
+            } else {
+                $query->whereHas('payment.clientsProject', fn($q) =>
+                    $q->whereNotNull('subscription_id')
+                );
+            }
         }
 
         $sortDirection = $request->get('direction', 'asc');
         $query->orderBy('due_date', $sortDirection);
 
-        $schedules = $query->get();
+        // Paginate
+        $paginated = $query->paginate(15);
+        $schedules = collect($paginated->items());
 
+        // Compute schedule_index and total_schedules
         $paymentIds = $schedules->pluck('payment_id')->unique();
 
         $allSchedules = PaymentSchedule::whereIn('payment_id', $paymentIds)
@@ -65,7 +92,15 @@ class PaymentScheduleController extends Controller
             $schedule->total_schedules = $group->count();
         });
 
-        return PaymentScheduleResource::collection($schedules);
+        return response()->json([
+            'data'       => PaymentScheduleResource::collection($schedules),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page'    => $paginated->lastPage(),
+                'total'        => $paginated->total(),
+                'per_page'     => $paginated->perPage(),
+            ],
+        ]);
     }
 
     public function store(Request $request, $paymentId)

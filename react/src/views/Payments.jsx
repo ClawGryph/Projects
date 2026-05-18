@@ -11,6 +11,8 @@ export default function Payments() {
     const [clients, setClients] = useState([]);
     const [selectedClient, setSelectedClient] = useState("");
     const [paymentSchedules, setPaymentSchedules] = useState([]);
+    const [pagination, setPagination] = useState(null);
+    const [page, setPage] = useState(1);
     const [projects, setProjects] = useState([]);
     const [subscriptions, setSubscriptions] = useState([]);
     const [manualInvoiceTotals, setManualInvoiceTotals] = useState({});
@@ -26,41 +28,12 @@ export default function Payments() {
         axiosClient.get("/clients").then(({ data }) => setClients(data.data));
     }, []);
 
-    const getPaymentSchedules = () => {
-        setLoading(true);
-        axiosClient
-            .get("/payment-schedules", {
-                params: {
-                    month: selectedMonth || undefined,
-                    client_id: selectedClient || undefined,
-                },
-            })
-            .then(({ data }) => {
-                const schedules = data.data;
-                setPaymentSchedules(schedules);
-
-                const totalsMap = {};
-                schedules.forEach((p) => {
-                    totalsMap[p.id] = p.manualInvoice?.total ?? 0;
-                });
-                setManualInvoiceTotals(totalsMap);
-            })
-            .catch((err) => {
-                console.error(err);
-            })
-            .finally(() => setLoading(false));
-    };
-
     useEffect(() => {
         axiosClient
             .get("/company")
             .then(({ data }) => setCompany(data))
             .catch(() => setNotification("Failed to load company data"));
     }, []);
-
-    useEffect(() => {
-        getPaymentSchedules();
-    }, [selectedMonth, selectedClient]);
 
     useEffect(() => {
         axiosClient.get("/projects").then(({ data }) => setProjects(data.data));
@@ -71,6 +44,55 @@ export default function Payments() {
             .get("/subscriptions")
             .then(({ data }) => setSubscriptions(data.data));
     }, []);
+
+    const getPaymentSchedules = (resetPage = false) => {
+        const currentPage = resetPage ? 1 : page;
+        if (resetPage) setPage(1);
+
+        setLoading(true);
+        axiosClient
+            .get("/payment-schedules", {
+                params: {
+                    page: currentPage,
+                    month: selectedMonth || undefined,
+                    client_id: selectedClient || undefined,
+                    status: selectedStatus || undefined,
+                    form2307_status: selected2307Status || undefined,
+                    service_type: selectedServiceType || undefined,
+                    service_id: selectedServiceName || undefined,
+                },
+            })
+            .then(({ data }) => {
+                const schedules = data.data;
+                setPaymentSchedules(schedules);
+                setPagination(data.pagination);
+
+                const totalsMap = {};
+                schedules.forEach((p) => {
+                    totalsMap[p.id] = p.manualInvoice?.total ?? 0;
+                });
+                setManualInvoiceTotals(totalsMap);
+            })
+            .catch((err) => console.error(err))
+            .finally(() => setLoading(false));
+    };
+
+    // Re-fetch when page changes
+    useEffect(() => {
+        getPaymentSchedules();
+    }, [page]);
+
+    // Reset to page 1 and re-fetch when filters change
+    useEffect(() => {
+        getPaymentSchedules(true);
+    }, [
+        selectedMonth,
+        selectedClient,
+        selectedStatus,
+        selected2307Status,
+        selectedServiceType,
+        selectedServiceName,
+    ]);
 
     const updateStatus = (scheduleId, newStatus, currentPayment) => {
         const wasPaid = currentPayment.status === "paid";
@@ -217,36 +239,6 @@ export default function Payments() {
         URL.revokeObjectURL(url);
     };
 
-    const filteredSchedules = paymentSchedules.filter((p) => {
-        const isPaid = p.status === "paid";
-        const form2307Status = p.is_form2307_issued ? "issued" : "pending";
-        const isProject = !!p.clientsProject?.project;
-
-        const matchesStatus = !selectedStatus || p.status === selectedStatus;
-        const matches2307 =
-            !selected2307Status ||
-            (isPaid && form2307Status === selected2307Status);
-        const matchesServiceType =
-            !selectedServiceType ||
-            (selectedServiceType === "project" && isProject) ||
-            (selectedServiceType === "subscription" && !isProject);
-        const matchesServiceName =
-            !selectedServiceName ||
-            (selectedServiceType === "project" &&
-                String(p.clientsProject?.project?.id) ===
-                    String(selectedServiceName)) ||
-            (selectedServiceType === "subscription" &&
-                String(p.clientsProject?.subscription?.id) ===
-                    String(selectedServiceName));
-
-        return (
-            matchesStatus &&
-            matches2307 &&
-            matchesServiceType &&
-            matchesServiceName
-        );
-    });
-
     return (
         <>
             {/* Header */}
@@ -382,7 +374,9 @@ export default function Payments() {
                         </p>
                     ) : (
                         <PaymentSchedulesTable
-                            paymentSchedules={filteredSchedules}
+                            paymentSchedules={paymentSchedules}
+                            pagination={pagination}
+                            onPageChange={setPage}
                             manualInvoiceTotals={manualInvoiceTotals}
                             company={company}
                             user={user}

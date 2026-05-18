@@ -5,7 +5,8 @@ import { calcWithholdingTax } from "../utils/withholdingTax";
 import {
     faFileInvoice,
     faReceipt,
-    faChevronDown,
+    faChevronLeft,
+    faChevronRight,
     faFileInvoiceDollar,
 } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "./StatusBadge";
@@ -16,13 +17,15 @@ import Form2307Modal from "./Form2307Modal";
 
 export default function PaymentSchedulesTable({
     paymentSchedules = [],
+    pagination = null, // { current_page, last_page, total, per_page }
     manualInvoiceTotals = {},
     company,
     user,
     onStatusUpdate,
     onRefresh,
+    onPageChange, // (page) => void
     setNotification,
-    showClientColumn = true, // hide on client-specific pages
+    showClientColumn = true,
 }) {
     const [editingId, setEditingId] = useState(null);
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
@@ -59,11 +62,34 @@ export default function PaymentSchedulesTable({
         (h) => !(h.key === "Action" && user?.role_name === "viewer"),
     ).length;
 
+    const currentPage = pagination?.current_page ?? 1;
+    const lastPage = pagination?.last_page ?? 1;
+    const total = pagination?.total ?? paymentSchedules.length;
+    const perPage = pagination?.per_page ?? 15;
+    const from = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, total);
+
+    const getPageNumbers = () => {
+        const pages = [];
+        const delta = 2;
+        const left = currentPage - delta;
+        const right = currentPage + delta;
+
+        for (let i = 1; i <= lastPage; i++) {
+            if (i === 1 || i === lastPage || (i >= left && i <= right)) {
+                pages.push(i);
+            } else if (pages[pages.length - 1] !== "...") {
+                pages.push("...");
+            }
+        }
+        return pages;
+    };
+
     return (
         <>
             <div
                 className="w-full overflow-auto rounded-lg mt-5"
-                style={{ maxHeight: "calc(100vh - 220px)" }}
+                style={{ maxHeight: "calc(100vh - 270px)" }}
             >
                 <table className="w-full bg-white shadow-sm border-separate border-spacing-0">
                     <thead className="sticky top-0 z-20 bg-cyan-800">
@@ -308,7 +334,6 @@ export default function PaymentSchedulesTable({
                                             )}
                                         </td>
 
-                                        {/* O.R. File  */}
                                         <td className="border-b border-gray-200 px-4 py-2">
                                             {isPaid ? (
                                                 <div className="flex justify-center">
@@ -329,7 +354,6 @@ export default function PaymentSchedulesTable({
                                             )}
                                         </td>
 
-                                        {/* 2307 File */}
                                         <td className="border-b border-gray-200 px-4 py-2">
                                             {isPaid ? (
                                                 <div className="flex justify-center">
@@ -545,6 +569,70 @@ export default function PaymentSchedulesTable({
                 </table>
             </div>
 
+            {/* Pagination */}
+            {pagination && lastPage > 1 && (
+                <div className="flex items-center justify-between mt-3 px-1">
+                    <p className="text-xs text-gray-500">
+                        Showing{" "}
+                        <span className="font-medium text-gray-700">
+                            {from}–{to}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-medium text-gray-700">
+                            {total}
+                        </span>{" "}
+                        results
+                    </p>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => onPageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                        >
+                            <FontAwesomeIcon
+                                icon={faChevronLeft}
+                                className="h-3 w-3"
+                            />
+                        </button>
+
+                        {getPageNumbers().map((page, i) =>
+                            page === "..." ? (
+                                <span
+                                    key={`ellipsis-${i}`}
+                                    className="px-1 text-gray-400 text-xs"
+                                >
+                                    ...
+                                </span>
+                            ) : (
+                                <button
+                                    key={page}
+                                    onClick={() => onPageChange(page)}
+                                    className={`min-w-[28px] h-7 rounded-md text-xs font-medium transition ${
+                                        page === currentPage
+                                            ? "bg-cyan-800 text-white"
+                                            : "text-gray-600 hover:bg-gray-100"
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ),
+                        )}
+
+                        <button
+                            onClick={() => onPageChange(currentPage + 1)}
+                            disabled={currentPage === lastPage}
+                            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                        >
+                            <FontAwesomeIcon
+                                icon={faChevronRight}
+                                className="h-3 w-3"
+                            />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modals */}
             {invoicePayment && (
                 <InvoiceModal
                     payment={invoicePayment}
