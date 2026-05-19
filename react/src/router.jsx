@@ -25,6 +25,7 @@ import CompanyPaymentDetails from "./views/CompanyPaymentDetails.jsx";
 import SalesReport from "./views/SalesReport.jsx";
 import ReceivablesReport from "./views/ReceivablesReport.jsx";
 import OverdueReport from "./views/OverdueReport.jsx";
+import MismatchReport from "./views/MismatchReport.jsx";
 
 const router = createBrowserRouter([
     {
@@ -139,6 +140,11 @@ const router = createBrowserRouter([
                 path: "/overdue-report",
                 element: <OverdueReport />,
                 handle: { title: "Overdue Report" },
+            },
+            {
+                path: "/mismatch-report",
+                element: <MismatchReport />,
+                handle: { title: "Mismatch Report" },
             },
             {
                 path: "/company-management",

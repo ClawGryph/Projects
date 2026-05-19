@@ -31,6 +31,7 @@ import {
     faChartLine,
     faFileInvoiceDollar,
     faCalendarXmark,
+    faNotEqual,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function DefaultLayout() {
@@ -264,7 +265,7 @@ export default function DefaultLayout() {
                         </button>
 
                         <div
-                            className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? "max-h-40" : "max-h-0"}`}
+                            className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? "max-h-70" : "max-h-0"}`}
                         >
                             <div className="bg-cyan-950 bg-opacity-40">
                                 <NavLink
@@ -317,6 +318,23 @@ export default function DefaultLayout() {
                                         className="mr-3 text-xs"
                                     />
                                     Overdue Report
+                                </NavLink>
+                                <NavLink
+                                    to="/mismatch-report"
+                                    onClick={() => setOpenSidebar(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center py-3 pl-5 pr-4 text-sm transition-all border-l-2 ml-6 ${
+                                            isActive
+                                                ? "border-white text-white"
+                                                : "border-transparent text-white opacity-60 hover:opacity-100 hover:border-cyan-400"
+                                        }`
+                                    }
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faNotEqual}
+                                        className="mr-3 text-xs"
+                                    />
+                                    Mismatch Report
                                 </NavLink>
                             </div>
                         </div>
