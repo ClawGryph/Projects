@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
 
-export default function MismatchReportTable({ paymentSchedules = [] }) {
+export default function MismatchReportTable({ transactions = [] }) {
+    const [paymentSchedules, setPaymentSchedules] = useState([]);
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         axiosClient
             .get("/payment-schedules", { params: { status: "paid" } })
@@ -21,8 +24,6 @@ export default function MismatchReportTable({ paymentSchedules = [] }) {
         const netAmount = parseFloat(p.transaction?.net_amount) || 0;
         const orTotal =
             parseFloat(p.transaction?.officialReceipt?.total_amount) || 0;
-
-        // Only check paid schedules that have an OR issued
         return p.status === "paid" && p.is_or_issued && netAmount !== orTotal;
     });
 
@@ -37,6 +38,14 @@ export default function MismatchReportTable({ paymentSchedules = [] }) {
         const isProject = !!p.clientsProject?.project;
         return isProject ? "Project" : "Subscription";
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
+                Loading...
+            </div>
+        );
+    }
 
     return (
         <div className="w-full p-5">

@@ -260,7 +260,7 @@ export default function OfficialReceiptModal({
     const withholdingTax = parseFloat(payment?.transaction?.wh_tax) || 0;
     const grossAmount =
         transactionGross > 0
-            ? transactionGross
+            ? transactionGross + (parseFloat(form.other) || 0)
             : (parseFloat(form.amount) || 0) +
               (parseFloat(form.vat_amount) || 0) +
               (parseFloat(form.other) || 0) +

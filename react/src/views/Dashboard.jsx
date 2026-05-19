@@ -4,6 +4,7 @@ import axiosClient from "../axios-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faDownload } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "../components/StatusBadge.jsx";
+import MismatchReportTable from "../components/MismatchReportTable";
 
 export default function Dashboard() {
     const [client, setClient] = useState([]);
@@ -1199,6 +1200,17 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="min-w-full bg-white rounded-xl overflow-hidden shadow-sm p-6 mt-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    Mismatch Report
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                    Transactions where the invoice net amount does not match the
+                    O.R. total.
+                </p>
+                <MismatchReportTable transactions={transactions} />
             </div>
 
             {/* RECENT PROJECTS */}
