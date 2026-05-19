@@ -8,12 +8,14 @@ import {
     faChevronLeft,
     faChevronRight,
     faFileInvoiceDollar,
+    faUpload,
 } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "./StatusBadge";
 import InvoiceModal from "./InvoiceModal";
 import OfficialReceiptModal from "./OfficialReceiptModal";
 import ManualInvoiceModal from "./ManualInvoiceModal";
 import Form2307Modal from "./Form2307Modal";
+import UploadFileModal from "./UploadFileModal";
 
 export default function PaymentSchedulesTable({
     paymentSchedules = [],
@@ -33,6 +35,7 @@ export default function PaymentSchedulesTable({
     const [orPayment, setOrPayment] = useState(null);
     const [manualInvoicePayment, setManualInvoicePayment] = useState(null);
     const [form2307Payment, setForm2307Payment] = useState(null);
+    const [uploadOrTransaction, setUploadOrTransaction] = useState(null);
 
     const formatPaymentType = (type) => {
         if (!type) return "";
@@ -62,9 +65,9 @@ export default function PaymentSchedulesTable({
         { key: "Payment Details" },
         { key: "Status" },
         { key: "S.I/ACK No." },
+        { key: "S.I/ACK Upload" },
         { key: "2307 Status" },
-        { key: "O.R. File" },
-        { key: "2307 File" },
+        { key: "2307 Upload" },
         { key: "Action" },
     ];
 
@@ -359,7 +362,13 @@ export default function PaymentSchedulesTable({
                                             {isPaid ? (
                                                 <div className="flex justify-center">
                                                     <StatusBadge
-                                                        status={form2307Status}
+                                                        status={
+                                                            p.transaction
+                                                                ?.officialReceipt
+                                                                ?.or_file_url
+                                                                ? "uploaded"
+                                                                : "pending"
+                                                        }
                                                     />
                                                 </div>
                                             ) : (
@@ -373,13 +382,7 @@ export default function PaymentSchedulesTable({
                                             {isPaid ? (
                                                 <div className="flex justify-center">
                                                     <StatusBadge
-                                                        status={
-                                                            p.transaction
-                                                                ?.officialReceipt
-                                                                ?.or_file_url
-                                                                ? "uploaded"
-                                                                : "pending"
-                                                        }
+                                                        status={form2307Status}
                                                     />
                                                 </div>
                                             ) : (
@@ -556,6 +559,29 @@ export default function PaymentSchedulesTable({
                                                                         !!p.is_or_issued && (
                                                                             <button
                                                                                 onClick={() => {
+                                                                                    setUploadOrTransaction(
+                                                                                        p.transaction,
+                                                                                    );
+                                                                                    setEditingId(
+                                                                                        null,
+                                                                                    );
+                                                                                }}
+                                                                                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-sky-600 hover:bg-sky-50 cursor-pointer"
+                                                                            >
+                                                                                <FontAwesomeIcon
+                                                                                    icon={
+                                                                                        faUpload
+                                                                                    }
+                                                                                    className="h-3 w-3"
+                                                                                />{" "}
+                                                                                Upload
+                                                                                O.R.
+                                                                            </button>
+                                                                        )}
+                                                                    {isPaid &&
+                                                                        !!p.is_or_issued && (
+                                                                            <button
+                                                                                onClick={() => {
                                                                                     setForm2307Payment(
                                                                                         p,
                                                                                     );
@@ -694,6 +720,18 @@ export default function PaymentSchedulesTable({
                         setOrPayment(null);
                         onRefresh();
                         setNotification("Official Receipt saved");
+                    }}
+                />
+            )}
+            {uploadOrTransaction && (
+                <UploadFileModal
+                    transaction={uploadOrTransaction}
+                    orOnly={true}
+                    onClose={() => setUploadOrTransaction(null)}
+                    onSaved={() => {
+                        setUploadOrTransaction(null);
+                        onRefresh();
+                        setNotification("O.R. file uploaded successfully");
                     }}
                 />
             )}
