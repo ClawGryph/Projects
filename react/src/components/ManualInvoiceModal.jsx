@@ -220,8 +220,8 @@ export default function ManualInvoiceModal({
         clientType,
         annualGross,
         vatType,
-        baseAmount: subtotal, // subtotal = sum of line items (excluding VAT)
-        totalAmount: total, // total = subtotal + vatAmount
+        baseAmount: subtotal,
+        totalAmount: total,
     });
 
     const netAmount = total - withholdingTax;
@@ -760,10 +760,11 @@ export default function ManualInvoiceModal({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {lineItems.map((item) => {
+                                    {lineItems.map((item, idx) => {
                                         const qty = parseFloat(item.qty) || 0;
                                         const up =
                                             parseFloat(item.unitPrice) || 0;
+                                        const isFirst = idx === 0;
                                         return (
                                             <tr key={item.id}>
                                                 <td
@@ -793,6 +794,33 @@ export default function ManualInvoiceModal({
                                                             {item.note}
                                                         </div>
                                                     )}
+                                                    {isFirst &&
+                                                        (payment.start_coverage ||
+                                                            payment.end_coverage) && (
+                                                            <div
+                                                                style={{
+                                                                    color: "#555",
+                                                                    fontSize: 11,
+                                                                    marginTop: 4,
+                                                                }}
+                                                            >
+                                                                <span
+                                                                    style={{
+                                                                        fontWeight: 600,
+                                                                    }}
+                                                                >
+                                                                    Coverage
+                                                                    Period:
+                                                                </span>{" "}
+                                                                {formatDate(
+                                                                    payment.start_coverage,
+                                                                )}{" "}
+                                                                –{" "}
+                                                                {formatDate(
+                                                                    payment.end_coverage,
+                                                                )}
+                                                            </div>
+                                                        )}
                                                 </td>
                                                 <td
                                                     style={{

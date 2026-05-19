@@ -448,6 +448,29 @@ export default function InvoiceModal({
                                                 {project.description}
                                             </div>
                                         )}
+                                        {(payment.start_coverage ||
+                                            payment.end_coverage) && (
+                                            <div
+                                                style={{
+                                                    color: "#555",
+                                                    fontSize: 12,
+                                                    marginTop: 6,
+                                                }}
+                                            >
+                                                <span
+                                                    style={{ fontWeight: 600 }}
+                                                >
+                                                    Coverage Period:
+                                                </span>{" "}
+                                                {formatDate(
+                                                    payment.start_coverage,
+                                                )}{" "}
+                                                –{" "}
+                                                {formatDate(
+                                                    payment.end_coverage,
+                                                )}
+                                            </div>
+                                        )}
                                     </td>
                                     <td
                                         style={{

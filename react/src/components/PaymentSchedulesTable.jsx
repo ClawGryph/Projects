@@ -43,12 +43,22 @@ export default function PaymentSchedulesTable({
             .join(" ");
     };
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return null;
+        return new Date(dateStr).toLocaleDateString("en-PH", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    };
+
     const tableHeaders = [
         { key: "Invoice No." },
         { key: "Due Date" },
         ...(showClientColumn ? [{ key: "Client Name" }] : []),
         { key: "Service" },
         { key: "Service Name" },
+        { key: "Coverage Period" },
         { key: "Payment Details" },
         { key: "Status" },
         { key: "S.I/ACK No." },
@@ -131,6 +141,11 @@ export default function PaymentSchedulesTable({
                                     isPaid ||
                                     (isPaid && !!p.is_or_issued);
 
+                                const startCoverage = formatDate(
+                                    p.start_coverage,
+                                );
+                                const endCoverage = formatDate(p.end_coverage);
+
                                 return (
                                     <tr
                                         key={p.id}
@@ -175,6 +190,26 @@ export default function PaymentSchedulesTable({
                                                 p.clientsProject?.subscription
                                                     ?.title ??
                                                 "—"}
+                                        </td>
+
+                                        <td className="border-b border-gray-200 px-4 py-2">
+                                            {startCoverage || endCoverage ? (
+                                                <div className="text-xs text-gray-700">
+                                                    <div>
+                                                        {startCoverage ?? "—"}
+                                                    </div>
+                                                    <div className="text-gray-400 text-[10px]">
+                                                        to
+                                                    </div>
+                                                    <div>
+                                                        {endCoverage ?? "—"}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">
+                                                    —
+                                                </span>
+                                            )}
                                         </td>
 
                                         <td className="border-b border-gray-200 px-4 py-2">
