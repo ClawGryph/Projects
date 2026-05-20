@@ -192,14 +192,9 @@ export default function OfficialReceiptModal({
                 const items = data.data?.line_items ?? [];
                 const total = items.reduce((sum, item) => {
                     if (!item.is_additional) return sum;
-                    return (
-                        sum +
-                        (parseFloat(item.amount) || 0) +
-                        (parseFloat(item.vat_amount) || 0)
-                    );
+                    return parseFloat(item.unitPrice) || 0;
                 }, 0);
                 setManualInvoiceTotal(total);
-                // ← remove setManualInvoiceAdditionalBase here
             })
             .catch(() => {
                 setManualInvoiceTotal(0);
@@ -626,6 +621,24 @@ export default function OfficialReceiptModal({
                                 </div>
                             </Field>
 
+                            {manualInvoiceTotal > 0 && (
+                                <Field label="Additional Items (Manual Invoice)">
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+                                            ₱
+                                        </span>
+                                        <input
+                                            type="number"
+                                            value={manualInvoiceTotal.toFixed(
+                                                2,
+                                            )}
+                                            readOnly
+                                            className={pesoReadOnlyClass}
+                                        />
+                                    </div>
+                                </Field>
+                            )}
+
                             {/* VAT Amount — read-only, from vat_amount */}
                             <Field
                                 label={
@@ -652,24 +665,6 @@ export default function OfficialReceiptModal({
                                     />
                                 </div>
                             </Field>
-
-                            {manualInvoiceTotal > 0 && (
-                                <Field label="Additional Items (Manual Invoice)">
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-                                            ₱
-                                        </span>
-                                        <input
-                                            type="number"
-                                            value={manualInvoiceTotal.toFixed(
-                                                2,
-                                            )}
-                                            readOnly
-                                            className={pesoReadOnlyClass}
-                                        />
-                                    </div>
-                                </Field>
-                            )}
 
                             {/* Withholding Tax — only shown when applicable */}
                             {withholdingTax > 0 && (

@@ -104,6 +104,10 @@ export default function ManualInvoiceModal({
                     setLineItems(
                         d.line_items.map((item) => ({
                             ...item,
+                            description: item.description ?? "",
+                            note: item.note ?? "",
+                            qty: item.qty ?? 1,
+                            unitPrice: item.unitPrice ?? 0,
                             id: generateId(),
                         })),
                     );
@@ -141,6 +145,34 @@ export default function ManualInvoiceModal({
         setSaving(true);
         setSaveStatus(null);
 
+        const firstItem = lineItems[0];
+        const firstItemTotal =
+            (parseFloat(firstItem?.qty) || 0) *
+            (parseFloat(firstItem?.unitPrice) || 0);
+        const originalBaseAmount = parseFloat(payment.base_amount) || 0;
+        const firstItemWasEdited = firstItemTotal !== originalBaseAmount;
+
+        const newBaseAmount = firstItemWasEdited
+            ? firstItemTotal
+            : originalBaseAmount;
+
+        // Recalculate vat and total based on the resolved base amount
+        const additionalSubtotal = lineItems
+            .slice(1)
+            .reduce(
+                (s, i) =>
+                    s +
+                    (parseFloat(i.qty) || 0) * (parseFloat(i.unitPrice) || 0),
+                0,
+            );
+        const resolvedSubtotal = newBaseAmount + additionalSubtotal;
+        const resolvedVat = isVatExclusive
+            ? resolvedSubtotal * 0.12
+            : isVatInclusive
+              ? newBaseAmount * 0.12
+              : 0;
+        const resolvedTotal = resolvedSubtotal + resolvedVat;
+
         const saveDraft = axiosClient.post("/manual-invoices", {
             payment_schedule_id: payment.id,
             invoice_number: invoiceNumber,
@@ -155,7 +187,6 @@ export default function ManualInvoiceModal({
                 const unitPrice = parseFloat(rest.unitPrice) || 0;
                 const amount = qty * unitPrice;
                 const vat_amount = isVatExclusive ? amount * 0.12 : 0;
-
                 return {
                     description: rest.description,
                     note: rest.note,
@@ -171,9 +202,9 @@ export default function ManualInvoiceModal({
         const updateSchedule = axiosClient.patch(
             `/payment-schedules/${payment.id}`,
             {
-                base_amount: parseFloat(subtotal.toFixed(2)),
-                vat_amount: parseFloat(vatAmount.toFixed(2)),
-                total_amount: parseFloat(total.toFixed(2)),
+                base_amount: parseFloat(newBaseAmount.toFixed(2)),
+                vat_amount: parseFloat(resolvedVat.toFixed(2)),
+                total_amount: parseFloat(resolvedTotal.toFixed(2)),
             },
         );
 
@@ -1029,36 +1060,37 @@ export default function ManualInvoiceModal({
                                                     </tr> */}
                                                 </>
                                             )}
-                                        </tbody>
-                                        <tr>
-                                            <td
-                                                style={{
-                                                    background: "#1a5276",
-                                                    color: "#fff",
-                                                    fontWeight: 700,
-                                                    fontSize: 15,
-                                                    padding: "8px 16px",
-                                                }}
-                                            >
-                                                TOTAL AMOUNT DUE
-                                            </td>
-                                            <td
-                                                style={{
-                                                    background: "#1a5276",
-                                                    color: "#fff",
-                                                    fontWeight: 700,
-                                                    fontSize: 15,
-                                                    padding: "8px 16px",
-                                                    textAlign: "right",
-                                                }}
-                                            >
-                                                {/* PHP &nbsp;{" "}
+                                            <tr>
+                                                <td
+                                                    style={{
+                                                        background: "#1a5276",
+                                                        color: "#fff",
+                                                        fontWeight: 700,
+                                                        fontSize: 15,
+                                                        padding: "8px 16px",
+                                                    }}
+                                                >
+                                                    TOTAL AMOUNT DUE
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        background: "#1a5276",
+                                                        color: "#fff",
+                                                        fontWeight: 700,
+                                                        fontSize: 15,
+                                                        padding: "8px 16px",
+                                                        textAlign: "right",
+                                                    }}
+                                                >
+                                                    {/* PHP &nbsp;{" "}
                                                             {formatPHP(
                                                                 netAmount,
                                                             )} */}
-                                                PHP &nbsp; {formatPHP(total)}
-                                            </td>
-                                        </tr>
+                                                    PHP &nbsp;{" "}
+                                                    {formatPHP(total)}
+                                                </td>
+                                            </tr>
+                                        </tbody>
                                     </table>
 
                                     <div

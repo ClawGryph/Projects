@@ -172,107 +172,19 @@ class PaymentScheduleController extends Controller
         abort_if($schedule->payment->company_id !== $this->company()->id, 403);
 
         $request->validate([
-            'status'      => 'required|in:pending,paid,overdue,ended',
-            'amount_paid' => 'nullable|numeric',
+            'status'      => 'required|in:paid',
+            'paid_amount' => 'required|numeric',
             'wh_tax'      => 'nullable|numeric',
+            'paid_at'     => 'required|date',
         ]);
 
-        if ($request->status === 'paid') {
-            $clientsProject = $schedule->payment->clientsProject;
-            $subscription   = $clientsProject?->subscription;
-            $project        = $clientsProject?->project;
-
-            if ($subscription) {
-                $paidCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
-                    $q->where('client_id', $clientsProject->client_id)
-                    ->where('subscription_id', $clientsProject->subscription_id);
-                })
-                ->where('status', 'paid')
-                ->count();
-
-                $isFirstPayment = $paidCount === 0;
-
-                if ($isFirstPayment) {
-                    if (!$subscription->start_coverage || !$subscription->end_coverage) {
-                        return response()->json([
-                            'message' => 'Cannot mark as paid. This subscription is missing start and end coverage dates.',
-                        ], 422);
-                    }
-                } else {
-                    $originalEnd = $subscription->end_coverage;
-                    $scheduleEnd = $schedule->end_coverage;
-                    $isBeyondOriginal = $originalEnd && $scheduleEnd > $originalEnd;
-
-                    if ($isBeyondOriginal && (!$subscription->adjusted_start_coverage || !$subscription->adjusted_end_coverage)) {
-                        return response()->json([
-                            'message' => 'Cannot mark as paid. This subscription is missing adjusted coverage dates. Please renew the subscription first.',
-                        ], 422);
-                    }
-                }
-            }
-
-            if ($project) {
-                $paidCount = PaymentSchedule::whereHas('payment.clientsProject', function ($q) use ($clientsProject) {
-                    $q->where('client_id', $clientsProject->client_id)
-                    ->where('project_id', $clientsProject->project_id);
-                })
-                ->where('status', 'paid')
-                ->count();
-
-                $isFirstPayment = $paidCount === 0;
-
-                if ($isFirstPayment) {
-                    if (!$project->start_date || !$project->end_date) {
-                        return response()->json([
-                            'message' => 'Cannot mark as paid. This project is missing start and end dates.',
-                        ], 422);
-                    }
-                } else {
-                    $originalEnd = $project->end_date;
-                    $scheduleEnd = $schedule->end_coverage;
-                    $isBeyondOriginal = $originalEnd && $scheduleEnd > $originalEnd;
-
-                    if ($isBeyondOriginal && (!$project->adjusted_start_date || !$project->adjusted_end_date)) {
-                        return response()->json([
-                            'message' => 'Cannot mark as paid. This project is missing adjusted dates. Please update the project first.',
-                        ], 422);
-                    }
-                }
-            }
-        }
-
-        $schedule->status = $request->status;
+        $schedule->status = 'paid';
         $schedule->save();
 
-        if ($request->status === 'paid' && !$schedule->transaction()->exists()) {
-            $baseGross = $request->amount_paid ?? $schedule->total_amount;
-
-            $clientsProject = $schedule->payment->clientsProject;
-            $vatType        = $clientsProject?->vat_type;
-            $whTax          = (float) ($request->wh_tax ?? 0);
-
-            $manualInvoice   = ManualInvoice::where('payment_schedule_id', $schedule->id)->first();
-            $additionalTotal = 0;
-            $additionalBase  = 0;
-
-            if ($manualInvoice && !empty($manualInvoice->line_items)) {
-                foreach ($manualInvoice->line_items as $item) {
-                    if (!empty($item['is_additional'])) {
-                        $additionalBase  += (float) ($item['amount'] ?? 0);
-                        $additionalTotal += (float) ($item['amount'] ?? 0);
-                        $additionalTotal += (float) ($item['vat_amount'] ?? 0);
-                    }
-                }
-            }
-
-            if ($vatType !== 'vat_other' && $additionalBase > 0) {
-                $withholdingRate = $whTax > 0
-                    ? $whTax / ($schedule->base_amount ?: 1)
-                    : 0;
-                $whTax += $additionalBase * $withholdingRate;
-            }
-
-            $grossAmount = $baseGross + $additionalTotal;
+        if (!$schedule->transaction()->exists()) {
+            $grossAmount = (float) $schedule->total_amount;
+            $whTax       = (float) ($request->wh_tax ?? 0);
+            $paidAmount  = (float) ($request->paid_amount ?? 0);
             $netAmount   = $grossAmount - $whTax;
 
             $schedule->paymentTransactions()->create([
@@ -280,12 +192,13 @@ class PaymentScheduleController extends Controller
                 'gross_amount' => $grossAmount,
                 'wh_tax'       => $whTax,
                 'net_amount'   => $netAmount,
-                'paid_at'      => now(),
+                'paid_amount'  => $paidAmount,
+                'paid_at'      => $request->paid_at ?? now(),
             ]);
         }
 
         return response()->json([
-            'message' => 'Payment schedule status updated successfully',
+            'message' => 'Payment marked as paid successfully.',
         ]);
     }
 

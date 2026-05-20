@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { calcWithholdingTax } from "../utils/withholdingTax";
 import {
     faFileInvoice,
     faReceipt,
@@ -9,6 +7,7 @@ import {
     faChevronRight,
     faFileInvoiceDollar,
     faUpload,
+    faMoneyBillWave,
 } from "@fortawesome/free-solid-svg-icons";
 import StatusBadge from "./StatusBadge";
 import InvoiceModal from "./InvoiceModal";
@@ -16,6 +15,7 @@ import OfficialReceiptModal from "./OfficialReceiptModal";
 import ManualInvoiceModal from "./ManualInvoiceModal";
 import Form2307Modal from "./Form2307Modal";
 import UploadFileModal from "./UploadFileModal";
+import PaidPaymentModal from "./PaidPaymentModal";
 
 export default function PaymentSchedulesTable({
     paymentSchedules = [],
@@ -23,7 +23,6 @@ export default function PaymentSchedulesTable({
     manualInvoiceTotals = {},
     company,
     user,
-    onStatusUpdate,
     onRefresh,
     onPageChange, // (page) => void
     setNotification,
@@ -36,6 +35,7 @@ export default function PaymentSchedulesTable({
     const [manualInvoicePayment, setManualInvoicePayment] = useState(null);
     const [form2307Payment, setForm2307Payment] = useState(null);
     const [uploadOrTransaction, setUploadOrTransaction] = useState(null);
+    const [paidPayment, setPaidPayment] = useState(null);
 
     const formatPaymentType = (type) => {
         if (!type) return "";
@@ -257,87 +257,12 @@ export default function PaymentSchedulesTable({
                                         </td>
 
                                         <td className="border-b border-gray-200 px-4 py-2 relative">
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const rect =
-                                                        e.currentTarget.getBoundingClientRect();
-                                                    setDropdownPos({
-                                                        top:
-                                                            rect.bottom +
-                                                            window.scrollY -
-                                                            30,
-                                                        left:
-                                                            rect.left +
-                                                            rect.width / 2 +
-                                                            window.scrollX,
-                                                    });
-                                                    user?.role_name !==
-                                                        "viewer" &&
-                                                        setEditingId(p.id);
-                                                }}
-                                                className={`inline-flex items-center gap-1 justify-center ${user?.role_name !== "viewer" ? "cursor-pointer" : "cursor-default"}`}
-                                            >
+                                            <div className="inline-flex items-center justify-center">
                                                 <StatusBadge
                                                     status={p.status}
                                                     isEnded={p.isEnded}
                                                 />
-                                                {user?.role_name !==
-                                                    "viewer" && (
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-3 w-3 text-gray-400 shrink-0"
-                                                        viewBox="0 0 20 20"
-                                                        fill="currentColor"
-                                                    >
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                            clipRule="evenodd"
-                                                        />
-                                                    </svg>
-                                                )}
                                             </div>
-                                            {editingId === p.id && (
-                                                <div
-                                                    style={{
-                                                        position: "fixed",
-                                                        top: dropdownPos.top,
-                                                        left: dropdownPos.left,
-                                                        transform:
-                                                            "translateX(-50%)",
-                                                    }}
-                                                    className="bg-white border rounded shadow-md z-50"
-                                                >
-                                                    {[
-                                                        "pending",
-                                                        "paid",
-                                                        "overdue",
-                                                    ].map((status) => (
-                                                        <div
-                                                            key={status}
-                                                            onClick={() => {
-                                                                onStatusUpdate(
-                                                                    p.id,
-                                                                    status,
-                                                                    p,
-                                                                );
-                                                                setEditingId(
-                                                                    null,
-                                                                );
-                                                            }}
-                                                            className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                        >
-                                                            <StatusBadge
-                                                                status={status}
-                                                                isEnded={
-                                                                    p.isEnded
-                                                                }
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
                                         </td>
 
                                         <td className="border-b border-gray-200 px-4 py-2">
@@ -533,6 +458,29 @@ export default function PaymentSchedulesTable({
                                                                             Invoice
                                                                         </button>
                                                                     )}
+                                                                    {p.is_invoice_generated &&
+                                                                        !isPaid && (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setPaidPayment(
+                                                                                        p,
+                                                                                    );
+                                                                                    setEditingId(
+                                                                                        null,
+                                                                                    );
+                                                                                }}
+                                                                                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-green-600 hover:bg-green-50 cursor-pointer"
+                                                                            >
+                                                                                <FontAwesomeIcon
+                                                                                    icon={
+                                                                                        faMoneyBillWave
+                                                                                    }
+                                                                                    className="h-3 w-3"
+                                                                                />
+                                                                                Paid
+                                                                                Payment
+                                                                            </button>
+                                                                        )}
                                                                     {isPaid && (
                                                                         <button
                                                                             onClick={() => {
@@ -743,6 +691,18 @@ export default function PaymentSchedulesTable({
                         setForm2307Payment(null);
                         onRefresh();
                         setNotification("BIR Form 2307 saved");
+                    }}
+                />
+            )}
+            {paidPayment && (
+                <PaidPaymentModal
+                    payment={paidPayment}
+                    company={company}
+                    onClose={() => setPaidPayment(null)}
+                    onSaved={() => {
+                        setPaidPayment(null);
+                        onRefresh();
+                        setNotification("Payment recorded successfully");
                     }}
                 />
             )}

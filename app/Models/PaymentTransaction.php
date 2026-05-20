@@ -14,7 +14,8 @@ class PaymentTransaction extends Model
         'gross_amount',
         'vat_amount',
         'wh_tax',
-        'paid_at'
+        'paid_at',
+        'paid_amount'
     ];
 
     protected $casts = [

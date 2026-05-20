@@ -107,8 +107,8 @@ function exportCSV(filtered, activeFilters, variant) {
     const rows = filtered.map((s) => {
         const wht = isPaid ? null : getScheduleWht(s);
         const grossPaid = isPaid
-            ? Number(s.transaction?.gross_amount || 0)
-            : Number(s.total_amount || 0);
+            ? Number(s.transaction?.paid_amount || 0)
+            : Number(s.transaction?.gross_amount || 0);
         const whtAmt = isPaid
             ? Number(s.transaction?.wh_tax || 0)
             : (wht?.tax ?? 0);
@@ -256,8 +256,8 @@ function DrillDown({ quarter, rows, onClose, variant, theme, isPaid }) {
                             {rows.map((s) => {
                                 const wht = isPaid ? null : getScheduleWht(s);
                                 const grossPaid = isPaid
-                                    ? (s.transaction?.gross_amount ?? 0)
-                                    : (s.total_amount ?? 0);
+                                    ? (s.transaction?.paid_amount ?? 0)
+                                    : (s.transaction?.gross_amount ?? 0);
                                 const whtAmt = isPaid
                                     ? (s.transaction?.wh_tax ?? 0)
                                     : (wht?.tax ?? 0);

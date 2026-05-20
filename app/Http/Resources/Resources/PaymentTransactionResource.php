@@ -25,6 +25,7 @@ class PaymentTransactionResource extends JsonResource
         'vat_amount'   => $this->vat_amount,
         'wh_tax'       => $this->wh_tax,
         'paid_at'      => $this->paid_at?->format('Y-m-d'),
+        'paid_amount'  => $this->paid_amount,
 
         'client' => $client ? [
             'id'   => $client->id,
