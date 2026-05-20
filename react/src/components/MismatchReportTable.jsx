@@ -21,18 +21,12 @@ export default function MismatchReportTable({ transactions = [] }) {
         }).format(parseFloat(val) || 0);
 
     const mismatches = paymentSchedules.filter((p) => {
-        const netAmount = parseFloat(p.transaction?.net_amount) || 0;
-        const orTotal =
+        const totalSI =
             parseFloat(p.transaction?.officialReceipt?.total_amount) || 0;
-        return p.status === "paid" && p.is_or_issued && netAmount !== orTotal;
-    });
+        const totalPaid = parseFloat(p.transaction?.net_amount) || 0;
 
-    const totalDiscrepancy = mismatches.reduce((sum, p) => {
-        const net = parseFloat(p.transaction?.net_amount) || 0;
-        const or =
-            parseFloat(p.transaction?.officialReceipt?.total_amount) || 0;
-        return sum + (or - net);
-    }, 0);
+        return p.status === "paid" && p.is_or_issued && totalPaid !== totalSI;
+    });
 
     const formatPaymentType = (p) => {
         const isProject = !!p.clientsProject?.project;
@@ -49,25 +43,6 @@ export default function MismatchReportTable({ transactions = [] }) {
 
     return (
         <div className="w-full p-5">
-            {/* Summary cards */}
-            <div className="flex gap-3 mb-4">
-                <div className="flex-1 bg-gray-50 rounded-lg px-4 py-3">
-                    <p className="text-xs text-gray-500">Total mismatches</p>
-                    <p className="text-xl font-medium text-gray-800">
-                        {mismatches.length}
-                    </p>
-                </div>
-                <div className="flex-1 bg-gray-50 rounded-lg px-4 py-3">
-                    <p className="text-xs text-gray-500">Total discrepancy</p>
-                    <p
-                        className={`text-xl font-medium ${totalDiscrepancy < 0 ? "text-red-600" : "text-green-700"}`}
-                    >
-                        {totalDiscrepancy < 0 ? "−" : "+"}₱
-                        {formatCurrency(Math.abs(totalDiscrepancy))}
-                    </p>
-                </div>
-            </div>
-
             {/* Table */}
             <div className="w-full overflow-auto rounded-lg border border-gray-200">
                 <table className="w-full bg-white border-separate border-spacing-0 text-sm">
@@ -79,9 +54,10 @@ export default function MismatchReportTable({ transactions = [] }) {
                                 "Service type",
                                 "Service name",
                                 "Client name",
+                                "Total service",
                                 "Total invoice",
-                                "Total O.R",
-                                "Discrepancy",
+                                "Total S.I/ACK",
+                                "Total paid",
                             ].map((h) => (
                                 <th
                                     key={h}
@@ -96,14 +72,18 @@ export default function MismatchReportTable({ transactions = [] }) {
                         {mismatches.length > 0 ? (
                             mismatches.map((p) => {
                                 const isProject = !!p.clientsProject?.project;
-                                const netAmount =
-                                    parseFloat(p.transaction?.net_amount) || 0;
-                                const orTotal =
+
+                                const totalService =
+                                    parseFloat(p.base_amount) || 0;
+                                const totalInvoice =
+                                    parseFloat(p.total_amount) || 0;
+                                const totalSI =
                                     parseFloat(
                                         p.transaction?.officialReceipt
                                             ?.total_amount,
                                     ) || 0;
-                                const diff = orTotal - netAmount;
+                                const totalPaid =
+                                    parseFloat(p.transaction?.net_amount) || 0;
 
                                 const siOrAckNo =
                                     p.transaction?.officialReceipt
@@ -145,16 +125,16 @@ export default function MismatchReportTable({ transactions = [] }) {
                                             {clientName}
                                         </td>
                                         <td className="border-b border-gray-200 px-4 py-2 text-right font-mono text-xs text-gray-700">
-                                            ₱{formatCurrency(netAmount)}
+                                            ₱{formatCurrency(totalService)}
                                         </td>
                                         <td className="border-b border-gray-200 px-4 py-2 text-right font-mono text-xs text-gray-700">
-                                            ₱{formatCurrency(orTotal)}
+                                            ₱{formatCurrency(totalInvoice)}
                                         </td>
-                                        <td
-                                            className={`border-b border-gray-200 px-4 py-2 text-right font-mono text-xs font-semibold ${diff < 0 ? "text-red-600" : "text-green-700"}`}
-                                        >
-                                            {diff < 0 ? "−" : "+"}₱
-                                            {formatCurrency(Math.abs(diff))}
+                                        <td className="border-b border-gray-200 px-4 py-2 text-right font-mono text-xs text-gray-700">
+                                            ₱{formatCurrency(totalSI)}
+                                        </td>
+                                        <td className="border-b border-gray-200 px-4 py-2 text-right font-mono text-xs text-gray-700">
+                                            ₱{formatCurrency(totalPaid)}
                                         </td>
                                     </tr>
                                 );
@@ -162,7 +142,7 @@ export default function MismatchReportTable({ transactions = [] }) {
                         ) : (
                             <tr>
                                 <td
-                                    colSpan={8}
+                                    colSpan={9}
                                     className="px-4 py-10 text-center text-gray-400"
                                 >
                                     No mismatches found

@@ -91,9 +91,9 @@ function exportCSV(filtered, activeFilters, variant) {
         "Gross Paid",
         "WHT",
         "Net Received",
-        "O.R. Issued",
+        "S.I/ACK Issued",
         "2307 Issued",
-        "O.R. File",
+        "S.I/ACK File",
         "2307 File",
     ];
 
@@ -239,13 +239,13 @@ function DrillDown({ quarter, rows, onClose, variant, theme, isPaid }) {
                                     Net Received
                                 </th>
                                 <th className="text-center py-1 pr-3 font-medium">
-                                    O.R.
+                                    S.I/ACK
                                 </th>
                                 <th className="text-center py-1 font-medium">
                                     2307
                                 </th>
                                 <th className="text-center py-1 pr-3 font-medium">
-                                    O.R. File
+                                    S.I/ACK File
                                 </th>
                                 <th className="text-center py-1 font-medium">
                                     2307 File
@@ -763,13 +763,13 @@ export default function PaymentScheduleReport({
                                     Net Received
                                 </th>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
-                                    O.R.
+                                    S.I/ACK
                                 </th>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
                                     2307
                                 </th>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
-                                    O.R. File
+                                    S.I/ACK File
                                 </th>
                                 <th className="px-4 py-2.5 text-white text-xs font-semibold text-center uppercase tracking-wider">
                                     2307 File
