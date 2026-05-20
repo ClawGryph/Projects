@@ -129,10 +129,11 @@ export default function ManualInvoiceModal({
     })();
 
     const vatAmount = isVatExclusive
-        ? subtotal * 0.12
+        ? subtotal * 0.12 // VAT added on top
         : isVatInclusive
-          ? firstItemSubtotal * 0.12
+          ? firstItemSubtotal * 0.12 // VAT extracted from within
           : 0;
+
     const total = subtotal + vatAmount;
 
     // Save — persists only line items; other fields always come from the schedule
@@ -948,9 +949,8 @@ export default function ManualInvoiceModal({
                                                             fontSize: 13,
                                                         }}
                                                     >
-                                                        {isVatInclusive
-                                                            ? "VAT Inclusive (12%) — first item"
-                                                            : "VAT Exclusive (12%) — all items"}
+                                                        {isVatInclusive &&
+                                                            "VAT"}
                                                     </td>
                                                     <td
                                                         style={{
@@ -963,7 +963,7 @@ export default function ManualInvoiceModal({
                                                     </td>
                                                 </tr>
                                             )}
-                                            <tr>
+                                            {/* <tr>
                                                 <td
                                                     style={{
                                                         padding: "4px 16px",
@@ -985,7 +985,7 @@ export default function ManualInvoiceModal({
                                                     PHP &nbsp;{" "}
                                                     {formatPHP(total)}
                                                 </td>
-                                            </tr>
+                                            </tr> */}
                                             {withholdingRate > 0 && (
                                                 <>
                                                     <tr>
@@ -997,7 +997,7 @@ export default function ManualInvoiceModal({
                                                             }}
                                                         />
                                                     </tr>
-                                                    <tr>
+                                                    {/* <tr>
                                                         <td
                                                             style={{
                                                                 padding:
@@ -1026,49 +1026,45 @@ export default function ManualInvoiceModal({
                                                                 withholdingTax,
                                                             )}
                                                         </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td
-                                                            style={{
-                                                                background:
-                                                                    "#1a5276",
-                                                                color: "#fff",
-                                                                fontWeight: 700,
-                                                                fontSize: 15,
-                                                                padding:
-                                                                    "8px 16px",
-                                                            }}
-                                                        >
-                                                            NET AMOUNT DUE
-                                                        </td>
-                                                        <td
-                                                            style={{
-                                                                background:
-                                                                    "#1a5276",
-                                                                color: "#fff",
-                                                                fontWeight: 700,
-                                                                fontSize: 15,
-                                                                padding:
-                                                                    "8px 16px",
-                                                                textAlign:
-                                                                    "right",
-                                                            }}
-                                                        >
-                                                            PHP &nbsp;{" "}
-                                                            {formatPHP(
-                                                                netAmount,
-                                                            )}
-                                                        </td>
-                                                    </tr>
+                                                    </tr> */}
                                                 </>
                                             )}
                                         </tbody>
+                                        <tr>
+                                            <td
+                                                style={{
+                                                    background: "#1a5276",
+                                                    color: "#fff",
+                                                    fontWeight: 700,
+                                                    fontSize: 15,
+                                                    padding: "8px 16px",
+                                                }}
+                                            >
+                                                TOTAL AMOUNT DUE
+                                            </td>
+                                            <td
+                                                style={{
+                                                    background: "#1a5276",
+                                                    color: "#fff",
+                                                    fontWeight: 700,
+                                                    fontSize: 15,
+                                                    padding: "8px 16px",
+                                                    textAlign: "right",
+                                                }}
+                                            >
+                                                {/* PHP &nbsp;{" "}
+                                                            {formatPHP(
+                                                                netAmount,
+                                                            )} */}
+                                                PHP &nbsp; {formatPHP(total)}
+                                            </td>
+                                        </tr>
                                     </table>
 
                                     <div
                                         style={{
                                             fontSize: 11,
-                                            color: "#888",
+                                            color: "white",
                                             textAlign: "right",
                                             marginTop: 4,
                                         }}

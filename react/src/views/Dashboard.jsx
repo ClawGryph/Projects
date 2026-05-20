@@ -1213,10 +1213,10 @@ export default function Dashboard() {
                 <MismatchReportTable transactions={transactions} />
             </div>
 
-            {/* RECENT PROJECTS */}
+            {/* RECENT Services */}
             <div className="min-w-full bg-white rounded-xl overflow-x-auto shadow-sm p-6 mt-6">
                 <h2 className="text-xl sm:text-xl font-bold text-gray-900 dark:text-white">
-                    Projects
+                    Services
                 </h2>
                 <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg border-collapse mt-5">
                     <thead>

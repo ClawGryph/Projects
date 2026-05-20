@@ -589,9 +589,7 @@ export default function InvoiceModal({
                                                         fontSize: 13,
                                                     }}
                                                 >
-                                                    {isVatInclusive
-                                                        ? "VAT Inclusive (12%)"
-                                                        : "VAT Exclusive (12%)"}
+                                                    {isVatInclusive && "VAT"}
                                                 </td>
                                                 <td
                                                     style={{
@@ -604,7 +602,7 @@ export default function InvoiceModal({
                                                 </td>
                                             </tr>
                                         )}
-                                        <tr>
+                                        {/* <tr>
                                             <td
                                                 style={{
                                                     padding: "4px 16px",
@@ -625,7 +623,7 @@ export default function InvoiceModal({
                                             >
                                                 PHP &nbsp; {formatPHP(total)}
                                             </td>
-                                        </tr>
+                                        </tr> */}
                                         {withholdingRate > 0 && (
                                             <>
                                                 <tr>
@@ -636,7 +634,8 @@ export default function InvoiceModal({
                                                         }}
                                                     />
                                                 </tr>
-                                                <tr>
+                                                {/* WITHHOLDING TAX CALCULATION */}
+                                                {/* <tr>
                                                     <td
                                                         style={{
                                                             padding: "4px 16px",
@@ -660,43 +659,42 @@ export default function InvoiceModal({
                                                             withholdingTax,
                                                         )}
                                                     </td>
-                                                </tr>
-                                                <tr>
-                                                    <td
-                                                        style={{
-                                                            background:
-                                                                "#1a5276",
-                                                            color: "#fff",
-                                                            fontWeight: 700,
-                                                            fontSize: 15,
-                                                            padding: "8px 16px",
-                                                        }}
-                                                    >
-                                                        NET AMOUNT DUE
-                                                    </td>
-                                                    <td
-                                                        style={{
-                                                            background:
-                                                                "#1a5276",
-                                                            color: "#fff",
-                                                            fontWeight: 700,
-                                                            fontSize: 15,
-                                                            padding: "8px 16px",
-                                                            textAlign: "right",
-                                                        }}
-                                                    >
-                                                        PHP &nbsp;{" "}
-                                                        {formatPHP(netAmount)}
-                                                    </td>
-                                                </tr>
+                                                </tr> */}
                                             </>
                                         )}
+                                        <tr>
+                                            <td
+                                                style={{
+                                                    background: "#1a5276",
+                                                    color: "#fff",
+                                                    fontWeight: 700,
+                                                    fontSize: 15,
+                                                    padding: "8px 16px",
+                                                }}
+                                            >
+                                                TOTAL AMOUNT DUE
+                                            </td>
+                                            <td
+                                                style={{
+                                                    background: "#1a5276",
+                                                    color: "#fff",
+                                                    fontWeight: 700,
+                                                    fontSize: 15,
+                                                    padding: "8px 16px",
+                                                    textAlign: "right",
+                                                }}
+                                            >
+                                                {/* PHP &nbsp;{" "}
+                                                        {formatPHP(netAmount)} */}
+                                                PHP &nbsp; {formatPHP(total)}
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                                 <div
                                     style={{
                                         fontSize: 11,
-                                        color: "#888",
+                                        color: "white",
                                         textAlign: "right",
                                         marginTop: 4,
                                     }}
