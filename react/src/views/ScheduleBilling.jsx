@@ -939,6 +939,24 @@ export default function ScheduleBilling() {
                         </div>
                         <div>
                             <p className="text-xs text-gray-400 mb-1">
+                                Coverage Date
+                            </p>
+                            <p className="text-sm font-semibold text-gray-800 capitalize">
+                                {assignData.project !== null
+                                    ? assignData.project?.adjusted_start_date &&
+                                      assignData.project?.adjusted_end_date
+                                        ? `${assignData.project.adjusted_start_date} - ${assignData.project.adjusted_end_date}`
+                                        : `${assignData.project.start_date} - ${assignData.project.end_date}`
+                                    : assignData.subscription
+                                            ?.adjusted_start_coverage &&
+                                        assignData.subscription
+                                            ?.adjusted_end_coverage
+                                      ? `${assignData.subscription.adjusted_start_coverage} - ${assignData.subscription.adjusted_end_coverage}`
+                                      : `${assignData.subscription.start_coverage} - ${assignData.subscription.end_coverage}`}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-400 mb-1">
                                 Expected Gross Amount
                             </p>
                             <p className="text-sm font-semibold text-gray-800">

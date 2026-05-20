@@ -81,7 +81,7 @@ export default function MismatchReportTable({ transactions = [] }) {
                                 "Client name",
                                 "Total invoice",
                                 "Total O.R",
-                                "Difference",
+                                "Discrepancy",
                             ].map((h) => (
                                 <th
                                     key={h}
