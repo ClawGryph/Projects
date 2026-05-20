@@ -11,7 +11,12 @@ import {
     faExternalLinkAlt,
 } from "@fortawesome/free-solid-svg-icons";
 
-export default function UploadFileModal({ transaction, onClose, onSaved }) {
+export default function UploadFileModal({
+    transaction,
+    onClose,
+    onSaved,
+    orOnly = false,
+}) {
     const or = transaction?.officialReceipt;
     const has2307 = or?.has_2307;
 
@@ -201,23 +206,30 @@ export default function UploadFileModal({ transaction, onClose, onSaved }) {
                     >
                         Official Receipt (O.R.)
                     </button>
-                    <button
-                        onClick={() => orFileUploaded && setActiveTab("2307")}
-                        disabled={!orFileUploaded}
-                        title={!orFileUploaded ? "Upload O.R. file first" : ""}
-                        className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-                            !orFileUploaded
-                                ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
-                                : activeTab === "2307"
-                                  ? "border-b-2 border-amber-500 text-amber-600 dark:text-amber-400"
-                                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                        }`}
-                    >
-                        BIR Form 2307
-                        {!orFileUploaded && (
-                            <span className="ml-1.5 text-xs">🔒</span>
-                        )}
-                    </button>
+
+                    {!orOnly && (
+                        <button
+                            onClick={() =>
+                                orFileUploaded && setActiveTab("2307")
+                            }
+                            disabled={!orFileUploaded}
+                            title={
+                                !orFileUploaded ? "Upload O.R. file first" : ""
+                            }
+                            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+                                !orFileUploaded
+                                    ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                    : activeTab === "2307"
+                                      ? "border-b-2 border-amber-500 text-amber-600 dark:text-amber-400"
+                                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            }`}
+                        >
+                            BIR Form 2307
+                            {!orFileUploaded && (
+                                <span className="ml-1.5 text-xs">🔒</span>
+                            )}
+                        </button>
+                    )}
                 </div>
 
                 {/* Tab Body */}

@@ -160,7 +160,7 @@ export default function Form2307Modal({ payment, onClose, onSaved }) {
                             <h2 className="text-white font-semibold text-base leading-tight">
                                 {isEditing
                                     ? "Edit BIR Form 2307"
-                                    : "Issue BIR Form 2307"}
+                                    : "Assign BIR Form 2307"}
                             </h2>
                             <p className="text-amber-200 text-xs mt-0.5">
                                 {clientName} — {projectName}
@@ -352,7 +352,7 @@ export default function Form2307Modal({ payment, onClose, onSaved }) {
                             ? "Saving..."
                             : isEditing
                               ? "Update 2307"
-                              : "Issue 2307"}
+                              : "Assign 2307"}
                     </button>
                 </div>
             </div>
