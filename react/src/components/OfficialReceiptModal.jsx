@@ -727,7 +727,7 @@ export default function OfficialReceiptModal({
                         {/* Total */}
                         <div className="mt-4 bg-cyan-50 border border-cyan-200 rounded-xl px-4 py-3 flex items-center justify-between">
                             <span className="text-sm font-semibold text-cyan-800 uppercase tracking-wide">
-                                Total Amount
+                                Total Net Amount
                             </span>
                             <span className="text-xl font-bold text-cyan-900 font-mono">
                                 ₱

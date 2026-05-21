@@ -2,7 +2,10 @@ import { useState, useEffect, Fragment } from "react";
 import axiosClient from "../axios-client";
 import StatusBadge from "../components/StatusBadge";
 
-export default function MismatchReportTable({ transactions = [] }) {
+export default function MismatchReportTable({
+    transactions = [],
+    onMismatchUpdate,
+}) {
     const [paymentSchedules, setPaymentSchedules] = useState([]);
     const [mismatches, setMismatches] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -116,6 +119,7 @@ export default function MismatchReportTable({ transactions = [] }) {
                         ? prev.map((m) => (m.id === data.id ? data : m))
                         : [...prev, data];
                 });
+                onMismatchUpdate?.();
                 closeNotesModal();
             })
             .finally(() => setSavingNotes(false));
@@ -802,6 +806,8 @@ export default function MismatchReportTable({ transactions = [] }) {
                                                                 <div className="flex justify-between text-xs font-semibold text-gray-800 border-t border-gray-200 pt-1.5 mt-1">
                                                                     <span>
                                                                         Total
+                                                                        Net
+                                                                        Amount
                                                                     </span>
                                                                     <span className="font-mono">
                                                                         ₱
