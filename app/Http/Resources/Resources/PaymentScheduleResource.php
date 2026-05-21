@@ -68,12 +68,27 @@ class PaymentScheduleResource extends JsonResource
 
         'manualInvoice' => $this->whenLoaded('manualInvoice', function () {
             $items = $this->manualInvoice?->line_items ?? [];
-            $total = collect($items)
+
+            $additionalItems = collect($items)
                 ->filter(fn($item) => !empty($item['is_additional']))
-                ->sum(fn($item) =>
-                    (float) ($item['amount'] ?? 0) + (float) ($item['vat_amount'] ?? 0)
-                );
-            return ['total' => $total];
+                ->values(); // re-index
+
+            $total = $additionalItems->sum(fn($item) =>
+                (float) ($item['amount'] ?? 0) + (float) ($item['vat_amount'] ?? 0)
+            );
+
+            $unitPriceTotal = $additionalItems->sum(fn($item) =>
+                (float) ($item['amount'] ?? 0)
+            );
+
+            return [
+                'total' => $total,
+                'unitPriceTotal' => $unitPriceTotal,
+                'items' => $additionalItems->map(fn($item) => [
+                    'description'       => $item['description'] ?? null,
+                    'unitPrice' => $item['unitPrice'] ?? null,
+                ])->values(),
+            ];
         }),
     ];
 }

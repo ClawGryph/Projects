@@ -15,4 +15,25 @@ class MismatchReport extends Model
         'is_checked',
         'notes'
     ];
+
+    protected $casts = [
+        'is_checked' => 'boolean',
+        'total_paid'  => 'float',
+        'total_si'    => 'float',
+    ];
+
+    public function paymentSchedule()
+    {
+        return $this->belongsTo(PaymentSchedule::class);
+    }
+
+    public function transaction()
+    {
+        return $this->belongsTo(PaymentTransaction::class);
+    }
+
+    public function officialReceipt()
+    {
+        return $this->belongsTo(OfficialReceipt::class);
+    }
 }

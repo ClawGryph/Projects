@@ -142,7 +142,7 @@ export default function PaidPaymentModal({
                 const items = data.data?.line_items ?? [];
                 const total = items.reduce((sum, item) => {
                     if (!item.is_additional) return sum;
-                    return parseFloat(item.unitPrice) || 0;
+                    return sum + (parseFloat(item.unitPrice) || 0);
                 }, 0);
                 setManualInvoiceTotal(total);
             })
@@ -179,6 +179,7 @@ export default function PaidPaymentModal({
                 paid_amount: parseFloat(paidAmount),
                 paid_at: paidDate,
                 wh_tax: withholdingTax,
+                vat_amount: vatAmount,
             })
             .then(() => {
                 setSaving(false);

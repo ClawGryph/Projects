@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Resources\OfficialReceiptResource;
+use App\Models\MismatchReport;
 use App\Models\OfficialReceipt;
 use App\Models\PaymentTransaction;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,35 @@ use Illuminate\Validation\Rule;
 
 class OfficialReceiptController extends Controller
 {
+    private function checkAndStoreMismatch(OfficialReceipt $or): void
+    {
+        $transaction = PaymentTransaction::find($or->payment_transaction_id);
+        if (!$transaction) return;
+
+        $schedule = $transaction->paymentSchedule;
+        if (!$schedule) return;
+
+        $totalPaid = (float) $transaction->net_amount;
+        $totalSI   = (float) $or->total_amount;
+
+        if ($totalPaid === $totalSI) {
+            MismatchReport::where('official_receipt_id', $or->id)->delete();
+            return;
+        }
+
+        MismatchReport::updateOrCreate(
+            ['official_receipt_id' => $or->id],
+            [
+                'payment_schedule_id' => $schedule->id,
+                'transaction_id'      => $transaction->id,
+                'total_paid'          => $totalPaid,
+                'total_si'            => $totalSI,
+                'is_checked'          => false,
+                'notes'               => null,
+            ]
+        );
+    }
+
     public function index()
     {
         return OfficialReceiptResource::collection(
@@ -34,6 +64,7 @@ class OfficialReceiptController extends Controller
             'billing_statement_number'       => 'nullable|string|unique:official_receipts,billing_statement_number',
             'base_amount'                    => 'required|numeric',
             'vat_amount'                     => 'nullable|numeric',
+            'wh_tax'                         => 'nullable|numeric',
             'other'                          => 'nullable|numeric',
             'other_label'                    => 'nullable|string',
             'total_amount'                   => 'nullable|numeric',
@@ -41,10 +72,13 @@ class OfficialReceiptController extends Controller
         ]);
 
         $or = OfficialReceipt::create($validated);
+
         $transaction = PaymentTransaction::find($validated['payment_transaction_id']);
         if ($transaction && $transaction->paymentSchedule) {
             $transaction->paymentSchedule->update(['is_or_issued' => true]);
         }
+
+        $this->checkAndStoreMismatch($or);
 
         return new OfficialReceiptResource($or->load('form2307'));
     }
@@ -58,6 +92,7 @@ class OfficialReceiptController extends Controller
             'billing_statement_number'       => ['nullable', 'string', Rule::unique('official_receipts', 'billing_statement_number')->ignore($id)],
             'base_amount'                    => 'required|numeric',
             'vat_amount'                     => 'nullable|numeric',
+            'wh_tax'                         => 'nullable|numeric',
             'other'                          => 'nullable|numeric',
             'other_label'                    => 'nullable|string',
             'total_amount'                   => 'nullable|numeric',
@@ -72,6 +107,8 @@ class OfficialReceiptController extends Controller
             $transaction->paymentSchedule->update(['is_or_issued' => true]);
         }
 
+        $this->checkAndStoreMismatch($or);
+
         return new OfficialReceiptResource($or->load('form2307'));
     }
 
@@ -80,7 +117,6 @@ class OfficialReceiptController extends Controller
         $request->validate(['number' => 'required|string']);
 
         $query = OfficialReceipt::where('service_invoice_number', $request->number);
-
         if ($request->filled('exclude_id')) {
             $query->where('id', '!=', $request->exclude_id);
         }
@@ -93,7 +129,6 @@ class OfficialReceiptController extends Controller
         $request->validate(['number' => 'required|string']);
 
         $query = OfficialReceipt::where('payment_acknowledgement_number', $request->number);
-
         if ($request->filled('exclude_id')) {
             $query->where('id', '!=', $request->exclude_id);
         }
@@ -106,7 +141,6 @@ class OfficialReceiptController extends Controller
         $request->validate(['number' => 'required|string']);
 
         $query = OfficialReceipt::where('billing_statement_number', $request->number);
-
         if ($request->filled('exclude_id')) {
             $query->where('id', '!=', $request->exclude_id);
         }

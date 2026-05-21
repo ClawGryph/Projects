@@ -589,7 +589,7 @@ export default function InvoiceModal({
                                                         fontSize: 13,
                                                     }}
                                                 >
-                                                    {isVatInclusive && "VAT"}
+                                                    VAT
                                                 </td>
                                                 <td
                                                     style={{

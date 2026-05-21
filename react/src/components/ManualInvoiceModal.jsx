@@ -980,8 +980,7 @@ export default function ManualInvoiceModal({
                                                             fontSize: 13,
                                                         }}
                                                     >
-                                                        {isVatInclusive &&
-                                                            "VAT"}
+                                                        VAT
                                                     </td>
                                                     <td
                                                         style={{

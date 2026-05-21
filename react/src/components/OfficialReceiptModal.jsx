@@ -179,7 +179,7 @@ export default function OfficialReceiptModal({
             setForm((prev) => ({
                 ...prev,
                 amount: num(payment?.base_amount),
-                vat_amount: num(payment?.vat_amount),
+                vat_amount: num(payment?.transaction?.vat_amount),
             }));
         }
     }, [existingOR, payment]);
@@ -192,7 +192,7 @@ export default function OfficialReceiptModal({
                 const items = data.data?.line_items ?? [];
                 const total = items.reduce((sum, item) => {
                     if (!item.is_additional) return sum;
-                    return parseFloat(item.unitPrice) || 0;
+                    return sum + parseFloat(item.unitPrice) || 0;
                 }, 0);
                 setManualInvoiceTotal(total);
             })
@@ -253,6 +253,7 @@ export default function OfficialReceiptModal({
     const transactionGross =
         parseFloat(payment?.transaction?.gross_amount) || 0;
     const withholdingTax = parseFloat(payment?.transaction?.wh_tax) || 0;
+    const vat = parseFloat(payment?.transaction?.vat_amount) || 0;
     const grossAmount =
         transactionGross > 0
             ? transactionGross + (parseFloat(form.other) || 0)

@@ -185,6 +185,7 @@ class PaymentScheduleController extends Controller
             $grossAmount = (float) $schedule->total_amount;
             $whTax       = (float) ($request->wh_tax ?? 0);
             $paidAmount  = (float) ($request->paid_amount ?? 0);
+            $vatAmount   = (float) ($request->vat_amount ?? 0);
             $netAmount   = $grossAmount - $whTax;
 
             $schedule->paymentTransactions()->create([
@@ -193,6 +194,7 @@ class PaymentScheduleController extends Controller
                 'wh_tax'       => $whTax,
                 'net_amount'   => $netAmount,
                 'paid_amount'  => $paidAmount,
+                'vat_amount'   => $vatAmount,
                 'paid_at'      => $request->paid_at ?? now(),
             ]);
         }

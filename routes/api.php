@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CompanyPaymentDetailController;
 use App\Http\Controllers\Api\CompanyTypeController;
 use App\Http\Controllers\Api\Form2307Controller;
 use App\Http\Controllers\Api\ManualInvoiceController;
+use App\Http\Controllers\Api\MismatchReportController;
 use App\Http\Controllers\Api\OfficialReceiptController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentScheduleController;
@@ -56,6 +57,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::put('/company-types/{companyType}', [CompanyTypeController::class, 'update']);
     Route::put('/form-2307s/{form2307}', [Form2307Controller::class, 'update']);
     Route::put('/companies/{company}', [CompanyController::class, 'update']);
+    Route::patch('/mismatch-reports/{mismatchReport}', [MismatchReportController::class, 'update']);
 });
 
 // Super Admin and Admin only
@@ -92,6 +94,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::post('/company-payment-details', [CompanyPaymentDetailController::class, 'store']);
     Route::put('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'update']);
     Route::delete('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'destroy']);
+    Route::post('/mismatch-reports', [MismatchReportController::class, 'store']);
 });
 
 // All roles can view
@@ -116,4 +119,5 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])-
     Route::get('/company-types', [CompanyTypeController::class, 'index']);
     Route::get('/company-payment-details', [CompanyPaymentDetailController::class, 'index']);
     Route::get('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'show']);
+    Route::get('/mismatch-reports', [MismatchReportController::class, 'index']);
 });
