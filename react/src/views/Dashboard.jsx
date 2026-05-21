@@ -815,7 +815,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500 flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                                Total collected this month
+                                Total net this month
                             </span>
                             <span className="text-xs font-semibold text-emerald-600">
                                 ₱{metrics.monthlyRevenue.toLocaleString()}
@@ -1448,6 +1448,11 @@ export default function Dashboard() {
                                                 {project.client?.name ||
                                                     "No Client"}
                                             </p>
+                                            <p className="text-xs text-gray-400 font-mono">
+                                                {project._upcomingSchedule
+                                                    .invoice_number ??
+                                                    "No invoice no."}
+                                            </p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-gray-800 font-bold">
@@ -1508,6 +1513,11 @@ export default function Dashboard() {
                                             <p className="text-gray-500">
                                                 {project.client?.name ||
                                                     "No Client"}
+                                            </p>
+                                            <p className="text-xs text-gray-400 font-mono">
+                                                {project._lateSchedule
+                                                    .invoice_number ??
+                                                    "No invoice no."}
                                             </p>
                                             <span className="text-xs font-semibold text-red-500">
                                                 {daysLate} day
@@ -1662,8 +1672,10 @@ export default function Dashboard() {
                                     <tr>
                                         <th className="px-4 py-2">Client</th>
                                         <th className="px-4 py-2">Project</th>
-                                        <th className="px-4 py-2">Amount</th>
-                                        <th className="px-4 py-2">Paid At</th>
+                                        <th className="px-4 py-2">
+                                            Net Amount
+                                        </th>
+                                        <th className="px-4 py-2">Paid On</th>
                                         <th className="px-4 py-2">
                                             S.I/ACK No.
                                         </th>

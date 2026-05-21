@@ -413,6 +413,11 @@ export default function ClientDashboard() {
                                                         a.subscription?.title ??
                                                         "Untitled"}
                                                 </h3>
+                                                <p className="text-xs text-gray-400 font-mono">
+                                                    {a._upcomingSchedule
+                                                        .invoice_number ??
+                                                        "No invoice no."}
+                                                </p>
                                                 <p className="text-xs text-gray-500">
                                                     {a._upcomingSchedule.status}
                                                 </p>
@@ -473,6 +478,11 @@ export default function ClientDashboard() {
                                                         a.subscription?.title ??
                                                         "Untitled"}
                                                 </h3>
+                                                <p className="text-xs text-gray-400 font-mono">
+                                                    {a._lateSchedule
+                                                        .invoice_number ??
+                                                        "No invoice no."}
+                                                </p>
                                                 <span className="text-xs font-semibold text-red-500">
                                                     {daysLate} day
                                                     {daysLate !== 1 ? "s" : ""}{" "}
