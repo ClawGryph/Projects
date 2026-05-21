@@ -45,10 +45,13 @@ export default function MismatchReportTable({ transactions = [] }) {
         }).format(parseFloat(val) || 0);
 
     const mismatchedSchedules = paymentSchedules.filter((p) => {
-        const totalSI =
-            parseFloat(p.transaction?.officialReceipt?.total_amount) || 0;
-        const totalPaid = parseFloat(p.transaction?.net_amount) || 0;
-        return p.status === "paid" && p.is_or_issued && totalPaid !== totalSI;
+        const hasMismatchRecord = mismatches.some(
+            (m) =>
+                m.payment_schedule_id === p.id ||
+                m.transaction_id === p.transaction?.id ||
+                m.official_receipt_id === p.transaction?.officialReceipt?.id,
+        );
+        return p.status === "paid" && p.is_or_issued && hasMismatchRecord;
     });
 
     const getMismatchRecord = (p) =>
@@ -422,7 +425,11 @@ export default function MismatchReportTable({ transactions = [] }) {
                                                     onClick={() =>
                                                         openNotesModal(p)
                                                     }
-                                                    className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md bg-cyan-700 text-white hover:bg-cyan-800 transition-colors whitespace-nowrap"
+                                                    className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+                                                        mismatchRecord?.notes
+                                                            ? "bg-amber-500 text-white hover:bg-amber-600"
+                                                            : "bg-cyan-700 text-white hover:bg-cyan-800"
+                                                    }`}
                                                 >
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
