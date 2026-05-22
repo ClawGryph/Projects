@@ -9,6 +9,7 @@ class Subscription extends Model
     protected $fillable = [
         'company_id',
         'subscription_id',
+        'service_type_id',
         'title',
         'description',
         'start_coverage',

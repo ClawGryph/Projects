@@ -12,6 +12,7 @@ class Project extends Model
 
     protected $fillable = [
         'company_id',
+        'service_type_id',
         'title',
         'description',
         'start_date',

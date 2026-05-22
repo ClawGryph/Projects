@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             CompanyTypeSeeder::class,
             CompanyPaymentDetailSeeder::class,
+            ServiceTypeSeeder::class,
         ]);
     }
 }

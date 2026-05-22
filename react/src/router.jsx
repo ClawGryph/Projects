@@ -26,6 +26,7 @@ import SalesReport from "./views/SalesReport.jsx";
 import ReceivablesReport from "./views/ReceivablesReport.jsx";
 import OverdueReport from "./views/OverdueReport.jsx";
 import MismatchReport from "./views/MismatchReport.jsx";
+import ServiceType from "./views/ServiceType.jsx";
 
 const router = createBrowserRouter([
     {
@@ -160,6 +161,11 @@ const router = createBrowserRouter([
                 path: "/payment-details",
                 element: <CompanyPaymentDetails />,
                 handle: { title: "Company Payment Details" },
+            },
+            {
+                path: "/service-type",
+                element: <ServiceType />,
+                handle: { title: "Service Type" },
             },
         ],
     },

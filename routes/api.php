@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentScheduleController;
 use App\Http\Controllers\Api\PaymentTransactionController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ServiceTypeController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\UploadFileController;
 use App\Http\Controllers\Api\UserController;
@@ -46,6 +47,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin', 'company'])->group(functi
     Route::delete('/subscriptions/{subscription}', [SubscriptionController::class, 'destroy']);
     Route::delete('/company-types/{companyType}', [CompanyTypeController::class, 'destroy']);
     Route::delete('/clients/{client}/projects/{clientsProject}', [ClientsProjectController::class, 'destroy']);
+    Route::delete('/service-types/{serviceType}', [ServiceTypeController::class, 'destroy']);
 });
 
 // Super Admin and Admin can edit
@@ -58,6 +60,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::put('/form-2307s/{form2307}', [Form2307Controller::class, 'update']);
     Route::put('/companies/{company}', [CompanyController::class, 'update']);
     Route::patch('/mismatch-reports/{mismatchReport}', [MismatchReportController::class, 'update']);
+    Route::put('/service-types/{serviceType}', [ServiceTypeController::class, 'update']);
 });
 
 // Super Admin and Admin only
@@ -95,6 +98,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin', 'company'])->group(
     Route::put('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'update']);
     Route::delete('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'destroy']);
     Route::post('/mismatch-reports', [MismatchReportController::class, 'store']);
+    Route::post('/service-types', [ServiceTypeController::class, 'store']);
 });
 
 // All roles can view
@@ -120,4 +124,5 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin,viewer', 'company'])-
     Route::get('/company-payment-details', [CompanyPaymentDetailController::class, 'index']);
     Route::get('/company-payment-details/{companyPaymentDetail}', [CompanyPaymentDetailController::class, 'show']);
     Route::get('/mismatch-reports', [MismatchReportController::class, 'index']);
+    Route::get('/service-types', [ServiceTypeController::class, 'index']);
 });
