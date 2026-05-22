@@ -616,22 +616,48 @@ export default function MismatchReportTable({
                                                                         )}
                                                                     </div>
                                                                 )}
+                                                                <div className="flex justify-between text-xs font-semibold text-gray-800">
+                                                                    <span>
+                                                                        Gross
+                                                                        amount
+                                                                    </span>
+                                                                    <span className="font-mono">
+                                                                        ₱
+                                                                        {formatCurrency(
+                                                                            p
+                                                                                .transaction
+                                                                                ?.gross_amount,
+                                                                        )}
+                                                                    </span>
+                                                                </div>
 
                                                                 <div className="border-t border-gray-200 pt-1.5 mt-1 space-y-1">
-                                                                    <div className="flex justify-between text-xs font-semibold text-gray-800">
-                                                                        <span>
-                                                                            Gross
-                                                                            amount
-                                                                        </span>
-                                                                        <span className="font-mono">
-                                                                            ₱
-                                                                            {formatCurrency(
-                                                                                p
-                                                                                    .transaction
-                                                                                    ?.gross_amount,
-                                                                            )}
-                                                                        </span>
-                                                                    </div>
+                                                                    {/* Withholding tax */}
+                                                                    {parseFloat(
+                                                                        p
+                                                                            .transaction
+                                                                            ?.officialReceipt
+                                                                            ?.wh_tax,
+                                                                    ) > 0 && (
+                                                                        <div className="flex justify-between text-xs text-red-500">
+                                                                            <span>
+                                                                                Withholding
+                                                                                tax
+                                                                            </span>
+                                                                            <span className="font-mono">
+                                                                                −₱
+                                                                                {formatCurrency(
+                                                                                    p
+                                                                                        .transaction
+                                                                                        ?.officialReceipt
+                                                                                        ?.wh_tax,
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="border-t border-gray-200 pt-1.5 mt-1 space-y-1">
                                                                     <div className="flex justify-between text-xs font-semibold text-gray-800">
                                                                         <span>
                                                                             Paid

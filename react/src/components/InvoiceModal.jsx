@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { calcWithholdingTax } from "../utils/withholdingTax";
+// import { calcWithholdingTax } from "../utils/withholdingTax";
 import chimes_logo from "../assets/chimes-logo.png";
 import axiosClient from "../axios-client";
 
@@ -36,8 +36,8 @@ export default function InvoiceModal({
     const isVatExclusive = vatType === "vat_exclusive";
     const isVatInclusive = vatType === "vat_inclusive";
     const isVatable = isVatExclusive || isVatInclusive;
-    const clientType = client.company_type ?? "";
-    const annualGross = parseFloat(company?.annual_gross) || 0;
+    // const clientType = client.company_type ?? "";
+    // const annualGross = parseFloat(company?.annual_gross) || 0;
 
     const formattedIndex =
         scheduleIndex != null ? String(scheduleIndex).padStart(2, "0") : "??";
@@ -87,18 +87,18 @@ export default function InvoiceModal({
             maximumFractionDigits: 2,
         }).format(val);
 
-    const {
-        rate: withholdingRate,
-        tax: withholdingTax,
-        base: withholdingBase,
-    } = calcWithholdingTax({
-        clientType,
-        annualGross,
-        vatType,
-        baseAmount: subtotal,
-        totalAmount: total,
-    });
-    const netAmount = total - withholdingTax;
+    // const {
+    //     rate: withholdingRate,
+    //     tax: withholdingTax,
+    //     base: withholdingBase,
+    // } = calcWithholdingTax({
+    //     clientType,
+    //     annualGross,
+    //     vatType,
+    //     baseAmount: subtotal,
+    //     totalAmount: total,
+    // });
+    // const netAmount = total - withholdingTax;
 
     const formatTinNo = (val) => {
         if (!val) return "—";
@@ -624,7 +624,7 @@ export default function InvoiceModal({
                                                 PHP &nbsp; {formatPHP(total)}
                                             </td>
                                         </tr> */}
-                                        {withholdingRate > 0 && (
+                                        {/* {withholdingRate > 0 && (
                                             <>
                                                 <tr>
                                                     <td
@@ -633,9 +633,9 @@ export default function InvoiceModal({
                                                             padding: "6px 0",
                                                         }}
                                                     />
-                                                </tr>
-                                                {/* WITHHOLDING TAX CALCULATION */}
-                                                {/* <tr>
+                                                </tr> */}
+                                        {/* WITHHOLDING TAX CALCULATION */}
+                                        {/* <tr>
                                                     <td
                                                         style={{
                                                             padding: "4px 16px",
@@ -659,9 +659,9 @@ export default function InvoiceModal({
                                                             withholdingTax,
                                                         )}
                                                     </td>
-                                                </tr> */}
+                                                </tr>
                                             </>
-                                        )}
+                                        )} */}
                                         <tr>
                                             <td
                                                 style={{

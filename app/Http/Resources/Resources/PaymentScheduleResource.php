@@ -47,12 +47,14 @@ class PaymentScheduleResource extends JsonResource
                 'title' => $project->title,
                 'payment_type'   => $project->payment_type,
                 'vat_type' => $project->vat_type,
+                'service_type_rate' => $project->serviceType?->rate,
             ] : null,
             'subscription' => $subscription ? [
                 'id'    => $subscription->id,
                 'title' => $subscription->title,
                 'frequency'   => $subscription->frequency,
                 'vat_type' => $subscription->vat_type,
+                'service_type_rate' => $subscription->serviceType?->rate,
             ] : null,
             'client' => $client ? [
                 'id'           => $client->id,

@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { calcWithholdingTax } from "../utils/withholdingTax";
+// import { calcWithholdingTax } from "../utils/withholdingTax";
 import chimes_logo from "../assets/chimes-logo.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faTrash, faSave } from "@fortawesome/free-solid-svg-icons";
@@ -7,12 +7,7 @@ import axiosClient from "../axios-client";
 
 const generateId = () => Math.random().toString(36).slice(2, 9);
 
-export default function ManualInvoiceModal({
-    payment,
-    onClose,
-    company,
-    onRefresh,
-}) {
+export default function ManualInvoiceModal({ payment, onClose, onRefresh }) {
     const invoiceRef = useRef();
     const [downloading, setDownloading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -75,8 +70,8 @@ export default function ManualInvoiceModal({
     const billName = client.name ?? "";
     const billCompany = client.company_name ?? "";
     const billAddress = client.company_address ?? "";
-    const clientType = client.company_type ?? "";
-    const annualGross = parseFloat(company?.annual_gross) || 0;
+    // const clientType = client.company_type ?? "";
+    // const annualGross = parseFloat(company?.annual_gross) || 0;
 
     // subtotal base on payment amount and vat type
     const getDefaultSubtotal = () => parseFloat(payment.base_amount) || 0;
@@ -244,19 +239,19 @@ export default function ManualInvoiceModal({
         markDirty();
     };
 
-    const {
-        rate: withholdingRate,
-        tax: withholdingTax,
-        base: withholdingBase,
-    } = calcWithholdingTax({
-        clientType,
-        annualGross,
-        vatType,
-        baseAmount: subtotal,
-        totalAmount: total,
-    });
+    // const {
+    //     rate: withholdingRate,
+    //     tax: withholdingTax,
+    //     base: withholdingBase,
+    // } = calcWithholdingTax({
+    //     clientType,
+    //     annualGross,
+    //     vatType,
+    //     baseAmount: subtotal,
+    //     totalAmount: total,
+    // });
 
-    const netAmount = total - withholdingTax;
+    // const netAmount = total - withholdingTax;
 
     // Converts numbers into philippine peso format with proper decimal places
     const formatPHP = (val) =>
@@ -1016,7 +1011,7 @@ export default function ManualInvoiceModal({
                                                     {formatPHP(total)}
                                                 </td>
                                             </tr> */}
-                                            {withholdingRate > 0 && (
+                                            {/* {withholdingRate > 0 && (
                                                 <>
                                                     <tr>
                                                         <td
@@ -1026,8 +1021,8 @@ export default function ManualInvoiceModal({
                                                                     "6px 0",
                                                             }}
                                                         />
-                                                    </tr>
-                                                    {/* <tr>
+                                                    </tr> */}
+                                            {/* <tr>
                                                         <td
                                                             style={{
                                                                 padding:
@@ -1057,8 +1052,8 @@ export default function ManualInvoiceModal({
                                                             )}
                                                         </td>
                                                     </tr> */}
-                                                </>
-                                            )}
+                                            {/* </>
+                                            )} */}
                                             <tr>
                                                 <td
                                                     style={{

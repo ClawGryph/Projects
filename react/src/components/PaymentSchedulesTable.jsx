@@ -654,7 +654,6 @@ export default function PaymentSchedulesTable({
             {manualInvoicePayment && (
                 <ManualInvoiceModal
                     payment={manualInvoicePayment}
-                    company={company}
                     onClose={() => setManualInvoicePayment(null)}
                     onRefresh={onRefresh}
                 />

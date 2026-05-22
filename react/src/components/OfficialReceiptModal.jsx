@@ -612,9 +612,11 @@ export default function OfficialReceiptModal({
                                         ₱
                                     </span>
                                     <input
-                                        type="number"
+                                        type="text"
                                         name="amount"
-                                        value={form.amount}
+                                        value={new Intl.NumberFormat("en-PH", {
+                                            minimumFractionDigits: 2,
+                                        }).format(form.amount || 0)}
                                         readOnly
                                         placeholder="0.00"
                                         className={pesoReadOnlyClass}
@@ -629,10 +631,11 @@ export default function OfficialReceiptModal({
                                             ₱
                                         </span>
                                         <input
-                                            type="number"
-                                            value={manualInvoiceTotal.toFixed(
-                                                2,
-                                            )}
+                                            type="text"
+                                            value={new Intl.NumberFormat(
+                                                "en-PH",
+                                                { minimumFractionDigits: 2 },
+                                            ).format(manualInvoiceTotal)}
                                             readOnly
                                             className={pesoReadOnlyClass}
                                         />
@@ -657,9 +660,11 @@ export default function OfficialReceiptModal({
                                         ₱
                                     </span>
                                     <input
-                                        type="number"
+                                        type="text"
                                         name="vat_amount"
-                                        value={form.vat_amount}
+                                        value={new Intl.NumberFormat("en-PH", {
+                                            minimumFractionDigits: 2,
+                                        }).format(form.vat_amount || 0)}
                                         readOnly
                                         placeholder="0.00"
                                         className={pesoReadOnlyClass}
@@ -675,7 +680,7 @@ export default function OfficialReceiptModal({
                                             ₱ -
                                         </span>
                                         <input
-                                            type="number"
+                                            type="text"
                                             name="vat_amount"
                                             value={new Intl.NumberFormat(
                                                 "en-PH",

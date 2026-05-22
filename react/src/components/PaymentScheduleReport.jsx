@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import axiosClient from "../axios-client";
+import { calcWithholdingTax } from "../utils/withholdingTax";
 
 const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
 const Q_MONTHS = {
@@ -38,42 +39,19 @@ function daysPast(dateStr) {
 }
 
 /**
- * Calculate withholding tax based on client type, annual gross, and vat type.
- */
-function calcWithholdingTax({
-    clientType,
-    annualGross,
-    vatType,
-    baseAmount,
-    totalAmount,
-}) {
-    if (vatType === "vat_other") {
-        return { rate: 0, tax: 0, base: 0 };
-    }
-    if (clientType === "Government") {
-        const rate = 0.01;
-        const base = totalAmount;
-        return { rate, base, tax: Math.round(base * rate * 100) / 100 };
-    }
-    if (clientType === "Private Corporation") {
-        const rate = annualGross >= 3_000_000 ? 0.02 : 0.01;
-        const base = baseAmount;
-        return { rate, base, tax: Math.round(base * rate * 100) / 100 };
-    }
-    return { rate: 0, tax: 0, base: 0 };
-}
-
-/**
  * Get WHT for a non-paid schedule row using its schedule fields.
  */
 function getScheduleWht(s) {
-    return calcWithholdingTax({
-        clientType: s.clientsProject?.client?.company_type ?? "",
-        annualGross: parseFloat(s.clientsProject?.client?.annual_gross ?? 0),
-        vatType: s.clientsProject?.vat_type ?? "vat_exempt",
-        baseAmount: parseFloat(s.base_amount ?? 0),
+    const serviceTypeRate = parseFloat(
+        s.clientsProject?.project?.service_type_rate ??
+            s.clientsProject?.subscription?.service_type_rate ??
+            0,
+    );
+    const { tax } = calcWithholdingTax({
         totalAmount: parseFloat(s.total_amount ?? 0),
+        serviceTypeRate,
     });
+    return { tax };
 }
 
 // ── CSV Export ────────────────────────────────────────────────────────────────

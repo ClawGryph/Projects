@@ -72,12 +72,7 @@ const PesoField = ({
     </Field>
 );
 
-export default function PaidPaymentModal({
-    payment,
-    onClose,
-    onSaved,
-    company,
-}) {
+export default function PaidPaymentModal({ payment, onClose, onSaved }) {
     const [paidAmount, setPaidAmount] = useState("");
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
@@ -117,22 +112,13 @@ export default function PaidPaymentModal({
     const vatAmount = parseFloat(payment?.vat_amount) || 0;
     const totalAmount = parseFloat(payment?.total_amount) || 0;
 
-    const clientType = client.company_type ?? "";
-    const annualGross = parseFloat(company?.annual_gross) || 0;
-    const vatType = isProject
-        ? (payment?.clientsProject?.project?.vat_type ?? "vat_exempt")
-        : (payment?.clientsProject?.subscription?.vat_type ?? "vat_exempt");
-
+    // Withholding Tax
+    const serviceTypeRate = parseFloat(project?.service_type_rate) || 0;
     const paidAmountFloat = parseFloat(paidAmount) || 0;
     const { tax: withholdingTax } = calcWithholdingTax({
-        clientType,
-        annualGross,
-        vatType,
-        baseAmount: paidAmountFloat,
-        totalAmount: paidAmountFloat,
+        totalAmount: totalAmount,
+        serviceTypeRate,
     });
-
-    const netAmount = paidAmountFloat - withholdingTax;
 
     useEffect(() => {
         if (!payment?.id) return;
@@ -298,34 +284,84 @@ export default function PaidPaymentModal({
                             Amount Breakdown
                         </p>
 
-                        <div className="space-y-3">
-                            <PesoField
-                                label="Base Amount"
-                                value={baseAmount.toFixed(2)}
-                            />
+                        <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+                            {/* Row: Base Amount */}
+                            <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100">
+                                <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                    Base Amount
+                                </span>
+                                <span className="text-sm font-medium text-gray-700 font-mono">
+                                    ₱{formatPHP(baseAmount)}
+                                </span>
+                            </div>
 
+                            {/* Row: Add On */}
                             {manualInvoiceTotal > 0 && (
-                                <PesoField
-                                    label="Add On (Manual Invoice)"
-                                    value={manualInvoiceTotal.toFixed(2)}
-                                />
+                                <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100">
+                                    <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                        Add On (Manual Invoice)
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-700 font-mono">
+                                        ₱{formatPHP(manualInvoiceTotal)}
+                                    </span>
+                                </div>
                             )}
 
-                            <PesoField
-                                label="VAT Amount"
-                                value={vatAmount.toFixed(2)}
-                            />
-
-                            {/* Total */}
-                            <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-4 py-3 flex items-center justify-between">
-                                <span className="text-sm font-semibold text-cyan-800 uppercase tracking-wide">
-                                    Total Amount
+                            {/* Row: VAT */}
+                            <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100">
+                                <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                    VAT Amount
                                 </span>
-                                <span className="text-xl font-bold text-cyan-900 font-mono">
+                                <span className="text-sm font-medium text-gray-700 font-mono">
+                                    ₱{formatPHP(vatAmount)}
+                                </span>
+                            </div>
+
+                            {/* Row: Total Gross Amount */}
+                            <div className="flex items-center justify-between px-4 py-3 bg-slate-700">
+                                <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                                    Total Gross Amount
+                                </span>
+                                <span className="text-base font-bold text-white font-mono">
                                     ₱{formatPHP(totalAmount)}
                                 </span>
                             </div>
 
+                            {/* Row: Withholding Tax */}
+                            {withholdingTax > 0 && (
+                                <div className="flex items-center justify-between px-4 py-2.5 bg-rose-50 border-t border-rose-100">
+                                    <div>
+                                        <span className="text-xs font-semibold text-rose-700 uppercase tracking-wide">
+                                            Less: Withholding Tax
+                                        </span>
+                                        <p className="text-xs text-rose-400 mt-0.5">
+                                            {serviceTypeRate}% of total amount
+                                        </p>
+                                    </div>
+                                    <span className="text-sm font-bold text-rose-600 font-mono">
+                                        - ₱{formatPHP(withholdingTax)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Row: Net Amount */}
+                            {withholdingTax > 0 && (
+                                <div className="flex items-center justify-between px-4 py-3 bg-cyan-800">
+                                    <span className="text-xs font-bold text-cyan-100 uppercase tracking-wide">
+                                        Total Net Amount
+                                    </span>
+                                    <span className="text-base font-bold text-white font-mono">
+                                        ₱
+                                        {formatPHP(
+                                            totalAmount - withholdingTax,
+                                        )}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Payment Date & Paid Amount */}
+                        <div className="space-y-3 mt-4">
                             <Field
                                 label="Payment Date"
                                 required
@@ -345,7 +381,6 @@ export default function PaidPaymentModal({
                                 />
                             </Field>
 
-                            {/* Paid Amount — only editable field */}
                             <PesoField
                                 label="Paid Amount"
                                 required
