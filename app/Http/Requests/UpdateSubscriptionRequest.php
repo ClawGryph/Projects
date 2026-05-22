@@ -28,6 +28,7 @@ class UpdateSubscriptionRequest extends FormRequest
             'start_coverage'           => 'required|date',
             'end_coverage'             => 'required|date|after_or_equal:start_coverage',
             'cost'                     => 'required|numeric|min:0|decimal:0,2',
+            'service_type_id'      => 'required|exists:service_types,id',
             'vat_type'                  => 'required|in:vat_inclusive,vat_exclusive,vat_exempt,vat_other',
             'frequency'                 => 'required|in:monthly,quarterly,half_yearly,yearly',
             'adjusted_start_coverage'  => 'nullable|date|after_or_equal:end_coverage',

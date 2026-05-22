@@ -22,7 +22,7 @@ class SubscriptionController extends Controller
         return SubscriptionResource::collection(
             Subscription::query()
                 ->where('company_id', $this->company()->id)
-                ->with(['clientsProjects.client'])
+                ->with(['clientsProjects.client', 'serviceType'])
                 ->orderBy('id', 'desc')
                 ->paginate(10)
         );
@@ -36,6 +36,7 @@ class SubscriptionController extends Controller
             'start_coverage'           => 'required|date',
             'end_coverage'             => 'required|date|after_or_equal:start_coverage',
             'cost'                     => 'required|numeric|min:0|decimal:0,2',
+            'service_type_id'      => 'required|exists:service_types,id',
             'vat_type'                  => 'required|in:vat_inclusive,vat_exclusive,vat_exempt,vat_other',
             'frequency'                 => 'required|in:monthly,quarterly,half_yearly,yearly',
             'billing_start_date'        => 'required|date|after_or_equal:start_coverage|before_or_equal:end_coverage',
@@ -58,7 +59,7 @@ class SubscriptionController extends Controller
     public function show(Subscription $subscription)
     {
         abort_if($subscription->company_id !== $this->company()->id, 403);
-        return new SubscriptionResource($subscription);
+        return new SubscriptionResource($subscription->load('serviceType'));
     }
 
     /**

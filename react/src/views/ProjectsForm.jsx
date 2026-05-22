@@ -24,8 +24,10 @@ export default function ProjectsForm() {
         vat_type: "",
         billing_start_date: "",
         price: "",
+        service_type_id: "",
     });
     const [formData, setFormData] = useState(null);
+    const [serviceTypes, setServiceTypes] = useState([]);
     const isNonVat = selectedCompany?.vat_type === "non_vat";
 
     useEffect(() => {
@@ -51,6 +53,12 @@ export default function ProjectsForm() {
             setProject((prev) => ({ ...prev, vat_type: "vat_other" }));
         }
     }, [isNonVat]);
+
+    useEffect(() => {
+        axiosClient.get("/service-types").then(({ data }) => {
+            setServiceTypes(data.data ?? data);
+        });
+    }, []);
 
     const onSubmit = (e) => {
         e.preventDefault();
@@ -185,6 +193,39 @@ export default function ProjectsForm() {
                             {errors.price && (
                                 <p className="text-xs text-red-500 mt-1">
                                     {errors.price}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* SERVICE TYPE */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Service Type{" "}
+                                <span className="text-red-500 text-xs">*</span>
+                            </label>
+                            <select
+                                value={project.service_type_id ?? ""}
+                                onChange={(e) =>
+                                    setProject({
+                                        ...project,
+                                        service_type_id: e.target.value,
+                                    })
+                                }
+                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                            >
+                                <option value="" disabled>
+                                    Select service type...
+                                </option>
+                                {serviceTypes.map((st) => (
+                                    <option key={st.id} value={st.id}>
+                                        {st.type} —{" "}
+                                        {parseFloat(st.rate).toFixed(2)}%
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.service_type_id && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {errors.service_type_id}
                                 </p>
                             )}
                         </div>

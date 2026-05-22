@@ -26,7 +26,7 @@ class ProjectController extends Controller
         return ProjectResource::collection(
             Project::query()
                 ->where('company_id', $this->company()->id)
-                ->with(['clientsProjects.client'])
+                ->with(['clientsProjects.client', 'serviceType'])
                 ->orderBy('id', 'desc')
                 ->paginate(10)
         );
@@ -40,6 +40,7 @@ class ProjectController extends Controller
             'start_date'           => 'required|date',
             'end_date'             => 'required|date|after_or_equal:start_date',
             'price'                => 'required|numeric|min:0|decimal:0,2',
+            'service_type_id'      => 'required|exists:service_types,id',
             'vat_type'             => 'required|in:vat_inclusive,vat_exclusive,vat_exempt,vat_other',
             'payment_type'         => 'required|in:one_time,installment',
             'billing_start_date'   => 'required|date|after_or_equal:start_date|before_or_equal:end_date',
@@ -61,7 +62,7 @@ class ProjectController extends Controller
     public function show(Project $project)
     {
         abort_if($project->company_id !== $this->company()->id, 403);
-        return new ProjectResource($project);
+        return new ProjectResource($project->load('serviceType'));
     }
 
     /**

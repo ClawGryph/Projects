@@ -29,6 +29,7 @@ class UpdateProjectRequest extends FormRequest
             'start_date'           => 'required|date',
             'end_date'             => 'required|date|after_or_equal:start_date',
             'price'                => 'required|numeric|min:0|decimal:0,2',
+            'service_type_id'      => 'required|exists:service_types,id',
             'adjusted_start_date'  => 'nullable|date|after_or_equal:end_date',
             'adjusted_end_date'    => [
                                         'nullable',

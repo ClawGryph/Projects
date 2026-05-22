@@ -64,6 +64,11 @@ class Project extends Model
         return $this->hasMany(ProjectLog::class);
     }
 
+    public function serviceType()
+    {
+        return $this->belongsTo(ServiceType::class);
+    }
+
     public function getAutoStatusAttribute(): string
     {
         // These are always manually locked

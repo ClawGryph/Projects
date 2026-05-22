@@ -43,6 +43,11 @@ class Subscription extends Model
         return $this->hasMany(ClientsProject::class, 'subscription_id');
     }
 
+    public function serviceType()
+    {
+        return $this->belongsTo(ServiceType::class);
+    }
+
     public function getAutoStatusAttribute(): string
     {
         // These are always manually locked
