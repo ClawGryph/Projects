@@ -6,7 +6,7 @@ import { useStateContext } from "../context/ContextProvider";
 export default function ProjectsForm() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { setNotification } = useStateContext();
+    const { setNotification, selectedCompany } = useStateContext();
 
     const [errors, setErrors] = useState({});
     const [logs, setLogs] = useState([]);
@@ -26,6 +26,7 @@ export default function ProjectsForm() {
         price: "",
     });
     const [formData, setFormData] = useState(null);
+    const isNonVat = selectedCompany?.vat_type === "non_vat";
 
     useEffect(() => {
         if (!id) return;
@@ -44,6 +45,12 @@ export default function ProjectsForm() {
             .get(`/projects/${id}/logs`)
             .then(({ data }) => setLogs(data));
     }, [id]);
+
+    useEffect(() => {
+        if (isNonVat) {
+            setProject((prev) => ({ ...prev, vat_type: "vat_other" }));
+        }
+    }, [isNonVat]);
 
     const onSubmit = (e) => {
         e.preventDefault();
@@ -279,28 +286,40 @@ export default function ProjectsForm() {
                                 VAT Type{" "}
                                 <span className="text-red-500 text-xs">*</span>
                             </label>
-                            <select
-                                value={project.vat_type ?? ""}
-                                onChange={(e) =>
-                                    setProject({
-                                        ...project,
-                                        vat_type: e.target.value,
-                                    })
-                                }
-                                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
-                            >
-                                <option value="" disabled>
-                                    Select VAT type...
-                                </option>
-                                <option value="vat_inclusive">
-                                    VAT Inclusive
-                                </option>
-                                <option value="vat_exclusive">
-                                    VAT Exclusive
-                                </option>
-                                <option value="vat_exempt">VAT Exempt</option>
-                                <option value="vat_other">VAT Other</option>
-                            </select>
+                            {isNonVat ? (
+                                <input
+                                    type="text"
+                                    value="VAT Other"
+                                    readOnly
+                                    disabled
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                                />
+                            ) : (
+                                <select
+                                    value={project.vat_type ?? ""}
+                                    onChange={(e) =>
+                                        setProject({
+                                            ...project,
+                                            vat_type: e.target.value,
+                                        })
+                                    }
+                                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+                                >
+                                    <option value="" disabled>
+                                        Select VAT type...
+                                    </option>
+                                    <option value="vat_inclusive">
+                                        VAT Inclusive
+                                    </option>
+                                    <option value="vat_exclusive">
+                                        VAT Exclusive
+                                    </option>
+                                    <option value="vat_exempt">
+                                        VAT Exempt
+                                    </option>
+                                    <option value="vat_other">VAT Other</option>
+                                </select>
+                            )}
                             {errors.vat_type && (
                                 <p className="text-xs text-red-500 mt-1">
                                     {errors.vat_type}
