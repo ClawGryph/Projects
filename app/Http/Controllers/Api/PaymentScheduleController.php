@@ -43,6 +43,18 @@ class PaymentScheduleController extends Controller
             });
         }
 
+        if ($request->filled('project_id')) {
+            $query->whereHas('payment.clientsProject', function ($q) use ($request) {
+                $q->where('project_id', $request->project_id);
+            });
+        }
+
+        if ($request->filled('subscription_id')) {
+            $query->whereHas('payment.clientsProject', function ($q) use ($request) {
+                $q->where('subscription_id', $request->subscription_id);
+            });
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
