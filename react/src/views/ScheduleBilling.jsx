@@ -1205,19 +1205,26 @@ export default function ScheduleBilling() {
                                                                     e.target
                                                                         .value,
                                                                 ) || 0;
-                                                            const vat =
-                                                                parseFloat(
-                                                                    s.vat_amount,
-                                                                ) || 0;
-                                                            const newGross =
-                                                                parseFloat(
-                                                                    (
-                                                                        parsed +
-                                                                        vat
-                                                                    ).toFixed(
-                                                                        2,
-                                                                    ),
-                                                                );
+
+                                                            const isProject =
+                                                                assignData?.project !==
+                                                                null;
+                                                            const service =
+                                                                isProject
+                                                                    ? assignData.project
+                                                                    : assignData.subscription;
+                                                            const vatType =
+                                                                service?.vat_type ??
+                                                                "vat_exempt";
+
+                                                            const {
+                                                                base_amount,
+                                                                vat_amount,
+                                                                total_amount,
+                                                            } = calcVat(
+                                                                parsed,
+                                                                vatType,
+                                                            );
 
                                                             setSchedules(
                                                                 (prev) => {
@@ -1231,10 +1238,10 @@ export default function ScheduleBilling() {
                                                                                 index
                                                                                     ? {
                                                                                           ...row,
-                                                                                          base_amount:
-                                                                                              parsed,
+                                                                                          base_amount,
+                                                                                          vat_amount,
                                                                                           gross_amount:
-                                                                                              newGross,
+                                                                                              total_amount,
                                                                                       }
                                                                                     : row,
                                                                         );
@@ -1244,6 +1251,7 @@ export default function ScheduleBilling() {
                                                                     return updated;
                                                                 },
                                                             );
+
                                                             setEditingField(
                                                                 (prev) => {
                                                                     const next =
@@ -1268,38 +1276,110 @@ export default function ScheduleBilling() {
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
                                                         type="text"
-                                                        value={fmtNumber(
-                                                            s.vat_amount,
-                                                        )}
+                                                        value={
+                                                            editingField[
+                                                                `${index}-vat_amount`
+                                                            ] !== undefined
+                                                                ? editingField[
+                                                                      `${index}-vat_amount`
+                                                                  ]
+                                                                : fmtNumber(
+                                                                      s.vat_amount,
+                                                                  )
+                                                        }
                                                         disabled={
                                                             s.status === "paid"
                                                         }
-                                                        onFocus={() =>
+                                                        onFocus={() => {
+                                                            const key = `${index}-vat_amount`;
                                                             setPreEditSchedules(
                                                                 schedules,
-                                                            )
-                                                        }
-                                                        onChange={(e) =>
+                                                            );
+                                                            setEditingField(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    [key]:
+                                                                        s.vat_amount ??
+                                                                        "",
+                                                                }),
+                                                            );
+                                                        }}
+                                                        onChange={(e) => {
+                                                            const key = `${index}-vat_amount`;
+                                                            const raw =
+                                                                e.target.value.replace(
+                                                                    /[^0-9.]/g,
+                                                                    "",
+                                                                );
                                                             s.status !==
                                                                 "paid" &&
-                                                            handleScheduleChange(
-                                                                index,
-                                                                "vat_amount",
-                                                                parseNumber(
+                                                                setEditingField(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        [key]: raw,
+                                                                    }),
+                                                                );
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const key = `${index}-vat_amount`;
+                                                            const parsed =
+                                                                parseFloat(
                                                                     e.target
                                                                         .value,
-                                                                ),
-                                                            )
-                                                        }
-                                                        onBlur={() => {
+                                                                ) || 0;
+                                                            const base =
+                                                                parseFloat(
+                                                                    s.base_amount,
+                                                                ) || 0;
+                                                            const newGross =
+                                                                parseFloat(
+                                                                    (
+                                                                        base +
+                                                                        parsed
+                                                                    ).toFixed(
+                                                                        2,
+                                                                    ),
+                                                                );
+
                                                             setSchedules(
-                                                                (current) => {
+                                                                (prev) => {
+                                                                    const updated =
+                                                                        prev.map(
+                                                                            (
+                                                                                row,
+                                                                                i,
+                                                                            ) =>
+                                                                                i ===
+                                                                                index
+                                                                                    ? {
+                                                                                          ...row,
+                                                                                          vat_amount:
+                                                                                              parsed,
+                                                                                          gross_amount:
+                                                                                              newGross,
+                                                                                      }
+                                                                                    : row,
+                                                                        );
                                                                     checkExceedOnBlur(
-                                                                        current,
+                                                                        updated,
                                                                     );
-                                                                    return current;
+                                                                    return updated;
                                                                 },
                                                             );
+
+                                                            setEditingField(
+                                                                (prev) => {
+                                                                    const next =
+                                                                        {
+                                                                            ...prev,
+                                                                        };
+                                                                    delete next[
+                                                                        key
+                                                                    ];
+                                                                    return next;
+                                                                },
+                                                            );
+                                                            setHasChanges(true);
                                                         }}
                                                         className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
                                                             s.status === "paid"
@@ -1311,38 +1391,120 @@ export default function ScheduleBilling() {
                                                 <td className="border-b border-gray-200 px-4 py-2">
                                                     <input
                                                         type="text"
-                                                        value={fmtNumber(
-                                                            s.gross_amount,
-                                                        )}
+                                                        value={
+                                                            editingField[
+                                                                `${index}-gross_amount`
+                                                            ] !== undefined
+                                                                ? editingField[
+                                                                      `${index}-gross_amount`
+                                                                  ]
+                                                                : fmtNumber(
+                                                                      s.gross_amount,
+                                                                  )
+                                                        }
                                                         disabled={
                                                             s.status === "paid"
                                                         }
-                                                        onFocus={() =>
+                                                        onFocus={() => {
+                                                            const key = `${index}-gross_amount`;
                                                             setPreEditSchedules(
                                                                 schedules,
-                                                            )
-                                                        }
-                                                        onChange={(e) =>
+                                                            );
+                                                            setEditingField(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    [key]:
+                                                                        s.gross_amount ??
+                                                                        "",
+                                                                }),
+                                                            );
+                                                        }}
+                                                        onChange={(e) => {
+                                                            const key = `${index}-gross_amount`;
+                                                            const raw =
+                                                                e.target.value.replace(
+                                                                    /[^0-9.]/g,
+                                                                    "",
+                                                                );
                                                             s.status !==
                                                                 "paid" &&
-                                                            handleScheduleChange(
-                                                                index,
-                                                                "gross_amount",
-                                                                parseNumber(
+                                                                setEditingField(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        [key]: raw,
+                                                                    }),
+                                                                );
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const key = `${index}-gross_amount`;
+                                                            const isProject =
+                                                                assignData?.project !==
+                                                                null;
+                                                            const service =
+                                                                isProject
+                                                                    ? assignData.project
+                                                                    : assignData.subscription;
+                                                            const vatType =
+                                                                service?.vat_type ??
+                                                                "vat_exempt";
+                                                            const gross =
+                                                                parseFloat(
                                                                     e.target
                                                                         .value,
-                                                                ),
-                                                            )
-                                                        }
-                                                        onBlur={() => {
+                                                                ) || 0;
+                                                            const originalPrice =
+                                                                vatType ===
+                                                                "vat_exclusive"
+                                                                    ? gross /
+                                                                      1.12
+                                                                    : gross;
+                                                            const {
+                                                                base_amount,
+                                                                vat_amount,
+                                                            } = calcVat(
+                                                                originalPrice,
+                                                                vatType,
+                                                            );
+
                                                             setSchedules(
-                                                                (current) => {
+                                                                (prev) => {
+                                                                    const updated =
+                                                                        prev.map(
+                                                                            (
+                                                                                row,
+                                                                                i,
+                                                                            ) =>
+                                                                                i ===
+                                                                                index
+                                                                                    ? {
+                                                                                          ...row,
+                                                                                          base_amount,
+                                                                                          vat_amount,
+                                                                                          gross_amount:
+                                                                                              gross,
+                                                                                      }
+                                                                                    : row,
+                                                                        );
                                                                     checkExceedOnBlur(
-                                                                        current,
+                                                                        updated,
                                                                     );
-                                                                    return current;
+                                                                    return updated;
                                                                 },
                                                             );
+
+                                                            setEditingField(
+                                                                (prev) => {
+                                                                    const next =
+                                                                        {
+                                                                            ...prev,
+                                                                        };
+                                                                    delete next[
+                                                                        key
+                                                                    ];
+                                                                    return next;
+                                                                },
+                                                            );
+                                                            setHasChanges(true);
                                                         }}
                                                         className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
                                                             s.status === "paid"
