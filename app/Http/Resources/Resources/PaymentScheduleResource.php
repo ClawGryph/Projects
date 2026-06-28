@@ -34,6 +34,8 @@ class PaymentScheduleResource extends JsonResource
         'is_form2307_issued' => $this->is_form2307_issued,
         'start_coverage'     => $this->start_coverage?->format('Y-m-d'),
         'end_coverage'       => $this->end_coverage?->format('Y-m-d'),
+        'wh_tax'             => $this->wh_tax,
+        'net_amount'         => $this->net_amount,
 
         'transaction' => $this->whenLoaded('transaction',
             fn() => new PaymentTransactionResource($this->transaction)

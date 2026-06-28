@@ -21,6 +21,15 @@ class ClientsProjectController extends Controller
         return app('company');
     }
 
+    private function calcVatTotal(float $price, string $vatType): float
+    {
+        return match ($vatType) {
+            'vat_exclusive' => round($price * 1.12, 2),
+            'vat_inclusive' => round($price, 2),
+            default => round($price, 2),
+        };
+    }
+
     public function index(Client $client)
     {
         abort_if($client->company_id !== $this->company()->id, 403);
@@ -181,11 +190,27 @@ class ClientsProjectController extends Controller
             'subscription_id' => $data['subscription_id'] ?? null,
         ]);
 
+        $totalCost = 0;
+
+        if ($project) {
+            $totalCost = $this->calcVatTotal(
+                (float) $project->price,
+                $project->vat_type ?? 'vat_exempt'
+            );
+        } elseif ($subscription) {
+            $cycleCount = $data['number_of_cycles'] ?? 1;
+
+            $totalCost = $this->calcVatTotal(
+                (float) $subscription->cost * $cycleCount,
+                $subscription->vat_type ?? 'vat_exempt'
+            );
+        }
+
         Payment::create([
             'company_id'         => $this->company()->id,
             'clients_project_id' => $clientsProject->id,
             'number_of_cycles'   => $data['number_of_cycles'] ?? 0,
-            'total_cost'         => $data['total_cost'] ?? 0,
+            'total_cost'         => $totalCost,
         ]);
 
         return response()->json(['message' => 'Project assigned with payment successfully']);

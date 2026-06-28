@@ -133,6 +133,8 @@ class PaymentScheduleController extends Controller
             'schedules.*.base_amount'    => 'required|numeric|min:0',
             'schedules.*.vat_amount'     => 'required|numeric|min:0',
             'schedules.*.total_amount'   => 'required|numeric|min:0',
+            'schedules.*.wh_tax'         => 'nullable|numeric|min:0',
+            'schedules.*.net_amount'     => 'nullable|numeric|min:0',
         ]);
 
         $existingDates = PaymentSchedule::where('payment_id', $payment->id)
@@ -155,6 +157,8 @@ class PaymentScheduleController extends Controller
                 'base_amount'          => $s['base_amount'],
                 'vat_amount'           => $s['vat_amount'],
                 'total_amount'         => $s['total_amount'],
+                'wh_tax'               => $s['wh_tax'] ?? 0,
+                'net_amount'           => $s['net_amount'] ?? $s['total_amount'],
                 'status'               => 'pending',
                 'invoice_number'       => null,
                 'is_or_issued'         => false,
@@ -236,6 +240,7 @@ class PaymentScheduleController extends Controller
         abort_if($payment->company_id !== $this->company()->id, 403);
 
         $data = $request->validate([
+            'vat_type'                   => 'nullable|in:vat_exclusive,vat_inclusive,vat_exempt,vat_other',
             'schedules'                  => 'required|array|min:1',
             'schedules.*.id'             => 'nullable|integer',
             'schedules.*.due_date'       => 'required|date',
@@ -245,8 +250,23 @@ class PaymentScheduleController extends Controller
             'schedules.*.base_amount'    => 'required|numeric|min:0',
             'schedules.*.vat_amount'     => 'required|numeric|min:0',
             'schedules.*.total_amount'   => 'required|numeric|min:0',
-            // ← no status field accepted here
+            'schedules.*.wh_tax'         => 'nullable|numeric|min:0',
+            'schedules.*.net_amount'     => 'nullable|numeric|min:0',
         ]);
+
+        if (array_key_exists('vat_type', $data)) {
+            $clientsProject = $payment->clientsProject;
+
+            if ($clientsProject?->project_id && $clientsProject->project) {
+                $clientsProject->project->update([
+                    'vat_type' => $data['vat_type'],
+                ]);
+            } elseif ($clientsProject?->subscription_id && $clientsProject->subscription) {
+                $clientsProject->subscription->update([
+                    'vat_type' => $data['vat_type'],
+                ]);
+            }
+        }
 
         // Delete rows removed by the user
         $incomingIds = collect($data['schedules'])->pluck('id')->filter()->toArray();
@@ -267,6 +287,8 @@ class PaymentScheduleController extends Controller
                         'base_amount'    => $s['base_amount'],
                         'vat_amount'     => $s['vat_amount'],
                         'total_amount'   => $s['total_amount'],
+                        'wh_tax'         => $s['wh_tax'] ?? 0,
+                        'net_amount'     => $s['net_amount'] ?? $s['total_amount'],
                         'updated_at'     => now(),
                     ]);
             } else {
@@ -280,8 +302,10 @@ class PaymentScheduleController extends Controller
                     'base_amount'          => $s['base_amount'],
                     'vat_amount'           => $s['vat_amount'],
                     'total_amount'         => $s['total_amount'],
+                    'wh_tax'               => $s['wh_tax'] ?? 0,
+                    'net_amount'           => $s['net_amount'] ?? $s['total_amount'],
                     'status'               => 'pending',
-                    'invoice_number'       => null,  // explicitly no invoice yet
+                    'invoice_number'       => null,
                     'is_or_issued'         => false,
                     'is_form2307_issued'   => false,
                     'is_invoice_generated' => false,

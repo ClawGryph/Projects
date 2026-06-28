@@ -20,6 +20,8 @@ class PaymentSchedule extends Model
         'is_invoice_generated',
         'start_coverage',
         'end_coverage',
+        'wh_tax',
+        'net_amount'
     ];
 
     protected $casts = [
@@ -54,7 +56,7 @@ class PaymentSchedule extends Model
             'id'                   // Local key on payment_transactions
         );
     }
-    
+
     public function manualInvoice()
     {
         return $this->hasOne(ManualInvoice::class, 'payment_schedule_id');

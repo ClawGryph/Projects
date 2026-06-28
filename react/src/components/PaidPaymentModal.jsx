@@ -7,7 +7,6 @@ import {
     faFloppyDisk,
     faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
-import { calcWithholdingTax } from "../utils/withholdingTax";
 
 const readOnlyClass =
     "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-500 bg-gray-50 cursor-default select-none";
@@ -111,14 +110,9 @@ export default function PaidPaymentModal({ payment, onClose, onSaved }) {
     const baseAmount = parseFloat(payment?.base_amount) || 0;
     const vatAmount = parseFloat(payment?.vat_amount) || 0;
     const totalAmount = parseFloat(payment?.total_amount) || 0;
-
-    // Withholding Tax
+    const withholdingTax = parseFloat(payment?.wh_tax) || 0;
+    const netAmount = parseFloat(payment?.net_amount) || 0;
     const serviceTypeRate = parseFloat(project?.service_type_rate) || 0;
-    const paidAmountFloat = parseFloat(paidAmount) || 0;
-    const { tax: withholdingTax } = calcWithholdingTax({
-        totalAmount: totalAmount,
-        serviceTypeRate,
-    });
 
     useEffect(() => {
         if (!payment?.id) return;
@@ -351,10 +345,7 @@ export default function PaidPaymentModal({ payment, onClose, onSaved }) {
                                         Total Net Amount
                                     </span>
                                     <span className="text-base font-bold text-white font-mono">
-                                        ₱
-                                        {formatPHP(
-                                            totalAmount - withholdingTax,
-                                        )}
+                                        ₱{formatPHP(netAmount)}
                                     </span>
                                 </div>
                             )}

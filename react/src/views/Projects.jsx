@@ -6,6 +6,7 @@ import {
     faPen,
     faEye,
     faTimes,
+    faCalendarAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import axiosClient from "../axios-client";
@@ -20,7 +21,6 @@ export default function Projects() {
     const { setNotification, user } = useStateContext();
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
-    // --- NEW MODAL STATE ---
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
     const [payments, setPayments] = useState([]);
@@ -65,7 +65,6 @@ export default function Projects() {
             });
     };
 
-    // --- NEW: Fetch payments and open modal ---
     const onView = (p) => {
         setSelectedProject(p);
         setModalOpen(true);
@@ -95,7 +94,6 @@ export default function Projects() {
         return () => window.removeEventListener("click", close);
     }, []);
 
-    // View Project Modal
     const onViewProject = (p) => {
         setViewedProject(p);
         setProjectModalOpen(true);
@@ -118,6 +116,24 @@ export default function Projects() {
         installment: "Installment",
     };
 
+    const getBillingScheduleAssignment = (project) => {
+        return project.clients_projects?.find((clientsProject) => {
+            const schedules =
+                clientsProject.payment?.schedules ??
+                clientsProject.payment?.payment_schedules ??
+                clientsProject.payment_schedules ??
+                clientsProject.paymentSchedules ??
+                [];
+
+            return (
+                clientsProject.has_billing_schedule ||
+                clientsProject.payment_id ||
+                clientsProject.payment ||
+                schedules.length > 0
+            );
+        });
+    };
+
     const tableHeaders = [
         "ID",
         "Project Name",
@@ -130,6 +146,10 @@ export default function Projects() {
         "Payment View",
         "Actions",
     ];
+
+    // ── Shared action button classes ──────────────────────────────────
+    const btnBase =
+        "inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg transition whitespace-nowrap";
 
     return (
         <>
@@ -185,205 +205,259 @@ export default function Projects() {
                         {!loading && (
                             <tbody>
                                 {projects.length > 0 ? (
-                                    projects.map((p) => (
-                                        <tr
-                                            key={p.id}
-                                            className="hover:bg-cyan-50 text-center"
-                                        >
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.id}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                <button
-                                                    onClick={() =>
-                                                        onViewProject(p)
-                                                    }
-                                                    className="text-cyan-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
-                                                >
-                                                    {p.title}
-                                                </button>
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                ₱{" "}
-                                                {new Intl.NumberFormat(
-                                                    "en-PH",
-                                                ).format(p.price)}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.adjusted_start_date
-                                                    ? p.adjusted_start_date
-                                                    : p.start_date}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.adjusted_end_date
-                                                    ? p.adjusted_end_date
-                                                    : p.end_date}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {PAYMENT_TYPE_LABELS[
-                                                    p.payment_type
-                                                ] ?? "—"}
-                                            </td>
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                {p.clients_projects?.length > 0
-                                                    ? p.clients_projects
-                                                          .map(
-                                                              (cp) =>
-                                                                  cp.client
-                                                                      ?.name,
-                                                          )
-                                                          .filter(Boolean)
-                                                          .join(", ")
-                                                    : "—"}
-                                            </td>
+                                    projects.map((p) => {
+                                        const billingScheduleAssignment =
+                                            getBillingScheduleAssignment(p);
+                                        const billingScheduleClientId =
+                                            billingScheduleAssignment?.client_id ??
+                                            billingScheduleAssignment?.client
+                                                ?.id ??
+                                            billingScheduleAssignment?.clientId;
 
-                                            <td className="border-b border-gray-200 px-4 py-2 relative">
-                                                {editingId === p.id ? (
-                                                    <div
-                                                        style={{
-                                                            position: "fixed",
-                                                            top: dropdownPos.top,
-                                                            left: dropdownPos.left,
-                                                            transform:
-                                                                "translateX(-50%)",
-                                                        }}
-                                                        className="bg-white border rounded shadow-md z-50"
+                                        const billingScheduleUrl =
+                                            billingScheduleAssignment &&
+                                            billingScheduleClientId
+                                                ? `/clients/assign/${billingScheduleClientId}/scheduleBilling/${billingScheduleAssignment.id}`
+                                                : null;
+                                        return (
+                                            <tr
+                                                key={p.id}
+                                                className="hover:bg-cyan-50 text-center"
+                                            >
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {p.id}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    <button
+                                                        onClick={() =>
+                                                            onViewProject(p)
+                                                        }
+                                                        className="text-cyan-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
                                                     >
-                                                        {[
-                                                            "pending",
-                                                            "ongoing",
-                                                            "delay",
-                                                            "hold",
-                                                            "complete",
-                                                        ].map((status) => (
-                                                            <div
-                                                                key={status}
-                                                                onClick={() => {
-                                                                    updateStatus(
-                                                                        p.id,
-                                                                        status,
-                                                                    );
-                                                                    setEditingId(
-                                                                        null,
-                                                                    );
-                                                                }}
-                                                                className="cursor-pointer px-3 py-1 hover:bg-gray-100"
-                                                            >
-                                                                <StatusBadge
-                                                                    status={
-                                                                        status
-                                                                    }
-                                                                    isEnded={
-                                                                        p.isEnded
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const rect =
-                                                                e.currentTarget.getBoundingClientRect();
-                                                            setDropdownPos({
-                                                                top:
-                                                                    rect.bottom +
-                                                                    window.scrollY -
-                                                                    30,
-                                                                left:
-                                                                    rect.left +
-                                                                    rect.width /
-                                                                        2 +
-                                                                    window.scrollX,
-                                                            });
-                                                            user?.role_name !==
-                                                                "viewer" &&
-                                                                setEditingId(
-                                                                    p.id,
-                                                                );
-                                                        }}
-                                                        className={`inline-flex items-center gap-1 justify-center ${
-                                                            user?.role_name !==
-                                                            "viewer"
-                                                                ? "cursor-pointer"
-                                                                : "cursor-default"
-                                                        }`}
-                                                    >
-                                                        <StatusBadge
-                                                            status={
-                                                                p.auto_status
-                                                            }
-                                                            isEnded={p.isEnded}
-                                                        />
-                                                        {user?.role_name !==
-                                                            "viewer" && (
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                className="h-3 w-3 text-gray-400 shrink-0"
-                                                                viewBox="0 0 20 20"
-                                                                fill="currentColor"
-                                                            >
-                                                                <path
-                                                                    fillRule="evenodd"
-                                                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                                    clipRule="evenodd"
-                                                                />
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </td>
+                                                        {p.title}
+                                                    </button>
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    ₱{" "}
+                                                    {new Intl.NumberFormat(
+                                                        "en-PH",
+                                                    ).format(p.price)}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {p.adjusted_start_date
+                                                        ? p.adjusted_start_date
+                                                        : p.start_date}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {p.adjusted_end_date
+                                                        ? p.adjusted_end_date
+                                                        : p.end_date}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {PAYMENT_TYPE_LABELS[
+                                                        p.payment_type
+                                                    ] ?? "—"}
+                                                </td>
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    {p.clients_projects
+                                                        ?.length > 0
+                                                        ? p.clients_projects
+                                                              .map(
+                                                                  (cp) =>
+                                                                      cp.client
+                                                                          ?.name,
+                                                              )
+                                                              .filter(Boolean)
+                                                              .join(", ")
+                                                        : "—"}
+                                                </td>
 
-                                            <td className="border-b border-gray-200 px-4 py-2">
-                                                <button
-                                                    onClick={() => onView(p)}
-                                                    className="inline-block px-2 py-1 text-xs text-[#0d1b2a] border border-gray-200 font-semibold rounded-md shadow hover:bg-cyan-900 hover:text-white cursor-pointer"
-                                                >
-                                                    <FontAwesomeIcon
-                                                        icon={faEye}
-                                                        className="pr-1"
-                                                    />
-                                                    View
-                                                </button>
-                                            </td>
-
-                                            {user?.role_name !== "viewer" && (
-                                                <td className="border-b border-gray-200 px-4 py-2 text-center">
-                                                    <div className="flex justify-center items-center gap-2">
-                                                        <Link
-                                                            to={
-                                                                "/projects/" +
-                                                                p.id
-                                                            }
-                                                            className="flex items-center gap-1 bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                                <td className="border-b border-gray-200 px-4 py-2 relative">
+                                                    {editingId === p.id ? (
+                                                        <div
+                                                            style={{
+                                                                position:
+                                                                    "fixed",
+                                                                top: dropdownPos.top,
+                                                                left: dropdownPos.left,
+                                                                transform:
+                                                                    "translateX(-50%)",
+                                                            }}
+                                                            className="bg-white border rounded shadow-md z-50"
                                                         >
-                                                            <FontAwesomeIcon
-                                                                icon={faPen}
-                                                            />{" "}
-                                                            Edit
-                                                        </Link>
-                                                        {user?.role_name ===
-                                                            "super_admin" && (
-                                                            <button
-                                                                onClick={() =>
-                                                                    onDelete(p)
+                                                            {[
+                                                                "pending",
+                                                                "ongoing",
+                                                                "delay",
+                                                                "hold",
+                                                                "complete",
+                                                            ].map((status) => (
+                                                                <div
+                                                                    key={status}
+                                                                    onClick={() => {
+                                                                        updateStatus(
+                                                                            p.id,
+                                                                            status,
+                                                                        );
+                                                                        setEditingId(
+                                                                            null,
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-1 hover:bg-gray-100"
+                                                                >
+                                                                    <StatusBadge
+                                                                        status={
+                                                                            status
+                                                                        }
+                                                                        isEnded={
+                                                                            p.isEnded
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const rect =
+                                                                    e.currentTarget.getBoundingClientRect();
+                                                                setDropdownPos({
+                                                                    top:
+                                                                        rect.bottom +
+                                                                        window.scrollY -
+                                                                        30,
+                                                                    left:
+                                                                        rect.left +
+                                                                        rect.width /
+                                                                            2 +
+                                                                        window.scrollX,
+                                                                });
+                                                                user?.role_name !==
+                                                                    "viewer" &&
+                                                                    setEditingId(
+                                                                        p.id,
+                                                                    );
+                                                            }}
+                                                            className={`inline-flex items-center gap-1 justify-center ${
+                                                                user?.role_name !==
+                                                                "viewer"
+                                                                    ? "cursor-pointer"
+                                                                    : "cursor-default"
+                                                            }`}
+                                                        >
+                                                            <StatusBadge
+                                                                status={
+                                                                    p.auto_status
                                                                 }
-                                                                className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                                                                isEnded={
+                                                                    p.isEnded
+                                                                }
+                                                            />
+                                                            {user?.role_name !==
+                                                                "viewer" && (
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    className="h-3 w-3 text-gray-400 shrink-0"
+                                                                    viewBox="0 0 20 20"
+                                                                    fill="currentColor"
+                                                                >
+                                                                    <path
+                                                                        fillRule="evenodd"
+                                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                                        clipRule="evenodd"
+                                                                    />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </td>
+
+                                                {/* Payment View */}
+                                                <td className="border-b border-gray-200 px-4 py-2">
+                                                    <button
+                                                        onClick={() =>
+                                                            onView(p)
+                                                        }
+                                                        className={`${btnBase} bg-slate-100 hover:bg-slate-200 text-slate-700`}
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={faEye}
+                                                        />
+                                                        View
+                                                    </button>
+                                                </td>
+
+                                                {/* Actions */}
+                                                {user?.role_name !==
+                                                    "viewer" && (
+                                                    <td className="border-b border-gray-200 px-4 py-2">
+                                                        <div className="flex justify-center items-center gap-2">
+                                                            {billingScheduleUrl ? (
+                                                                <Link
+                                                                    to={
+                                                                        billingScheduleUrl
+                                                                    }
+                                                                    className={`${btnBase} bg-emerald-600 hover:bg-emerald-700 text-white`}
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faCalendarAlt
+                                                                        }
+                                                                    />
+                                                                    Billing
+                                                                </Link>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled
+                                                                    title="No billing schedule yet"
+                                                                    className={`${btnBase} bg-gray-100 text-gray-400 cursor-not-allowed`}
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faCalendarAlt
+                                                                        }
+                                                                    />
+                                                                    Billing
+                                                                </button>
+                                                            )}
+                                                            <Link
+                                                                to={
+                                                                    "/projects/" +
+                                                                    p.id
+                                                                }
+                                                                className={`${btnBase} bg-cyan-800 hover:bg-cyan-900 text-white`}
                                                             >
                                                                 <FontAwesomeIcon
-                                                                    icon={
-                                                                        faTrash
+                                                                    icon={faPen}
+                                                                />
+                                                                Edit
+                                                            </Link>
+                                                            {user?.role_name ===
+                                                                "super_admin" && (
+                                                                <button
+                                                                    onClick={() =>
+                                                                        onDelete(
+                                                                            p,
+                                                                        )
                                                                     }
-                                                                />{" "}
-                                                                Delete
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))
+                                                                    className={`${btnBase} bg-red-50 hover:bg-red-100 text-red-600 cursor-pointer`}
+                                                                >
+                                                                    <FontAwesomeIcon
+                                                                        icon={
+                                                                            faTrash
+                                                                        }
+                                                                    />
+                                                                    Delete
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td
@@ -438,7 +512,6 @@ export default function Projects() {
                         className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Modal Header */}
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800">
@@ -456,7 +529,6 @@ export default function Projects() {
                             </button>
                         </div>
 
-                        {/* Payments Table */}
                         {paymentsLoading ? (
                             <div className="text-center py-8 text-gray-500">
                                 Loading payments...
@@ -588,7 +660,6 @@ export default function Projects() {
                         className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6 overflow-y-auto max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Header */}
                         <div className="flex justify-between items-start mb-5">
                             <div>
                                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
@@ -606,7 +677,6 @@ export default function Projects() {
                             </button>
                         </div>
 
-                        {/* Metric Cards */}
                         <div className="grid grid-cols-2 gap-3 mb-5">
                             <div className="bg-gray-50 rounded-lg p-3">
                                 <p className="text-xs text-gray-400 mb-1">
@@ -685,7 +755,6 @@ export default function Projects() {
                             </div>
                         )}
 
-                        {/* Additional Info */}
                         <div className="border-t border-gray-100 pt-4">
                             <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">
                                 Additional Info
